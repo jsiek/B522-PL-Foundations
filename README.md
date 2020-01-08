@@ -39,36 +39,36 @@ TBD
 | -------- | --- | -------- |
 | January  | 13  | [Naturals](https://plfa.github.io/Naturals/) & [Induction](https://plfa.github.io/Induction/) |
 |          | 15  | [Relations](https://plfa.github.io/Relations/) |
-|          | 20  | [Equality](https://plfa.github.io/Equality) & [Isomorphism](https://plfa.github.io/Isomorphism) (no lecture) |
-| 		   | 22  | [Connectives](https://plfa.github.io/Connectives) & [Negation](https://plfa.github.io/Negation) |
-|		   | 27  | [Quantifiers](https://plfa.github.io/Quantifiers) & [Decidable](https://plfa.github.io/Decidable) |
-|		   | 29  | [Lists](https://plfa.github.io/Lists) |
-| February | 3   | [Lambda](https://plfa.github.io/Lambda) |
-|          | 5   | |
-|          | 10  | |
-|          | 12  | |
-|          | 17  | |
-|          | 19  | |
-|          | 24  | |
-|          | 26  | |
-| March    | 2   | |
-|          | 4   | |
-|          | 9   | |
-|          | 11   | |
-|          | 16   | |
-|          | 18   | |
-|          | 23   | |
-|          | 25   | |
-|          | 30   | |
-| April    | 1    | |
+|          | 20  | [Equality](https://plfa.github.io/Equality/) & [Isomorphism](https://plfa.github.io/Isomorphism/) (no lecture) |
+| 		   | 22  | [Connectives](https://plfa.github.io/Connectives/) & [Negation](https://plfa.github.io/Negation/) (no lecture) |
+|		   | 27  | [Quantifiers](https://plfa.github.io/Quantifiers/) & [Decidable](https://plfa.github.io/Decidable/) |
+|		   | 29  | [Lists](https://plfa.github.io/Lists/) |
+| February | 3   | [Lambda](https://plfa.github.io/Lambda/) |
+|          | 5   | [Properties](https://plfa.github.io/Properties/) |
+|          | 10  | [DeBruijn](https://plfa.github.io/DeBruijn/) |
+|          | 12  | [More](https://plfa.github.io/More/) |
+|          | 17  | [Inference](https://plfa.github.io/Inference/) |
+|          | 19  | [Untyped](https://plfa.github.io/Untyped/) |
+|          | 24  | [Confluence](https://plfa.github.io/Confluence/) |
+|          | 26  | [BigStep](https://plfa.github.io/BigStep/) |
+| March    | 2   | [Denotational](https://plfa.github.io/Denotational/) |
+|          | 4   | [Compositional](https://plfa.github.io/Compositional/) |
+|          | 9   | [Soundness](https://plfa.github.io/Soundness/) |
+|          | 11  | [Adequacy](https://plfa.github.io/Adequacy/) |
+|          | 16  | [ContextualEquivalence](https://plfa.github.io/ContextualEquivalence/) |
+|          | 18  | |
+|          | 23  | |
+|          | 25  | |
+|          | 30  | |
+| April    | 1   | |
 |          | 6   | |
 |          | 8   | |
-|          | 13   | |
-|          | 15   | |
-|          | 20   | |
-|          | 22   | |
-|          | 27   | |
-|          | 29   | |
+|          | 13  | |
+|          | 15  | |
+|          | 20  | |
+|          | 22  | |
+|          | 27  | |
+|          | 29  | |
 
 
  

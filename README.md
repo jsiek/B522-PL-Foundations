@@ -42,33 +42,33 @@ TBD
 |          | 20  | [Equality](https://plfa.github.io/Equality/) & [Isomorphism](https://plfa.github.io/Isomorphism/) (no lecture) |
 | 		   | 22  | [Connectives](https://plfa.github.io/Connectives/) & [Negation](https://plfa.github.io/Negation/) (no lecture) |
 |		   | 27  | [Quantifiers](https://plfa.github.io/Quantifiers/) & [Decidable](https://plfa.github.io/Decidable/) |
-|		   | 29  | [Lists](https://plfa.github.io/Lists/) |
-| February | 3   | [Lambda](https://plfa.github.io/Lambda/) |
-|          | 5   | [Properties](https://plfa.github.io/Properties/) |
-|          | 10  | [DeBruijn](https://plfa.github.io/DeBruijn/) |
-|          | 12  | [More](https://plfa.github.io/More/) |
-|          | 17  | [Inference](https://plfa.github.io/Inference/) |
-|          | 19  | [Untyped](https://plfa.github.io/Untyped/) |
-|          | 24  | [Confluence](https://plfa.github.io/Confluence/) |
-|          | 26  | [BigStep](https://plfa.github.io/BigStep/) |
-| March    | 2   | [Denotational](https://plfa.github.io/Denotational/) |
+|		   | 29  | [Lists](https://plfa.github.io/Lists/) and higher-order functions |
+| February | 3   | [Lambda](https://plfa.github.io/Lambda/) the Simply Typed Lambda Calculus |
+|          | 5   | [Properties](https://plfa.github.io/Properties/) such as type safety |
+|          | 10  | [DeBruijn](https://plfa.github.io/DeBruijn/) representation of variables |
+|          | 12  | [More](https://plfa.github.io/More/) constructs: numbers, let, products (pairs), sums, unit, empty, lists |
+|          | 17  | [Inference](https://plfa.github.io/Inference/) bidirectional type inference |
+|          | 19  | [Untyped](https://plfa.github.io/Untyped/) Lambda Calculus |
+|          | 24  | [Confluence](https://plfa.github.io/Confluence/) of the Lambda Calculus |
+|          | 26  | [BigStep](https://plfa.github.io/BigStep/) Call-by-name Evaluation of the Lambda Calculus |
+| March    | 2   | [Denotational](https://plfa.github.io/Denotational/) semantics of the Lambda Calculus |
 |          | 4   | [Compositional](https://plfa.github.io/Compositional/) |
 |          | 9   | [Soundness](https://plfa.github.io/Soundness/) |
 |          | 11  | [Adequacy](https://plfa.github.io/Adequacy/) |
 |          | 16  | [ContextualEquivalence](https://plfa.github.io/ContextualEquivalence/) |
-|          | 18  | |
-|          | 23  | |
-|          | 25  | |
-|          | 30  | |
-| April    | 1   | |
-|          | 6   | |
-|          | 8   | |
-|          | 13  | |
-|          | 15  | |
-|          | 20  | |
-|          | 22  | |
-|          | 27  | |
-|          | 29  | |
+|          | 18  | References and the Heap |
+|          | 23  | Subtyping and Records |
+|          | 25  | Classes and Objects (Featherweight Java) |
+|          | 30  | Gradual Typing |
+| April    | 1   | Universal and Existential Types (Parametric Polymorphism) |
+|          | 6   | Hindley-Milner Inference |
+|          | 8   | Recursive Types |
+|          | 13  | Intersection and Union Types |
+|          | 15  | Higher-Order Polymorphism |
+|          | 20  | Dependent Types |
+|          | 22  | TBD |
+|          | 27  | TBD |
+|          | 29  | TBD |
 
 
  

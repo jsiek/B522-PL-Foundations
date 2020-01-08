@@ -16,7 +16,6 @@ Agda is assumed; it will be taught from scratch.  Prior knowledge of
 another proof assistant or dependently typed language is helpful but
 not necessary.
 
-
 ## Instructor
 
 Prof. Jeremy Siek, Luddy 3016, [jsiek@indiana.edu](mailto:jsiek@indiana.edu)
@@ -71,5 +70,6 @@ TBD
 |          | 27  | TBD |
 |          | 29  | TBD |
 
+## Resources
 
- 
+* [Crash Course on Notation in Programming Language Theory](http://siek.blogspot.com/2012/07/crash-course-on-notation-in-programming.html)

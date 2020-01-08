@@ -19,15 +19,16 @@ not necessary.
 
 ## Instructor
 
-Prof. **Jeremy Siek**, Luddy 3016, [jsiek@indiana.edu](mailto:jsiek@indiana.edu)
+Prof. Jeremy Siek, Luddy 3016, [jsiek@indiana.edu](mailto:jsiek@indiana.edu)
 
 ## Lectures
 
-MW 4:30-5:45pm in Luddy Hall Room 4101.
+Monday and Wednesday at 4:30-5:45pm in Luddy Hall Room 4101.
 
 ## Office Hours
 
-TBD
+Monday 3:00-4:30pm in Luddy Hall 3016 (or the neighboring 3014).
+Tuesday 10:30-12:00pm in Luddy Hall 3016 (or the neighboring 3014).
 
 ## Assignments
 

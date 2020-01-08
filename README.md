@@ -28,7 +28,7 @@ Monday and Wednesday at 4:30-5:45pm in Luddy Hall Room 4101.
 ## Office Hours (in Luddy Hall 3016 or the neighboring 3014)
 
 * Monday 3:00-4:30pm
-* Tuesday 10:30-12:00pm
+* Tuesday 11:00-12:30pm
 
 ## Assignments
 

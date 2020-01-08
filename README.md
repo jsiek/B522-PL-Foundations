@@ -25,11 +25,10 @@ Prof. Jeremy Siek, Luddy 3016, [jsiek@indiana.edu](mailto:jsiek@indiana.edu)
 
 Monday and Wednesday at 4:30-5:45pm in Luddy Hall Room 4101.
 
-## Office Hours
+## Office Hours (in Luddy Hall 3016 or the neighboring 3014)
 
-Monday 3:00-4:30pm in Luddy Hall 3016 (or the neighboring 3014).
-
-Tuesday 10:30-12:00pm in Luddy Hall 3016 (or the neighboring 3014).
+* Monday 3:00-4:30pm
+* Tuesday 10:30-12:00pm
 
 ## Assignments
 

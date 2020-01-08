@@ -19,11 +19,11 @@ not necessary.
 
 ## Instructor
 
-**Jeremy Siek** Luddy 3016 [jsiek@indiana.edu](mailto:jsiek@indiana.edu)
+Prof. **Jeremy Siek**, Luddy 3016, [jsiek@indiana.edu](mailto:jsiek@indiana.edu)
 
 ## Lectures
 
-4:30-5:45am MW in Luddy Hall Room 4101.
+MW 4:30-5:45pm in Luddy Hall Room 4101.
 
 ## Office Hours
 
@@ -37,13 +37,13 @@ TBD
 
 | Month    | Day | Topic    |
 | -------- | --- | -------- |
-| January  | 13  | Naturals & Induction |
-|          | 15  | Relations |
-|          | 20  | Equality & Isomorphism (no lecture) |
-| 		   | 22  | Connectives & Negation |
-|		   | 27  | Quantifiers & Decidable |
-|		   | 29  | Lists |
-| February | 3   | Lambda |
+| January  | 13  | [Naturals](https://plfa.github.io/Naturals/) & [Induction](https://plfa.github.io/Induction/) |
+|          | 15  | [Relations](https://plfa.github.io/Relations/) |
+|          | 20  | [Equality](https://plfa.github.io/Equality) & [Isomorphism](https://plfa.github.io/Isomorphism) (no lecture) |
+| 		   | 22  | [Connectives](https://plfa.github.io/Connectives) & [Negation](https://plfa.github.io/Negation) |
+|		   | 27  | [Quantifiers](https://plfa.github.io/Quantifiers) & [Decidable](https://plfa.github.io/Decidable) |
+|		   | 29  | [Lists](https://plfa.github.io/Lists) |
+| February | 3   | [Lambda](https://plfa.github.io/Lambda) |
 |          | 5   | |
 |          | 10  | |
 |          | 12  | |

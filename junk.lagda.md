@@ -73,3 +73,31 @@ tri-sum (suc k) .(n + suc k) (tri-add .k n t) =
     ⌊ suc (k + k * suc k + suc k) /2⌋
   ∎ 
 ```
+
+Relations
+----------
+
+```
+data Div2 : ℕ → ℕ → Set where
+  div2-zz : Div2 0 0
+  div2-1z : Div2 1 0  
+  div2-level : (n m : ℕ) → Div2 n m → Div2 (suc n) (suc m) → Div2 (suc (suc n)) (suc m)
+  div2-up : (n m : ℕ) → Div2 n m → Div2 (suc n) m → Div2 (suc (suc n)) (suc m)
+```
+
+```
+div2-0-0 : Div2 0 0
+div2-0-0 = div2-zz
+
+div2-1-0 : Div2 1 0
+div2-1-0 = div2-1z
+
+div2-2-1 : Div2 2 1
+div2-2-1 = div2-up 0 0 div2-zz div2-1z
+
+div2-3-1 : Div2 3 1
+div2-3-1 = div2-level 1 zero div2-1z div2-2-1
+
+div2-4-2 : Div2 4 2
+div2-4-2 = div2-up 2 1 div2-2-1 div2-3-1
+```

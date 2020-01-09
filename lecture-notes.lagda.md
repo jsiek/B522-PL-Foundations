@@ -135,16 +135,91 @@ dub-correct (suc n) =
   ∎
 ```
 
-Predicates
-----------
+Predicates, Inductively Defined
+-------------------------------
 
+```
+data Even : ℕ → Set where
+  E-z : Even 0
+  E-ss : (n : ℕ) → Even n → Even (n + 2)
 ```
 
 ```
+Even-2 : Even 2
+Even-2 = E-ss 0 E-z
+
+Even-4 : Even 4
+Even-4 = E-ss 2 Even-2
+```
+
+```
+Even-inv : (n m : ℕ) → Even m → n + 2 ≡ m → Even n
+Even-inv n .0 E-z n+2≡m
+   with m+n≡0⇒n≡0 n n+2≡m
+... | ()   
+Even-inv n .(n₁ + 2) (E-ss n₁ even-m) m≡n+2 rewrite +-cancelʳ-≡ n n₁ m≡n+2 =
+  even-m
+```
+
+
+```
+snsn≡nn2 : (n : ℕ) → (suc (n + suc n)) ≡ n + n + 2
+snsn≡nn2 n =
+  begin
+    (suc (n + suc n))
+  ≡⟨ +-suc zero (n + suc n) ⟩
+    (suc n + suc n)
+  ≡⟨ refl ⟩
+    ((1 + n) + (1 + n))
+  ≡⟨ cong₂ _+_ (+-comm 1 n) (+-comm 1 n) ⟩
+    ((n + 1) + (n + 1))
+  ≡⟨ +-assoc n 1 (n + 1) ⟩
+    (n + (1 + (n + 1)))
+  ≡⟨ cong₂ _+_ refl (+-comm 1 (n + 1)) ⟩
+    (n + ((n + 1) + 1))
+  ≡⟨ cong₂ _+_ {x = n} refl (+-assoc n 1 1) ⟩
+    n + (n + 2)
+  ≡⟨ sym (+-assoc n n 2) ⟩
+    n + n + 2
+  ∎
+```
+
+
+```
+even-dub : (n : ℕ) → Even (n + n)
+even-dub zero = E-z
+even-dub (suc n) = G
+  where
+  G : Even (suc (n + suc n))
+  G rewrite snsn≡nn2 n = E-ss (n + n) (even-dub n)
+```
 
 
 
+Relations, Inductively Defined
+------------------------------
 
-Relations
----------
+```
+data Div2 : ℕ → ℕ → Set where
+  div2-zz : Div2 0 0
+  div2-1z : Div2 1 0  
+  div2-level : (n m : ℕ) → Div2 n m → Div2 (suc n) (suc m) → Div2 (suc (suc n)) (suc m)
+  div2-up : (n m : ℕ) → Div2 n m → Div2 (suc n) m → Div2 (suc (suc n)) (suc m)
+```
 
+```
+div2-0-0 : Div2 0 0
+div2-0-0 = div2-zz
+
+div2-1-0 : Div2 1 0
+div2-1-0 = div2-1z
+
+div2-2-1 : Div2 2 1
+div2-2-1 = div2-up 0 0 div2-zz div2-1z
+
+div2-3-1 : Div2 3 1
+div2-3-1 = div2-level 1 zero div2-1z div2-2-1
+
+div2-4-2 : Div2 4 2
+div2-4-2 = div2-up 2 1 div2-2-1 div2-3-1
+```

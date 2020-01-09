@@ -73,4 +73,7 @@ Monday and Wednesday at 4:30-5:45pm in Luddy Hall Room 4101.
 
 ## Resources
 
+* Join the PLFA mailing list [plfa-interest](http://lists.inf.ed.ac.uk/mailman/listinfo/plfa-interest)
+  and ask questions!
+
 * [Crash Course on Notation in Programming Language Theory](http://siek.blogspot.com/2012/07/crash-course-on-notation-in-programming.html)

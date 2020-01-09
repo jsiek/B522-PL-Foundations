@@ -31,7 +31,8 @@ Monday and Wednesday at 4:30-5:45pm in Luddy Hall Room 4101.
 
 ## Assignments
 
-TBD
+* January 20: Exercise `Bin` (in [Naturals](https://plfa.github.io/Naturals/)) and `Bin-laws` (in [Induction](https://plfa.github.io/Induction/)).
+
 
 ## Schedule
 

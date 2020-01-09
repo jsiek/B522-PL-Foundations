@@ -46,8 +46,8 @@ two-plus-one-is-three : add two one ≡ suc (suc (suc zero))
 two-plus-one-is-three = refl
 ```
 
-Proofs concerning all the naturals numbers
-------------------------------------------
+Proofs about all the naturals numbers
+-------------------------------------
 
 To prove something about all the natural numbers,
 such as 
@@ -112,6 +112,10 @@ recursive function that takes an integer and returns a proof that
 
     dub n ≡ n + n
 
+The easiest part of a proof-by-induction is the base case, that is,
+for zero. If you have trouble with the base case, there's a good
+chance that what you're trying to prove is actually false.
+
 The high-point of a proof-by-induction is the use of the induction
 hypothesis (IH), that is, when we make a recursive call. Sometimes we
 need to do some reasoning before using the induction hypothesis and
@@ -130,4 +134,17 @@ dub-correct (suc n) =
     suc (n + suc n)
   ∎
 ```
+
+Predicates
+----------
+
+```
+
+```
+
+
+
+
+Relations
+---------
 

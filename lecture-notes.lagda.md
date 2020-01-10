@@ -419,17 +419,29 @@ div→alt m .(m + n) (div-step n .m mn)
   Finally, we conclude the proof by choosing `suc q` as the witness
   for `k`, and `refl` for the proof that `suc q * m ≡ suc q * m`.
 
-```
-m-div-skm : (k m : ℕ) → m ≢ 0 → m div (suc k * m)
-m-div-skm zero m m≢0 rewrite +-identityʳ m = div-refl m m≢0
-m-div-skm (suc k) m m≢0 =
-    let IH = m-div-skm k m m≢0 in
-    div-step (m + k * m) m IH
+Going in the other direction, if we know that `n ≡ k * m`, then `m div n`
+(provided `k` and `m` are not zero).
 
-m-div-km : (k m : ℕ) → m ≢ 0 → k ≢ 0 → m div (k * m)
-m-div-km zero m m0 k0 = ⊥-elim (k0 refl)
-m-div-km (suc k) m m0 k0 = m-div-skm k m m0
 ```
+m-div-k*m : (k m : ℕ) → m ≢ 0 → k ≢ 0 → m div (k * m)
+m-div-k*m zero m m≢0 k≢0 = ⊥-elim (k≢0 refl)
+m-div-k*m (suc zero) m m≢0 k≢0
+    rewrite +-identityʳ m = div-refl m m≢0
+m-div-k*m (suc (suc k)) m m≢0 k≢0 =
+    let IH = m-div-k*m (suc k) m m≢0 λ () in
+    div-step (m + k * m) m IH
+```
+
+A common property of relations is transitivity.  Indeed, the `div`
+relation is transitive. We prove this fact directly using the facts
+that we've already proved about `div`. That is, from `m div n` and `n
+div p`, we have `k₁ * m ≡ n` and `k₂ * n ≡ p` (by `div→alt`). We can
+substitute `k₁ * m` for `n` is the later to obtain `k₂ * k₁ * m ≡ p`,
+which shows that `m` divides `p` (by `m-div-k*m`).  However, we also
+need to show that `m ≢ 0` and `k₂ * k₁ ≢ 0`.  We already have the
+former, but need to prove the later, which we do using the fact that
+`k₂ * k₁ * m ≢ 0`.  Towards a contradiction, if `k₂ * k₁ ≡ 0`, then we
+would also have `k₂ * k₁ * m ≡ 0`, but we know that is false.
 
 ```
 div-trans : (m n p : ℕ) → m div n → n div p → m div p
@@ -437,17 +449,17 @@ div-trans m n p mn np
     with div→alt m n mn | div→alt n p np
 ... | ⟨ k₁ , eq₁ ⟩ | ⟨ k₂ , eq₂ ⟩
     rewrite sym eq₁ | sym eq₂ | sym (*-assoc k₂ k₁ m) =
-    m-div-km (k₂ * k₁) m m-nz (k21≢0 k21m≢0)
+    m-div-k*m (k₂ * k₁) m m≢0 (k₂*k₁≢0 k₂*k₁*m≢0)
     where
-    km-nz = div→m≢0 (k₁ * m) ((k₂ * k₁) * m) np
+    k₁*m≢0 = div→m≢0 (k₁ * m) ((k₂ * k₁) * m) np
 
-    m-nz : m ≢ 0
-    m-nz refl = km-nz (*-zeroʳ k₁) 
+    m≢0 : m ≢ 0
+    m≢0 refl = k₁*m≢0 (*-zeroʳ k₁) 
 
-    k21m≢0 : k₂ * k₁ * m ≢ 0
-    k21m≢0 = div→n≢0 (k₁ * m) (k₂ * k₁ * m) np
+    k₂*k₁*m≢0 = div→n≢0 (k₁ * m) (k₂ * k₁ * m) np
 
-    k21≢0 : k₂ * k₁ * m ≢ 0 → k₂ * k₁ ≢ 0
-    k21≢0 eq x rewrite x = eq refl 
+    k₂*k₁≢0 : k₂ * k₁ * m ≢ 0 → k₂ * k₁ ≢ 0
+    k₂*k₁≢0 k₂*k₁*m≢0 k₂*k₁≡0
+        rewrite k₂*k₁≡0 = k₂*k₁*m≢0 refl
 ```
 

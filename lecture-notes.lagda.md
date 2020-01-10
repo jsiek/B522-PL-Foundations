@@ -365,8 +365,8 @@ part of the pair.  To express "there exists", the witness of the
 existential is the first part of the pair. The type of the second part
 of the pair is some formula involving the first part, and the value in
 the second part of the pair is a proof of that formula. So to
-express there exists some number `k` such that
-`k * m ≡ n`, we use the type
+express "there exists some number `k` such that
+`k * m ≡ n`", we use the type
 
     Σ[ k ∈ ℕ ] k * m ≡ n
 

@@ -359,9 +359,9 @@ An alternative way to state that a number evenly divides another
 number is using multiplication instead of repeated addition.  We shall
 prove that if `m div n`, then there exists some number `k` such that
 `k * m ≡ n`. In Agda, we use a **dependent product** to express
-``there exists``. A dependent product is simply a pair where the
+"there exists". A dependent product is simply a pair where the
 **type** of the second part of the pair can refer to the the first
-part of the pair.  To express ``there exists``, the witness of the
+part of the pair.  To express "there exists", the witness of the
 existential is the first part of the pair. The type of the second part
 of the pair is some formula involving the first part, and the value in
 the second part of the pair is a proof of that formula. So to

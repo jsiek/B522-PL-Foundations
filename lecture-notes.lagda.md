@@ -172,8 +172,9 @@ dub-correct (suc n) =
 ```
 
 As a second example, let's prove the formula of Gauss for the sum of
-the first `n` natural numbers. Division can be a bit awkward to
-work with, so we'll instead multiply the left-hand side by `2`.
+the first `n` natural numbers. Division on natural numbers can be a
+bit awkward to work with, so we'll instead multiply the left-hand side
+by `2`.
 
 ```
 gauss-formula : (n : ℕ) → 2 * gauss n ≡ n * suc n
@@ -193,7 +194,6 @@ gauss-formula (suc n) =
     (suc n) * suc (suc n)
   ∎
   where
-  EQ : (n : ℕ) → 2 * (suc n) + n * (suc n) ≡ (suc n) * (suc (suc n))
   EQ = solve 1 (λ n → (con 2 :* (con 1 :+ n)) :+ (n :* (con 1 :+ n))
          := (con 1 :+ n) :* (con 1 :+ (con 1 :+ n))) refl
 ```
@@ -315,74 +315,137 @@ inv-Even n .(n' + 2) (even-+2 n' even-m) m≢0 n+2≡m
 Relations, Inductively Defined
 ------------------------------
 
+One of the most important relations in Number Theory is the (evenly) divides relation.
+We say that `m` divides `n` if some number of copies of `m` can be concatenated
+(added) to form `n`.
+
 ```
-data _divides_ : ℕ → ℕ → Set where
-  div-refl : (n : ℕ) → n ≢ 0 → n divides n
-  div-step : (n m : ℕ) → m divides n → m divides (m + n)
+data _div_ : ℕ → ℕ → Set where
+  div-refl : (m : ℕ) → m ≢ 0 → m div m
+  div-step : (n m : ℕ) → m div n → m div (m + n)
+```
+
+For example, `3 div 3`, `3 div 6`, and `3 div 6`.
+
+```
+3-div-3 : 3 div 3
+3-div-3 = div-refl 3 λ ()
+
+3-div-6 : 3 div 6
+3-div-6 = div-step 3 3 3-div-3
+
+3-div-9 : 3 div 9
+3-div-9 = div-step 6 3 3-div-6
+```
+
+If `m div n`, then neither `m` or `n` can be zero.  We can prove these
+two facts by eliminating `m div n` with recursive functions.
+
+```
+div→m≢0 : (m n : ℕ) → m div n → m ≢ 0
+div→m≢0 m .m (div-refl .m m≢0) = m≢0
+div→m≢0 m .(m + n) (div-step n .m mn) = div→m≢0 m n mn
 ```
 
 ```
-divides-+ : (m n p : ℕ) → m divides n → m divides p → m divides (n + p)
-divides-+ m .m .m (div-refl .m x) (div-refl .m x₁) = div-step m m (div-refl m x)
-divides-+ m .m .(m + n) (div-refl .m x) (div-step n .m mp) = div-step (m + n) m (div-step n m mp)
-divides-+ m .(m + n) p (div-step n .m mn) mp rewrite +-assoc m n p =
-  let IH = divides-+ m n p mn mp in 
-  div-step (n + p) m IH
-```
-
-```
-divides→m≢0 : (m n : ℕ) → m divides n → m ≢ 0
-divides→m≢0 m .m (div-refl .m x) = x
-divides→m≢0 m .(m + n) (div-step n .m mn) = divides→m≢0 m n mn
-```
-
-```
-divides→n≢0 : (m n : ℕ) → m divides n → n ≢ 0
-divides→n≢0 m .m (div-refl .m x) = x
-divides→n≢0 m .(m + n) (div-step n .m mn) =
-  let IH = divides→n≢0 m n mn in
+div→n≢0 : (m n : ℕ) → m div n → n ≢ 0
+div→n≢0 m .m (div-refl .m m≢0) = m≢0
+div→n≢0 m .(m + n) (div-step n .m mn) =
+  let IH = div→n≢0 m n mn in
   λ mn0 → IH (m+n≡0⇒n≡0 m mn0)
 ```
+
+An alternative way to state that a number evenly divides another
+number is using multiplication instead of repeated addition.  We shall
+prove that if `m div n`, then there exists some number `k` such that
+`k * m ≡ n`. In Agda, we use a **dependent product** to express
+``there exists``. A dependent product is simply a pair where the
+**type** of the second part of the pair can refer to the the first
+part of the pair.  To express ``there exists``, the witness of the
+existential is the first part of the pair. The type of the second part
+of the pair is some formula involving the first part, and the value in
+the second part of the pair is a proof of that formula. So to
+express there exists some number `k` such that
+`k * m ≡ n`, we use the type
+
+    Σ[ k ∈ ℕ ] k * m ≡ n
+
+where `k` is a name for the first part of the pair,
+`ℕ` is it's type, and `k * m ≡ n` is the type
+for the second part of the pair.
+(This is covered in more depth in Chapter
+[Quantifiers](https://plfa.github.io/Quantifiers/)).
 
 ```
 open import Data.Product using (Σ-syntax) renaming (_,_ to ⟨_,_⟩)
 ```
 
-```
-divides→alt : (m n : ℕ) → m divides n → Σ[ k ∈ ℕ ] k * m ≡ n
-divides→alt m .m (div-refl .m x) = ⟨ 1 , +-identityʳ m ⟩
-divides→alt m .(m + n) (div-step n .m mn)
-    with divides→alt m n mn
-... | ⟨ k , eq ⟩ rewrite sym eq = ⟨ (suc k) , refl ⟩
-```
+We construct a dependent product using the notation `⟨_,_⟩`.
+For example, the following proves that there exists
+some number `k` such that `k * m ≡ 0`, for any `m`.
 
 ```
-m-div-skm : (k m : ℕ) → m ≢ 0 → m divides (suc k * m)
+0*m≡0 : (m : ℕ) → Σ[ k ∈ ℕ ] k * m ≡ 0
+0*m≡0 m = ⟨ 0 , refl ⟩
+```
+
+Getting back to the alternative way to state the divides relation, the
+following proof by induction shows that `m div n` implies
+that there exists some `k` such that `k * m ≡ n`.
+
+```
+div→alt : (m n : ℕ) → m div n → Σ[ k ∈ ℕ ] k * m ≡ n
+div→alt m .m (div-refl .m x) = ⟨ 1 , +-identityʳ m ⟩
+div→alt m .(m + n) (div-step n .m mn)
+    with div→alt m n mn
+... | ⟨ q , q*m≡n ⟩
+    rewrite sym q*m≡n =
+      ⟨ (suc q) , refl ⟩
+```
+
+* For the case `div-refl`, we need to show that `k * m ≡ m`
+  for some `k`. That's easy, choose `k ≡ 1`. So we
+  form a dependent pair with `1` as the first part
+  and a proof of `1 * m ≡ m` as the second part.
+
+* For the case `div-step`, we need to show that `k * m ≡ m + n` for some `k`.
+  The induction hypothesis tells us that `q * m ≡ n` for some `q`.
+  We can get our hands on this `q` by pattern matching on the
+  dependent pair returned by `div→alt`, using the `with` construct.
+  If we replace the `n` in the goal with `q * m`, the goal becomes
+  `k * m ≡ m + q * m` which is equivalent to
+  `k * m ≡ suc q * m`. We can accomplish this replacement by
+  using `rewrite` with the symmetric version of the equation `q * m ≡ n`.
+  Finally, we conclude the proof by choosing `suc q` as the witness
+  for `k`, and `refl` for the proof that `suc q * m ≡ suc q * m`.
+
+```
+m-div-skm : (k m : ℕ) → m ≢ 0 → m div (suc k * m)
 m-div-skm zero m m≢0 rewrite +-identityʳ m = div-refl m m≢0
 m-div-skm (suc k) m m≢0 =
     let IH = m-div-skm k m m≢0 in
     div-step (m + k * m) m IH
 
-m-div-km : (k m : ℕ) → m ≢ 0 → k ≢ 0 → m divides (k * m)
+m-div-km : (k m : ℕ) → m ≢ 0 → k ≢ 0 → m div (k * m)
 m-div-km zero m m0 k0 = ⊥-elim (k0 refl)
 m-div-km (suc k) m m0 k0 = m-div-skm k m m0
 ```
 
 ```
-divides-trans : (m n p : ℕ) → m divides n → n divides p → m divides p
-divides-trans m n p mn np
-    with divides→alt m n mn | divides→alt n p np
+div-trans : (m n p : ℕ) → m div n → n div p → m div p
+div-trans m n p mn np
+    with div→alt m n mn | div→alt n p np
 ... | ⟨ k₁ , eq₁ ⟩ | ⟨ k₂ , eq₂ ⟩
     rewrite sym eq₁ | sym eq₂ | sym (*-assoc k₂ k₁ m) =
     m-div-km (k₂ * k₁) m m-nz (k21≢0 k21m≢0)
     where
-    km-nz = divides→m≢0 (k₁ * m) ((k₂ * k₁) * m) np
+    km-nz = div→m≢0 (k₁ * m) ((k₂ * k₁) * m) np
 
     m-nz : m ≢ 0
     m-nz refl = km-nz (*-zeroʳ k₁) 
 
     k21m≢0 : k₂ * k₁ * m ≢ 0
-    k21m≢0 = divides→n≢0 (k₁ * m) (k₂ * k₁ * m) np
+    k21m≢0 = div→n≢0 (k₁ * m) (k₂ * k₁ * m) np
 
     k21≢0 : k₂ * k₁ * m ≢ 0 → k₂ * k₁ ≢ 0
     k21≢0 eq x rewrite x = eq refl 

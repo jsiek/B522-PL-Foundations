@@ -101,3 +101,12 @@ div2-3-1 = div2-level 1 zero div2-1z div2-2-1
 div2-4-2 : Div2 4 2
 div2-4-2 = div2-up 2 1 div2-2-1 div2-3-1
 ```
+
+```
+div-+ : (m n p : ℕ) → m div n → m div p → m div (n + p)
+div-+ m .m .m (div-refl .m x) (div-refl .m x₁) = div-step m m (div-refl m x)
+div-+ m .m .(m + n) (div-refl .m x) (div-step n .m mp) = div-step (m + n) m (div-step n m mp)
+div-+ m .(m + n) p (div-step n .m mn) mp rewrite +-assoc m n p =
+  let IH = div-+ m n p mn mp in 
+  div-step (n + p) m IH
+```

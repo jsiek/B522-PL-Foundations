@@ -80,8 +80,12 @@ open Relation.Binary.PropositionalEquality.≡-Reasoning using (begin_; _≡⟨_
 open import Relation.Binary.PropositionalEquality using (sym; cong; cong₂)
 ```
 
-See the Agda standard library module `Algebra.Definitions` for the
-definitions of thinks like `RightIdentity`.
+The Agda standard library module
+[Data.Nat.Properties](https://github.com/agda/agda-stdlib/blob/master/src/Data/Nat/Properties.agda)
+includes proofs for many of the laws of algebra for natural numbers.
+Some of those laws refer to names, such as `RightIdentity`, that are
+defined in the module
+[Algebra.Definitions](https://github.com/agda/agda-stdlib/blob/master/src/Algebra/Definitions.agda).
 
 ```
 xyx : (x : ℕ) → (y : ℕ) → x + y + x ≡ 2 * x + y
@@ -100,6 +104,27 @@ xyx x y =
     2 * x + y
   ∎
 ```
+
+If the equation only involves simple reasoning about addition and
+multiplication, you can instead use Agda's automatic solver.
+
+```
+open import Data.Nat.Solver using (module +-*-Solver)
+open +-*-Solver
+
+xyx' : (x : ℕ) → (y : ℕ) → x + y + x ≡ 2 * x + y
+xyx' = solve 2 (λ x y → x :+ y :+ x := con 2 :* x :+ y) refl
+```
+
+The recipe for using the solver is that the first argument is the
+number of variables mentioned in the equation, the second argument is
+a function of those variables that produces an encoding of the
+equation. Put a colon in front of each `+` and `*` and replace `≡` with
+`:=`.  Also, put `con` in front of each constant, e.g., change `2` to
+`con 2`. The third argument has something to do with how to prove the
+leftover equations that the solver couldn't prove. Usually `refl`
+works. If it doesn't, good luck to you!
+
 
 Induction
 ---------
@@ -168,9 +193,6 @@ gauss-formula (suc n) =
     (suc n) * suc (suc n)
   ∎
   where
-  open import Data.Nat.Solver using (module +-*-Solver)
-  open +-*-Solver
-  
   EQ : (n : ℕ) → 2 * (suc n) + n * (suc n) ≡ (suc n) * (suc (suc n))
   EQ = solve 1 (λ n → (con 2 :* (con 1 :+ n)) :+ (n :* (con 1 :+ n))
          := (con 1 :+ n) :* (con 1 :+ (con 1 :+ n))) refl
@@ -234,12 +256,8 @@ To do this, we'll need a simple equation about addition, which we can
 obtain using the solver.
 
 ```
-snsn≡nn2 : (n : ℕ) → ((1 + n) + (1 + n)) ≡ (n + n) + 2
-snsn≡nn2 = EQ
-  where
-  open import Data.Nat.Solver using (module +-*-Solver)
-  open +-*-Solver
-  EQ = solve 1 (λ n → ((con 1 :+ n) :+ (con 1 :+ n)) := (n :+ n) :+ con 2) refl
+snsn≡nn2 : (n : ℕ) → ((suc n) + (suc n)) ≡ (n + n) + 2
+snsn≡nn2 = solve 1 (λ n → ((con 1 :+ n) :+ (con 1 :+ n)) := (n :+ n) :+ con 2) refl
 ```
 
 Here's the definition of `even-dub`.

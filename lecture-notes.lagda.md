@@ -436,12 +436,14 @@ A common property of relations is transitivity.  Indeed, the `div`
 relation is transitive. We prove this fact directly using the facts
 that we've already proved about `div`. That is, from `m div n` and `n
 div p`, we have `k₁ * m ≡ n` and `k₂ * n ≡ p` (by `div→alt`). We can
-substitute `k₁ * m` for `n` is the later to obtain `k₂ * k₁ * m ≡ p`,
-which shows that `m` divides `p` (by `m-div-k*m`).  However, we also
-need to show that `m ≢ 0` and `k₂ * k₁ ≢ 0`.  We already have the
-former, but need to prove the later, which we do using the fact that
-`k₂ * k₁ * m ≢ 0`.  Towards a contradiction, if `k₂ * k₁ ≡ 0`, then we
-would also have `k₂ * k₁ * m ≡ 0`, but we know that is false.
+substitute `k₁ * m` for `n` in the later formula to obtain `k₂ * k₁ *
+m ≡ p`, which shows that `m` divides `p` (by `m-div-k*m`).  However,
+to use `m-div-k*m` we have two remaining details to prove.
+We need to show that `m ≢ 0` and `k₂ * k₁ ≢ 0`.
+We obtain `m ≢ 0` using `div→m≢0`.
+Similarly, by `div→n≢0` we know `k₂ * k₁ * m ≢ 0`.  Towards a contradiction, if
+`k₂ * k₁ ≡ 0`, then we would also have `k₂ * k₁ * m ≡ 0`, but we know
+that is false.
 
 ```
 div-trans : (m n p : ℕ) → m div n → n div p → m div p
@@ -450,11 +452,9 @@ div-trans m n p mn np
 ... | ⟨ k₁ , eq₁ ⟩ | ⟨ k₂ , eq₂ ⟩
     rewrite sym eq₁ | sym eq₂ | sym (*-assoc k₂ k₁ m) =
     m-div-k*m (k₂ * k₁) m m≢0 (k₂*k₁≢0 k₂*k₁*m≢0)
+    
     where
-    k₁*m≢0 = div→m≢0 (k₁ * m) ((k₂ * k₁) * m) np
-
-    m≢0 : m ≢ 0
-    m≢0 refl = k₁*m≢0 (*-zeroʳ k₁) 
+    m≢0 = div→m≢0 m (k₁ * m) mn
 
     k₂*k₁*m≢0 = div→n≢0 (k₁ * m) (k₂ * k₁ * m) np
 

@@ -449,13 +449,12 @@ that is false.
 div-trans : (m n p : ℕ) → m div n → n div p → m div p
 div-trans m n p mn np
     with div→alt m n mn | div→alt n p np
-... | ⟨ k₁ , eq₁ ⟩ | ⟨ k₂ , eq₂ ⟩
-    rewrite sym eq₁ | sym eq₂ | sym (*-assoc k₂ k₁ m) =
+... | ⟨ k₁ , k₁*m≡n ⟩ | ⟨ k₂ , k₂*k₁*m≡p ⟩
+    rewrite sym k₁*m≡n | sym k₂*k₁*m≡p | sym (*-assoc k₂ k₁ m) =
     m-div-k*m (k₂ * k₁) m m≢0 (k₂*k₁≢0 k₂*k₁*m≢0)
     
     where
     m≢0 = div→m≢0 m (k₁ * m) mn
-
     k₂*k₁*m≢0 = div→n≢0 (k₁ * m) (k₂ * k₁ * m) np
 
     k₂*k₁≢0 : k₂ * k₁ * m ≢ 0 → k₂ * k₁ ≢ 0

@@ -205,10 +205,19 @@ divides-+ m .(m + n) p (div-step n .m mn) mp rewrite +-assoc m n p =
 ```
 
 ```
-divides-nz : (m n : ℕ) → m divides n → m ≢ 0
-divides-nz m .m (div-refl .m x) = x
-divides-nz m .(m + n) (div-step n .m mn) = divides-nz m n mn
+divides→m≢0 : (m n : ℕ) → m divides n → m ≢ 0
+divides→m≢0 m .m (div-refl .m x) = x
+divides→m≢0 m .(m + n) (div-step n .m mn) = divides→m≢0 m n mn
 ```
+
+```
+divides→n≢0 : (m n : ℕ) → m divides n → n ≢ 0
+divides→n≢0 m .m (div-refl .m x) = x
+divides→n≢0 m .(m + n) (div-step n .m mn) =
+  let IH = divides→n≢0 m n mn in
+  λ mn0 → IH (m+n≡0⇒n≡0 m mn0)
+```
+
 
 ```
 divides→alt : (m n : ℕ) → m divides n → Σ[ k ∈ ℕ ] k * m ≡ n
@@ -219,11 +228,15 @@ divides→alt m .(m + n) (div-step n .m mn)
 ```
 
 ```
-m-div-km : (k m : ℕ) → m ≢ 0 → m divides (suc k * m)
-m-div-km zero m m≢0 rewrite +-identityʳ m = div-refl m m≢0
-m-div-km (suc k) m m≢0 =
-  let IH = m-div-km k m m≢0 in
+m-div-skm : (k m : ℕ) → m ≢ 0 → m divides (suc k * m)
+m-div-skm zero m m≢0 rewrite +-identityʳ m = div-refl m m≢0
+m-div-skm (suc k) m m≢0 =
+  let IH = m-div-skm k m m≢0 in
   div-step (m + k * m) m IH
+
+m-div-km : (k m : ℕ) → m ≢ 0 → k ≢ 0 → m divides (k * m)
+m-div-km zero m m0 k0 = ⊥-elim (k0 refl)
+m-div-km (suc k) m m0 k0 = m-div-skm k m m0
 ```
 
 ```
@@ -231,10 +244,16 @@ divides-trans : (m n p : ℕ) → m divides n → n divides p → m divides p
 divides-trans m n p mn np
     with divides→alt m n mn | divides→alt n p np
 ... | ⟨ k₁ , eq₁ ⟩ | ⟨ k₂ , eq₂ ⟩ rewrite sym eq₁ | sym eq₂ | sym (*-assoc k₂ k₁ m) =
-  let x = m-div-km (k₂ * k₁) m m-nz in
-  {!!}
+  m-div-km (k₂ * k₁) m m-nz (k21≢0 k21m≢0)
   where
-     km-nz = divides-nz (k₁ * m) ((k₂ * k₁) * m) np 
+     km-nz = divides→m≢0 (k₁ * m) ((k₂ * k₁) * m) np
+     
      m-nz : m ≢ 0
      m-nz refl = km-nz (*-zeroʳ k₁) 
+
+     k21m≢0 : k₂ * k₁ * m ≢ 0
+     k21m≢0 = divides→n≢0 (k₁ * m) (k₂ * k₁ * m) np
+     
+     k21≢0 : k₂ * k₁ * m ≢ 0 → k₂ * k₁ ≢ 0
+     k21≢0 eq x rewrite x = eq refl 
 ```

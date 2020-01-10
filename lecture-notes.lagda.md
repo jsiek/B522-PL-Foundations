@@ -46,6 +46,22 @@ two-plus-one-is-three : add two one ≡ suc (suc (suc zero))
 two-plus-one-is-three = refl
 ```
 
+The Agda standard library defines a data types natural numbers, named
+`ℕ`, similar to the definition above.
+
+```
+open import Data.Nat
+```
+
+Let's define another recursive function that you may be familiar with,
+the sum of the numbers up to a given number `n`.
+
+```
+gauss : ℕ → ℕ
+gauss zero = 0
+gauss (suc n) = suc n + gauss n
+```
+
 Proofs about all the naturals numbers
 -------------------------------------
 
@@ -59,7 +75,6 @@ it using the laws of algebra, which are provided in the Agda
 standard library.
 
 ```
-open import Data.Nat
 open import Data.Nat.Properties
 open Relation.Binary.PropositionalEquality.≡-Reasoning using (begin_; _≡⟨_⟩_; _∎)
 open import Relation.Binary.PropositionalEquality using (sym; cong; cong₂)
@@ -85,7 +100,6 @@ xyx x y =
     2 * x + y
   ∎
 ```
-
 
 Induction
 ---------
@@ -132,6 +146,50 @@ dub-correct (suc n) =
   ∎
 ```
 
+As a second example, let's prove the formula of Gauss for the sum of
+the first `n` natural numbers. Division can be a bit awkward to
+work with, so we'll instead multiply the left-hand side by `2`.
+
+```
+gauss-formula : (n : ℕ) → 2 * gauss n ≡ n * suc n
+gauss-formula zero = refl
+gauss-formula (suc n) =
+  let IH : 2 * gauss n ≡ n * suc n
+      IH = gauss-formula n in
+  begin
+    2 * gauss (suc n)
+  ≡⟨ refl ⟩
+    2 * (suc n + gauss n)
+  ≡⟨ *-distribˡ-+ 2 (suc n) (gauss n) ⟩
+    2 * (suc n) + 2 * gauss n
+  ≡⟨ cong₂ _+_ refl IH ⟩
+    2 * (suc n) + n * (suc n)
+  ≡⟨ EQ n ⟩
+    (suc n) * suc (suc n)
+  ∎
+  where
+  open import Data.Nat.Solver using (module +-*-Solver)
+  open +-*-Solver
+  
+  EQ : (n : ℕ) → 2 * (suc n) + n * (suc n) ≡ (suc n) * (suc (suc n))
+  EQ = solve 1 (λ n → (con 2 :* (con 1 :+ n)) :+ (n :* (con 1 :+ n))
+         := (con 1 :+ n) :* (con 1 :+ (con 1 :+ n))) refl
+```
+
+* The base case is trivial, indeed `2 * 0 ≡ 0 * suc 0`.
+
+* For the induction step, we need to show that
+
+        2 * gauss (suc n) ≡ (suc n) * suc (suc n)
+
+    In the above chain of equations, we expand the
+    definition for `gauss (suc n)`, distribute the multiplication
+    by `2`, and then apply the induction hypothesis,
+    which states that `2 * gauss n ≡ n * suc n`.
+    The last step is some simple reasoning about addition and
+    multiplication, which is handled by Agda's automatic solver.
+
+
 Predicates, Inductively Defined
 -------------------------------
 
@@ -173,14 +231,15 @@ that takes a number `n` and produces an object of type
 `Even (n + n)`.
 
 To do this, we'll need a simple equation about addition, which we can
-obtain using an automatic solver.
+obtain using the solver.
 
 ```
-open import Data.Nat.Solver using (module +-*-Solver)
-open +-*-Solver
-
 snsn≡nn2 : (n : ℕ) → ((1 + n) + (1 + n)) ≡ (n + n) + 2
-snsn≡nn2 = solve 1 (λ n → ((con 1 :+ n) :+ (con 1 :+ n)) := (n :+ n) :+ con 2) refl
+snsn≡nn2 = EQ
+  where
+  open import Data.Nat.Solver using (module +-*-Solver)
+  open +-*-Solver
+  EQ = solve 1 (λ n → ((con 1 :+ n) :+ (con 1 :+ n)) := (n :+ n) :+ con 2) refl
 ```
 
 Here's the definition of `even-dub`.

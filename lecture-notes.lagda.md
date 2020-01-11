@@ -42,12 +42,12 @@ open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 To prove that something is equal to itself, use `refl`.
 
 ```
-two-plus-one-is-three : add two one ≡ suc (suc (suc zero))
-two-plus-one-is-three = refl
+_ : add two one ≡ suc (suc (suc zero))
+_ = refl
 ```
 
-The Agda standard library defines a data types natural numbers, named
-`ℕ`, similar to the definition above.
+The Agda standard library defines a data type for natural numbers, named
+`ℕ`, just like the definition above.
 
 ```
 open import Data.Nat
@@ -88,8 +88,8 @@ defined in the module
 [Algebra.Definitions](https://github.com/agda/agda-stdlib/blob/master/src/Algebra/Definitions.agda).
 
 ```
-xyx : (x : ℕ) → (y : ℕ) → x + y + x ≡ 2 * x + y
-xyx x y =
+_ : (x : ℕ) → (y : ℕ) → x + y + x ≡ 2 * x + y
+_ = λ x y → 
   begin
     (x + y) + x
   ≡⟨ +-assoc x y x ⟩
@@ -112,8 +112,8 @@ multiplication, you can instead use Agda's automatic solver.
 open import Data.Nat.Solver using (module +-*-Solver)
 open +-*-Solver
 
-xyx' : (x : ℕ) → (y : ℕ) → x + y + x ≡ 2 * x + y
-xyx' = solve 2 (λ x y → x :+ y :+ x := con 2 :* x :+ y) refl
+_ : (x : ℕ) → (y : ℕ) → x + y + x ≡ 2 * x + y
+_ = solve 2 (λ x y → x :+ y :+ x := con 2 :* x :+ y) refl
 ```
 
 The recipe for using the solver is that the first argument is the
@@ -235,15 +235,15 @@ The following constructs a value of type `Even 2`, so it's true that
 `2` is even.
 
 ```
-Even-2 : Even 2
-Even-2 = even-+2 0 even-0
+_ : Even 2
+_ = even-+2 0 even-0
 ```
 
 Similarly for the number `4`.
 
 ```
-Even-4 : Even 4
-Even-4 = even-+2 2 Even-2
+_ : Even 4
+_ = even-+2 2 (even-+2 0 even-0)
 ```
 
 Taking this process to its logical conclusion, we prove that every
@@ -256,8 +256,8 @@ To do this, we'll need a simple equation about addition, which we can
 obtain using the solver.
 
 ```
-snsn≡nn2 : (n : ℕ) → ((suc n) + (suc n)) ≡ (n + n) + 2
-snsn≡nn2 = solve 1 (λ n → ((con 1 :+ n) :+ (con 1 :+ n)) := (n :+ n) :+ con 2) refl
+sn+sn≡n+n+2 : (n : ℕ) → ((suc n) + (suc n)) ≡ (n + n) + 2
+sn+sn≡n+n+2 = solve 1 (λ n → ((con 1 :+ n) :+ (con 1 :+ n)) := (n :+ n) :+ con 2) refl
 ```
 
 Here's the definition of `even-dub`.
@@ -265,7 +265,7 @@ Here's the definition of `even-dub`.
 ```
 even-dub : (n : ℕ) → Even (n + n)
 even-dub zero = even-0
-even-dub (suc n) rewrite snsn≡nn2 n =
+even-dub (suc n) rewrite sn+sn≡n+n+2 n =
     let IH : Even (n + n)
         IH = even-dub n in
     even-+2 (n + n) IH
@@ -275,7 +275,7 @@ even-dub (suc n) rewrite snsn≡nn2 n =
   that is `Even 0`, using `even-0`.
 
 * For the induction step, we need to construct an object of type `Even
-  (suc (n + suc n))`. We `rewrite` using the equation `snsn≡nn2` to
+  (suc (n + suc n))`. We `rewrite` using the equation `sn+sn≡n+n+2` to
   transform this goal to `Even ((n + n) + 2)`. By the induction
   hypothesis (i.e. recursive call to `even-dub`), we have `Even (n +
   n)`, so we conclude by applying the constructor `even-+2`.
@@ -315,9 +315,12 @@ inv-Even n .(n' + 2) (even-+2 n' even-m) m≢0 n+2≡m
 Relations, Inductively Defined
 ------------------------------
 
-One of the most important relations in Number Theory is the (evenly) divides relation.
-We say that `m` divides `n` if some number of copies of `m` can be concatenated
-(added) to form `n`.
+Like predicates, relations can be represented in Agda with data types,
+they just have more parameters.
+
+One of the most important relations in Number Theory is the divides
+(evenly) relation.  We say that `m` divides `n` if some number of
+copies of `m` can be concatenated (added) to form `n`.
 
 ```
 data _div_ : ℕ → ℕ → Set where
@@ -338,7 +341,7 @@ For example, `3 div 3`, `3 div 6`, and `3 div 6`.
 3-div-9 = div-step 6 3 3-div-6
 ```
 
-If `m div n`, then neither `m` or `n` can be zero.  We can prove these
+If `m div n`, then neither `m` nor `n` can be zero.  We can prove these
 two facts by eliminating `m div n` with recursive functions.
 
 ```
@@ -385,8 +388,8 @@ For example, the following proves that there exists
 some number `k` such that `k * m ≡ 0`, for any `m`.
 
 ```
-0*m≡0 : (m : ℕ) → Σ[ k ∈ ℕ ] k * m ≡ 0
-0*m≡0 m = ⟨ 0 , refl ⟩
+_ : (m : ℕ) → Σ[ k ∈ ℕ ] k * m ≡ 0
+_ = λ m → ⟨ 0 , refl ⟩
 ```
 
 Getting back to the alternative way to state the divides relation, the
@@ -394,10 +397,10 @@ following proof by induction shows that `m div n` implies
 that there exists some `k` such that `k * m ≡ n`.
 
 ```
-div→alt : (m n : ℕ) → m div n → Σ[ k ∈ ℕ ] k * m ≡ n
-div→alt m .m (div-refl .m x) = ⟨ 1 , +-identityʳ m ⟩
-div→alt m .(m + n) (div-step n .m mn)
-    with div→alt m n mn
+div→k*m≡n : (m n : ℕ) → m div n → Σ[ k ∈ ℕ ] k * m ≡ n
+div→k*m≡n m .m (div-refl .m x) = ⟨ 1 , +-identityʳ m ⟩
+div→k*m≡n m .(m + n) (div-step n .m mn)
+    with div→k*m≡n m n mn
 ... | ⟨ q , q*m≡n ⟩
     rewrite sym q*m≡n =
       ⟨ (suc q) , refl ⟩
@@ -411,7 +414,7 @@ div→alt m .(m + n) (div-step n .m mn)
 * For the case `div-step`, we need to show that `k * m ≡ m + n` for some `k`.
   The induction hypothesis tells us that `q * m ≡ n` for some `q`.
   We can get our hands on this `q` by pattern matching on the
-  dependent pair returned by `div→alt`, using the `with` construct.
+  dependent pair returned by `div→k*m≡n`, using the `with` construct.
   If we replace the `n` in the goal with `q * m`, the goal becomes
   `k * m ≡ m + q * m` which is equivalent to
   `k * m ≡ suc q * m`. We can accomplish this replacement by
@@ -435,7 +438,7 @@ m-div-k*m (suc (suc k)) m m≢0 k≢0 =
 A common property of relations is transitivity.  Indeed, the `div`
 relation is transitive. We prove this fact directly using the facts
 that we've already proved about `div`. That is, from `m div n` and `n
-div p`, we have `k₁ * m ≡ n` and `k₂ * n ≡ p` (by `div→alt`). We can
+div p`, we have `k₁ * m ≡ n` and `k₂ * n ≡ p` (by `div→k*m≡n`). We can
 substitute `k₁ * m` for `n` in the later formula to obtain `k₂ * k₁ *
 m ≡ p`, which shows that `m` divides `p` (by `m-div-k*m`).  However,
 to use `m-div-k*m` we have two remaining details to prove.
@@ -448,7 +451,7 @@ that is false.
 ```
 div-trans : (m n p : ℕ) → m div n → n div p → m div p
 div-trans m n p mn np
-    with div→alt m n mn | div→alt n p np
+    with div→k*m≡n m n mn | div→k*m≡n n p np
 ... | ⟨ k₁ , k₁*m≡n ⟩ | ⟨ k₂ , k₂*k₁*m≡p ⟩
     rewrite sym k₁*m≡n | sym k₂*k₁*m≡p | sym (*-assoc k₂ k₁ m) =
     m-div-k*m (k₂ * k₁) m m≢0 (k₂*k₁≢0 k₂*k₁*m≢0)

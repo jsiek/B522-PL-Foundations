@@ -228,7 +228,7 @@ construct an object of type `P x`.
 ```
 data Even : ℕ → Set where
   even-0 : Even 0
-  even-+2 : (n : ℕ) → Even n → Even (n + 2)
+  even-+2 : (n : ℕ) → Even n → Even (2 + n)
 ```
 
 The following constructs a value of type `Even 2`, so it's true that
@@ -256,8 +256,8 @@ To do this, we'll need a simple equation about addition, which we can
 obtain using the solver.
 
 ```
-sn+sn≡n+n+2 : (n : ℕ) → ((suc n) + (suc n)) ≡ (n + n) + 2
-sn+sn≡n+n+2 = solve 1 (λ n → ((con 1 :+ n) :+ (con 1 :+ n)) := (n :+ n) :+ con 2) refl
+sn+sn≡n+n+2 : (n : ℕ) → (suc (n + (suc n))) ≡ (suc (suc (n + n)))
+sn+sn≡n+n+2 = solve 1 (λ n → (con 1 :+ (n :+ (con 1 :+ n))) := (con 1 :+ (con 1 :+ (n :+ n)))) refl
 ```
 
 Here's the definition of `even-dub`.
@@ -268,7 +268,7 @@ even-dub zero = even-0
 even-dub (suc n) rewrite sn+sn≡n+n+2 n =
     let IH : Even (n + n)
         IH = even-dub n in
-    even-+2 (n + n) IH
+    even-+2 (n + n) IH 
 ```
 
 * For the base case, we construct an object of type `Even (0 + 0)`,
@@ -293,10 +293,9 @@ open import Data.Empty using (⊥-elim)
 ```
 
 ```
-inv-Even : (n m : ℕ) → Even m → m ≢ 0 → n + 2 ≡ m → Even n
+inv-Even : (n m : ℕ) → Even m → m ≢ 0 → suc (suc n) ≡ m → Even n
 inv-Even n .0 even-0 m≢0 n+2≡m = ⊥-elim (m≢0 refl)
-inv-Even n .(n' + 2) (even-+2 n' even-m) m≢0 n+2≡m
-    rewrite +-cancelʳ-≡ n n' n+2≡m = even-m
+inv-Even n .(suc (suc n')) (even-+2 n' even-m) m≢0 refl = even-m
 ```
 
 * In the case for `even-0`, we have a contradiction: `m ≡ 0` and `m ≢ 0`.
@@ -310,7 +309,6 @@ inv-Even n .(n' + 2) (even-+2 n' even-m) m≢0 n+2≡m
   `+-cancelʳ-≡`. We have `even-m : Even n'` and
   the goal is `Even n`, so we conclude by rewriting by 
   `n = n'` and then using `even-m`.
-
 
 Relations, Inductively Defined
 ------------------------------
@@ -463,5 +461,134 @@ div-trans m n p mn np
     k₂*k₁≢0 : k₂ * k₁ * m ≢ 0 → k₂ * k₁ ≢ 0
     k₂*k₁≢0 k₂*k₁*m≢0 k₂*k₁≡0
         rewrite k₂*k₁≡0 = k₂*k₁*m≢0 refl
+```
+
+Isomorphism
+-----------
+
+```
+infix 0 _≃_
+record _≃_ (A B : Set) : Set where
+  field
+    to   : A → B
+    from : B → A
+    from∘to : ∀ (x : A) → from (to x) ≡ x
+    to∘from : ∀ (y : B) → to (from y) ≡ y
+```
+
+Example: ℕ is isomorphic to the even numbers.
+
+```
+even-m→m≡n+n : (m : ℕ) → Even m → Σ[ n ∈ ℕ ] m ≡ n + n
+even-m→m≡n+n .0 even-0 = ⟨ 0 , refl ⟩
+even-m→m≡n+n .(suc (suc n)) (even-+2 n even-m)
+  with even-m→m≡n+n n even-m
+... | ⟨ p , refl ⟩ =   
+    ⟨ suc p , EQ p ⟩
+  where
+  EQ : (p : ℕ) → suc (suc (p + p)) ≡ suc (p + suc p)
+  EQ = solve 1 (λ p → con 1 :+ (con 1 :+ (p :+ p)) := con 1 :+ (p :+ (con 1 :+ p))) refl
+```
+
+```
+open import Data.Product using (proj₁)
+
+data Evens : Set where
+  even : (n : ℕ) → .(Even n) → Evens
+  
+
+to-evens : ℕ → Evens
+to-evens n = even (n + n) (even-dub n)
+
+from-evens : Evens → ℕ
+from-evens (even n even-n) = ⌊ n /2⌋
+
+dub-div2 : ∀ (n : ℕ) → ⌊ n + n /2⌋ ≡ n
+dub-div2 zero = refl
+dub-div2 (suc n) =
+  let IH = dub-div2 n in
+  begin
+  ⌊ suc (n + suc n) /2⌋        ≡⟨ cong ⌊_/2⌋ (EQ n) ⟩
+  ⌊ suc (suc (n + n)) /2⌋      ≡⟨ refl ⟩
+  suc ⌊ n + n /2⌋              ≡⟨ cong suc IH ⟩
+  suc n
+  ∎
+  where
+  EQ : (n : ℕ) → suc (n + suc n) ≡ suc (suc (n + n))
+  EQ = solve 1 (λ n → con 1 :+ (n :+ (con 1 :+ n)) := con 1 :+ (con 1 :+ (n :+ n))) refl
+
+from∘to-evens : ∀ (n : ℕ) → from-evens (to-evens n) ≡ n
+from∘to-evens zero = refl
+from∘to-evens (suc n) =
+  begin
+  from-evens (to-evens (suc n))                            ≡⟨ refl ⟩
+  from-evens (even ((suc n) + (suc n)) (even-dub (suc n))) ≡⟨ refl ⟩
+  ⌊ (suc n) + (suc n) /2⌋                                  ≡⟨ dub-div2 (suc n) ⟩
+  suc n
+  ∎ 
+
+open import Relation.Binary.PropositionalEquality using (cong-app)
+
+⌊n/2⌋+⌈n/2⌉≡n : ∀ n → ⌊ n /2⌋ + ⌈ n /2⌉ ≡ n
+⌊n/2⌋+⌈n/2⌉≡n zero    = refl
+⌊n/2⌋+⌈n/2⌉≡n (suc n) = begin
+  ⌊ suc n /2⌋ + suc ⌊ n /2⌋   ≡⟨ +-comm ⌊ suc n /2⌋ (suc ⌊ n /2⌋) ⟩
+  suc ⌊ n /2⌋ + ⌊ suc n /2⌋   ≡⟨ refl ⟩
+  suc (⌊ n /2⌋ + ⌊ suc n /2⌋) ≡⟨ cong suc (⌊n/2⌋+⌈n/2⌉≡n n) ⟩
+  suc n                       ∎
+
+{-
+⌊n/2⌋+⌊n/2⌋≡n : ∀ n → Even n → ⌊ n /2⌋ + ⌊ n /2⌋ ≡ n
+⌊n/2⌋+⌊n/2⌋≡n .0 even-0 = refl
+⌊n/2⌋+⌊n/2⌋≡n .(suc (suc n)) (even-+2 n even-n) =
+  begin
+  suc (⌊ n /2⌋ + suc ⌊ n /2⌋)     ≡⟨ cong suc (+-suc ⌊ n /2⌋ ⌊ n /2⌋) ⟩
+  suc (suc (⌊ n /2⌋ + ⌊ n /2⌋))   ≡⟨ cong suc (cong suc (⌊n/2⌋+⌊n/2⌋≡n n even-n)) ⟩
+  suc (suc n)
+  ∎
+-}
+⌊n/2⌋+⌊n/2⌋≡n : ∀ n → .(Even n) → ⌊ n /2⌋ + ⌊ n /2⌋ ≡ n
+⌊n/2⌋+⌊n/2⌋≡n zero even-n = refl
+⌊n/2⌋+⌊n/2⌋≡n (suc (suc n)) even-n =
+  begin
+  suc (⌊ n /2⌋ + suc ⌊ n /2⌋)      ≡⟨ cong suc (+-suc ⌊ n /2⌋ ⌊ n /2⌋) ⟩
+  suc (suc (⌊ n /2⌋ + ⌊ n /2⌋))    ≡⟨ cong suc (cong suc (⌊n/2⌋+⌊n/2⌋≡n n {!!})) ⟩
+  suc (suc n)
+  ∎
+
+Evens≡ : ∀(x y : ℕ).(p : Even x).(q : Even y) → x ≡ y → (even x p) ≡ (even y q)
+Evens≡ x y p q refl = refl  
+
+to∘from-evens : ∀ (e : Evens) → to-evens (from-evens e) ≡ e
+to∘from-evens (even n even-n) =
+  begin
+  to-evens (from-evens (even n even-n))        ≡⟨ refl ⟩
+  to-evens ⌊ n /2⌋                             ≡⟨ refl ⟩
+  even (⌊ n /2⌋ + ⌊ n /2⌋) (even-dub ⌊ n /2⌋)  ≡⟨ Evens≡ ((⌊ n /2⌋ + ⌊ n /2⌋)) n ((even-dub ⌊ n /2⌋)) even-n (⌊n/2⌋+⌊n/2⌋≡n n {!!}) ⟩
+  even n even-n
+  ∎
+
+ℕ≃Evens : ℕ ≃ Evens
+ℕ≃Evens =
+  record {
+    to = to-evens ; 
+    from = from-evens ;
+    from∘to = from∘to-evens ;
+    to∘from = to∘from-evens }
+```
+
+
+Example: products are commutative upto isomorphism.
+
+```
+open import Data.Product renaming (_,_ to ⟨_,_⟩)
+
+×-comm : ∀{A B : Set} → A × B ≃ B × A
+×-comm =
+  record {
+    to = λ { ⟨ x , y ⟩ → ⟨ y , x ⟩ } ;
+    from = λ { ⟨ x , y ⟩ → ⟨ y , x ⟩ } ;
+    from∘to = λ { ⟨ x , y ⟩ → refl }  ;
+    to∘from = λ { ⟨ x , y ⟩ → refl } }
 ```
 

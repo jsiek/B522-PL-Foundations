@@ -77,7 +77,7 @@ standard library.
 ```
 open import Data.Nat.Properties
 open Relation.Binary.PropositionalEquality.≡-Reasoning using (begin_; _≡⟨_⟩_; _∎)
-open import Relation.Binary.PropositionalEquality using (sym; cong; cong₂)
+open import Relation.Binary.PropositionalEquality using (sym; cong)
 ```
 
 The Agda standard library module

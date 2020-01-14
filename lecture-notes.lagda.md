@@ -94,11 +94,11 @@ _ = λ x y →
     (x + y) + x
   ≡⟨ +-assoc x y x ⟩
     x + (y + x)
-  ≡⟨ cong₂ _+_ {x = x} refl (+-comm y x) ⟩
+  ≡⟨ cong (λ □ → x + □) (+-comm y x) ⟩
     x + (x + y)
   ≡⟨ sym (+-assoc x x y) ⟩
     (x + x) + y
-  ≡⟨ cong₂ _+_ {u = y} (cong₂ _+_ refl (sym (+-identityʳ x))) refl ⟩
+  ≡⟨ cong (λ □ → (x + □) + y) (sym (+-identityʳ x)) ⟩
     (x + (x + zero)) + y
   ≡⟨ refl ⟩
     2 * x + y
@@ -164,7 +164,7 @@ dub-correct (suc n) =
   let IH = dub-correct n in
   begin
     suc (suc (dub n))
-  ≡⟨ cong suc (cong suc IH) ⟩
+  ≡⟨ cong (λ □ → suc (suc □)) IH ⟩
     suc (suc (n + n))
   ≡⟨ cong suc (sym (+-suc n n)) ⟩
     suc (n + suc n)
@@ -188,7 +188,7 @@ gauss-formula (suc n) =
     2 * (suc n + gauss n)
   ≡⟨ *-distribˡ-+ 2 (suc n) (gauss n) ⟩
     2 * (suc n) + 2 * gauss n
-  ≡⟨ cong₂ _+_ refl IH ⟩
+  ≡⟨ cong (λ □ → 2 * (suc n) + □) IH ⟩
     2 * (suc n) + n * (suc n)
   ≡⟨ EQ n ⟩
     (suc n) * suc (suc n)
@@ -527,8 +527,6 @@ from∘to-evens (suc n) =
   suc n
   ∎ 
 
-open import Relation.Binary.PropositionalEquality using (cong-app)
-
 ⌊n/2⌋+⌈n/2⌉≡n : ∀ n → ⌊ n /2⌋ + ⌈ n /2⌉ ≡ n
 ⌊n/2⌋+⌈n/2⌉≡n zero    = refl
 ⌊n/2⌋+⌈n/2⌉≡n (suc n) = begin
@@ -537,24 +535,20 @@ open import Relation.Binary.PropositionalEquality using (cong-app)
   suc (⌊ n /2⌋ + ⌊ suc n /2⌋) ≡⟨ cong suc (⌊n/2⌋+⌈n/2⌉≡n n) ⟩
   suc n                       ∎
 
-{-
-⌊n/2⌋+⌊n/2⌋≡n : ∀ n → Even n → ⌊ n /2⌋ + ⌊ n /2⌋ ≡ n
-⌊n/2⌋+⌊n/2⌋≡n .0 even-0 = refl
-⌊n/2⌋+⌊n/2⌋≡n .(suc (suc n)) (even-+2 n even-n) =
-  begin
-  suc (⌊ n /2⌋ + suc ⌊ n /2⌋)     ≡⟨ cong suc (+-suc ⌊ n /2⌋ ⌊ n /2⌋) ⟩
-  suc (suc (⌊ n /2⌋ + ⌊ n /2⌋))   ≡⟨ cong suc (cong suc (⌊n/2⌋+⌊n/2⌋≡n n even-n)) ⟩
-  suc (suc n)
-  ∎
--}
+even-2+n→even-n : ∀ n → .(Even (suc (suc n))) → Even n
+even-2+n→even-n n e2n = {!!}
+
 ⌊n/2⌋+⌊n/2⌋≡n : ∀ n → .(Even n) → ⌊ n /2⌋ + ⌊ n /2⌋ ≡ n
 ⌊n/2⌋+⌊n/2⌋≡n zero even-n = refl
-⌊n/2⌋+⌊n/2⌋≡n (suc (suc n)) even-n =
+⌊n/2⌋+⌊n/2⌋≡n (suc (suc n)) even-2+n =
   begin
   suc (⌊ n /2⌋ + suc ⌊ n /2⌋)      ≡⟨ cong suc (+-suc ⌊ n /2⌋ ⌊ n /2⌋) ⟩
-  suc (suc (⌊ n /2⌋ + ⌊ n /2⌋))    ≡⟨ cong suc (cong suc (⌊n/2⌋+⌊n/2⌋≡n n {!!})) ⟩
+  suc (suc (⌊ n /2⌋ + ⌊ n /2⌋))    ≡⟨ cong (λ □ → suc (suc □)) (⌊n/2⌋+⌊n/2⌋≡n n EN) ⟩
   suc (suc n)
   ∎
+  where
+  EN : Even n
+  EN = even-2+n→even-n n even-2+n
 
 Evens≡ : ∀(x y : ℕ).(p : Even x).(q : Even y) → x ≡ y → (even x p) ≡ (even y q)
 Evens≡ x y p q refl = refl  
@@ -564,7 +558,7 @@ to∘from-evens (even n even-n) =
   begin
   to-evens (from-evens (even n even-n))        ≡⟨ refl ⟩
   to-evens ⌊ n /2⌋                             ≡⟨ refl ⟩
-  even (⌊ n /2⌋ + ⌊ n /2⌋) (even-dub ⌊ n /2⌋)  ≡⟨ Evens≡ ((⌊ n /2⌋ + ⌊ n /2⌋)) n ((even-dub ⌊ n /2⌋)) even-n (⌊n/2⌋+⌊n/2⌋≡n n {!!}) ⟩
+  even (⌊ n /2⌋ + ⌊ n /2⌋) (even-dub ⌊ n /2⌋)  ≡⟨ Evens≡ ((⌊ n /2⌋ + ⌊ n /2⌋)) n ((even-dub ⌊ n /2⌋)) even-n (⌊n/2⌋+⌊n/2⌋≡n n even-n) ⟩
   even n even-n
   ∎
 

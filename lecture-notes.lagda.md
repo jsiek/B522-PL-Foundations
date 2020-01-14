@@ -491,18 +491,6 @@ even-m→m≡n+n .(suc (suc n)) (even-+2 n even-m)
 ```
 
 ```
-open import Data.Product using (proj₁)
-
-data Evens : Set where
-  even : (n : ℕ) → .(Even n) → Evens
-  
-
-to-evens : ℕ → Evens
-to-evens n = even (n + n) (even-dub n)
-
-from-evens : Evens → ℕ
-from-evens (even n even-n) = ⌊ n /2⌋
-
 dub-div2 : ∀ (n : ℕ) → ⌊ n + n /2⌋ ≡ n
 dub-div2 zero = refl
 dub-div2 (suc n) =
@@ -516,6 +504,75 @@ dub-div2 (suc n) =
   where
   EQ : (n : ℕ) → suc (n + suc n) ≡ suc (suc (n + n))
   EQ = solve 1 (λ n → con 1 :+ (n :+ (con 1 :+ n)) := con 1 :+ (con 1 :+ (n :+ n))) refl
+
+```
+
+```
+data IsEven : ℕ → Set
+data IsOdd : ℕ → Set
+
+data IsEven where
+  is-even : ∀ n m → n ≡ m + m → IsEven n
+
+data IsOdd where
+  is-odd : ∀ n m → n ≡ suc (m + m) → IsOdd n
+
+open import Data.Sum
+
+sm+sm≡ss[m+m] : ∀ m → (suc m) + (suc m) ≡ suc (suc (m + m))
+sm+sm≡ss[m+m] = solve 1 (λ m → (con 1 :+ m) :+ (con 1 :+ m) := con 1 :+ (con 1 :+ (m :+ m))) refl
+
+even+odd : ∀ (n : ℕ) → IsEven n ⊎ IsOdd n
+even+odd zero = inj₁ (is-even 0 0 refl)
+even+odd (suc n)
+    with even+odd n
+... | inj₁ (is-even n m refl) =
+      inj₂ (is-odd (suc (m + m)) m refl)
+... | inj₂ (is-odd n m refl) =
+      inj₁ (is-even (suc (suc (m + m))) (suc m) (sym (sm+sm≡ss[m+m] m)))
+
+data Evens : Set where
+  even : (n : ℕ) → .(IsEven n) → Evens
+
+to-evens : ℕ → Evens
+to-evens n = even (n + n) (is-even (n + n) n refl)
+
+from-evens : Evens → ℕ
+from-evens (even n even-n) = ⌊ n /2⌋
+
+from∘to-evens : ∀ (n : ℕ) → from-evens (to-evens n) ≡ n
+from∘to-evens zero = refl
+from∘to-evens (suc n) =
+  begin
+  from-evens (to-evens (suc n))                            ≡⟨ refl ⟩
+  from-evens (even ((suc n) + (suc n)) (is-even (suc (n + suc n)) (suc n) refl)) ≡⟨ refl ⟩
+  ⌊ (suc n) + (suc n) /2⌋                                  ≡⟨ dub-div2 (suc n) ⟩
+  suc n
+  ∎ 
+
+Evens≡ : ∀(x y : ℕ).(p : IsEven x).(q : IsEven y) → x ≡ y → (even x p) ≡ (even y q)
+Evens≡ x y p q refl = refl  
+
+to∘from-evens : ∀ (e : Evens) → to-evens (from-evens e) ≡ e
+to∘from-evens (even n even-n) =
+  begin
+    to-evens ⌊ n /2⌋       ≡⟨ refl ⟩
+    even (⌊ n /2⌋ + ⌊ n /2⌋) (is-even (⌊ n /2⌋ + ⌊ n /2⌋) ⌊ n /2⌋ refl)  ≡⟨ Evens≡ (⌊ n /2⌋ + ⌊ n /2⌋) n (is-even (⌊ n /2⌋ + ⌊ n /2⌋) ⌊ n /2⌋ refl) even-n {!!} ⟩
+    even n even-n
+  ∎
+
+{-
+open import Data.Product using (proj₁)
+
+data Evens : Set where
+  even : (n : ℕ) → .(Even n) → Evens
+  
+
+to-evens : ℕ → Evens
+to-evens n = even (n + n) (even-dub n)
+
+from-evens : Evens → ℕ
+from-evens (even n even-n) = ⌊ n /2⌋
 
 from∘to-evens : ∀ (n : ℕ) → from-evens (to-evens n) ≡ n
 from∘to-evens zero = refl
@@ -569,6 +626,7 @@ to∘from-evens (even n even-n) =
     from = from-evens ;
     from∘to = from∘to-evens ;
     to∘from = to∘from-evens }
+-}
 ```
 
 

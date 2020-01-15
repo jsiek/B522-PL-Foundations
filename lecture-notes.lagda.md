@@ -256,8 +256,8 @@ To do this, we'll need a simple equation about addition, which we can
 obtain using the solver.
 
 ```
-sn+sn≡n+n+2 : (n : ℕ) → (suc (n + (suc n))) ≡ (suc (suc (n + n)))
-sn+sn≡n+n+2 = solve 1 (λ n → (con 1 :+ (n :+ (con 1 :+ n))) := (con 1 :+ (con 1 :+ (n :+ n)))) refl
+sn+sn≡ss[n+n] : ∀ n → (suc n) + (suc n) ≡ suc (suc (n + n))
+sn+sn≡ss[n+n] n rewrite +-comm n (suc n) = refl
 ```
 
 Here's the definition of `even-dub`.
@@ -265,7 +265,7 @@ Here's the definition of `even-dub`.
 ```
 even-dub : (n : ℕ) → Even (n + n)
 even-dub zero = even-0
-even-dub (suc n) rewrite sn+sn≡n+n+2 n =
+even-dub (suc n) rewrite sn+sn≡ss[n+n] n =
     let IH : Even (n + n)
         IH = even-dub n in
     even-+2 (n + n) IH 
@@ -395,10 +395,10 @@ following proof by induction shows that `m div n` implies
 that there exists some `k` such that `k * m ≡ n`.
 
 ```
-div→k*m≡n : (m n : ℕ) → m div n → Σ[ k ∈ ℕ ] k * m ≡ n
-div→k*m≡n m .m (div-refl .m x) = ⟨ 1 , +-identityʳ m ⟩
-div→k*m≡n m .(m + n) (div-step n .m mn)
-    with div→k*m≡n m n mn
+mdivn→k*m≡n : (m n : ℕ) → m div n → Σ[ k ∈ ℕ ] k * m ≡ n
+mdivn→k*m≡n m .m (div-refl .m x) = ⟨ 1 , +-identityʳ m ⟩
+mdivn→k*m≡n m .(m + n) (div-step n .m mn)
+    with mdivn→k*m≡n m n mn
 ... | ⟨ q , q*m≡n ⟩
     rewrite sym q*m≡n =
       ⟨ (suc q) , refl ⟩
@@ -412,7 +412,7 @@ div→k*m≡n m .(m + n) (div-step n .m mn)
 * For the case `div-step`, we need to show that `k * m ≡ m + n` for some `k`.
   The induction hypothesis tells us that `q * m ≡ n` for some `q`.
   We can get our hands on this `q` by pattern matching on the
-  dependent pair returned by `div→k*m≡n`, using the `with` construct.
+  dependent pair returned by `mdivn→k*m≡n`, using the `with` construct.
   If we replace the `n` in the goal with `q * m`, the goal becomes
   `k * m ≡ m + q * m` which is equivalent to
   `k * m ≡ suc q * m`. We can accomplish this replacement by
@@ -436,7 +436,7 @@ m-div-k*m (suc (suc k)) m m≢0 k≢0 =
 A common property of relations is transitivity.  Indeed, the `div`
 relation is transitive. We prove this fact directly using the facts
 that we've already proved about `div`. That is, from `m div n` and `n
-div p`, we have `k₁ * m ≡ n` and `k₂ * n ≡ p` (by `div→k*m≡n`). We can
+div p`, we have `k₁ * m ≡ n` and `k₂ * n ≡ p` (by `mdivn→k*m≡n`). We can
 substitute `k₁ * m` for `n` in the later formula to obtain `k₂ * k₁ *
 m ≡ p`, which shows that `m` divides `p` (by `m-div-k*m`).  However,
 to use `m-div-k*m` we have two remaining details to prove.
@@ -449,7 +449,7 @@ that is false.
 ```
 div-trans : (m n p : ℕ) → m div n → n div p → m div p
 div-trans m n p mn np
-    with div→k*m≡n m n mn | div→k*m≡n n p np
+    with mdivn→k*m≡n m n mn | mdivn→k*m≡n n p np
 ... | ⟨ k₁ , k₁*m≡n ⟩ | ⟨ k₂ , k₂*k₁*m≡p ⟩
     rewrite sym k₁*m≡n | sym k₂*k₁*m≡p | sym (*-assoc k₂ k₁ m) =
     m-div-k*m (k₂ * k₁) m m≢0 (k₂*k₁≢0 k₂*k₁*m≢0)
@@ -463,8 +463,88 @@ div-trans m n p mn np
         rewrite k₂*k₁≡0 = k₂*k₁*m≢0 refl
 ```
 
+Equality
+--------
+
+Review:
+
+* `≡` is an equivalence relation: `refl`, `sym`, `trans`
+* `cong`
+
+```
+open import Relation.Binary.PropositionalEquality using (refl; sym; trans)
+```
+
+Example of `refl`:
+
+```
+0≡0+0 : 0 ≡ 0 + 0
+0≡0+0 = refl
+```
+
+Example of `sym`:
+
+```
+0+0≡0 : 0 + 0 ≡ 0
+0+0≡0 = sym 0≡0+0
+```
+
+Example of `cong`:
+
+```
+0+0≡0+0+0 : 0 + 0 ≡ 0 + (0 + 0)
+0+0≡0+0+0 = cong (λ □ → 0 + □) 0≡0+0
+```
+
+Example of `trans`:
+
+```
+0≡0+0+0 : 0 ≡ 0 + 0 + 0
+0≡0+0+0 = trans 0≡0+0 0+0≡0+0+0
+```
+
+* `subst`
+
+  Example:
+
+```
+open import Relation.Binary.PropositionalEquality using (subst)
+
+even-dub' : (n m : ℕ) → m + m ≡ n → Even n
+even-dub' n m eq = subst (λ □ → Even □) eq (even-dub m)
+```
+
+* Chains of equations
+
+```
+_ : 0 ≡ 0 + 0 + 0
+_ =
+  begin
+  0            ≡⟨ 0≡0+0 ⟩
+  0 + 0        ≡⟨ 0+0≡0+0+0 ⟩
+  0 + 0 + 0
+  ∎
+```
+
+* Rewriting
+
+  Revisiting the proof of `even-dub'`, using `rewrite`
+  instead of `subst`.
+
+```
+even-dub'' : (n m : ℕ) → m + m ≡ n → Even n
+even-dub'' n m eq rewrite (sym eq) = even-dub m
+```
+
 Isomorphism
 -----------
+
+Two types `A` and `B` are *isomorphic* if there exist a pair of
+functions that map back and forth between the two types, and doing a
+round trip starting from either `A` or `B` brings you back to where
+you started, that is, composing the two functions in either order is
+the identity function.
+
 
 ```
 infix 0 _≃_
@@ -479,7 +559,7 @@ record _≃_ (A B : Set) : Set where
 Example: products are commutative upto isomorphism.
 
 ```
-open import Data.Product renaming (_,_ to ⟨_,_⟩)
+open import Data.Product using (_×_)
 
 ×-comm : ∀{A B : Set} → A × B ≃ B × A
 ×-comm =
@@ -531,12 +611,7 @@ from-evens (even n even-n) = ⌊ n /2⌋
 We shall first prove that `from ∘ to` is the identity.
 
 We're going to need the fact that every number is either even or odd.
-The following two equations are helpful in proving that fact.
-
-```
-sm+sm≡ss[m+m] : ∀ m → (suc m) + (suc m) ≡ suc (suc (m + m))
-sm+sm≡ss[m+m] m rewrite +-comm m (suc m) = refl
-```
+The equation is helpful in proving that fact.
 
 ```
 ⌊n+n/2⌋≡n : ∀ (n : ℕ) → ⌊ n + n /2⌋ ≡ n
@@ -544,7 +619,7 @@ sm+sm≡ss[m+m] m rewrite +-comm m (suc m) = refl
 ⌊n+n/2⌋≡n (suc n) =
   let IH = ⌊n+n/2⌋≡n n in
   begin
-  ⌊ suc (n + suc n) /2⌋        ≡⟨ cong ⌊_/2⌋ (sm+sm≡ss[m+m] n) ⟩
+  ⌊ suc (n + suc n) /2⌋        ≡⟨ cong ⌊_/2⌋ (sn+sn≡ss[n+n] n) ⟩
   ⌊ suc (suc (n + n)) /2⌋      ≡⟨ refl ⟩
   suc ⌊ n + n /2⌋              ≡⟨ cong suc IH ⟩
   suc n
@@ -576,9 +651,9 @@ We shall need the following equation
 However, in the context where we need it, we know that `n` is even but
 only in a proof irrelevant way. So we need a way to convert a proof
 irrelevant `IsEven n` to a proof relevant one. One of the few ways
-that one is allowed to use a proof irrelevant fact is in proving a
-contradiction. So we make the irrelevant assumption `IsEven n`.  Then
-we prove that even number is either even or odd (relevantly), and that
+that we are allowed to use a proof irrelevant fact is in proving a
+contradiction. So let us assume `IsEven n` (irrelevantly).  Then we
+prove that every number is either even or odd (relevantly), and that
 even and odd are mutually exclusive.  In case the number is even, we
 have our relevant evidence that is is even. In case the number is odd,
 then it is not even, and we have a contradiction with the irrelevant
@@ -597,7 +672,7 @@ even⊎odd (suc n)
 ... | inj₁ (is-even n m refl) =
       inj₂ (is-odd (suc (m + m)) m refl)
 ... | inj₂ (is-odd n m refl) =
-      inj₁ (is-even (suc (suc (m + m))) (suc m) (sym (sm+sm≡ss[m+m] m)))
+      inj₁ (is-even (suc (suc (m + m))) (suc m) (sym (sn+sn≡ss[n+n] m)))
 ```
 
 Not only is every number either even or odd, but those two properties
@@ -665,4 +740,89 @@ even. Yeah infinity!
 
 ```
 
+
+Connectives
+-----------
+
+Propositions as Types:
+
+* conjunction is product,
+* disjunction is sum,
+* true is unit type,
+* false is empty type,
+* implication is function type.
+
+```
+postulate P Q R S : Set
+```
+
+Conjunction:
+
+```
+open import Data.Product using (_×_; proj₁; proj₂) renaming (_,_ to ⟨_,_⟩)
+
+_ : P × Q → Q × P
+_ = λ pq → ⟨ proj₂ pq , proj₁ pq ⟩
+```
+
+Disjunction:
+
+```
+open import Data.Sum using (_⊎_; inj₁; inj₂)
+
+_ : P ⊎ Q → Q ⊎ P
+_ = λ { (inj₁ p) → (inj₂ p);
+        (inj₂ q) → (inj₁ q)}
+```
+
+True:
+
+```
+open import Data.Unit using (⊤; tt)
+
+_ : ⊤
+_ = tt
+
+_ : (⊤ → P) → P
+_ = λ ⊤→P → ⊤→P tt
+```
+
+False:
+
+```
+open import Data.Empty using (⊥; ⊥-elim)
+
+0≢1+n : ∀ {n} → 0 ≢ suc n
+0≢1+n ()
+
+_ : 0 ≡ 1 → P
+_ = λ 0≡1 → ⊥-elim (0≢1+n 0≡1)
+```
+
+Implication
+-----------
+
+```
+_ : (P → Q) × (R → Q) → ((P ⊎ R) → Q)
+_ = λ pq-rq → λ{ (inj₁ p) → (proj₁ pq-rq) p ;
+                 (inj₂ r) → (proj₂ pq-rq) r }
+```
+
+alternatively, using function definitions and pattern matching
+
+```
+f : (P → Q) × (R → Q) → ((P ⊎ R) → Q)
+f ⟨ pq , rq ⟩ (inj₁ p) = pq p
+f ⟨ pq , rq ⟩ (inj₂ r) = rq r
+```
+
+Negation
+--------
+
+Negation is shorthand for "implies false".
+
+```
+_ : (¬ P) ≡ (P → ⊥)
+_ = refl
+```
 

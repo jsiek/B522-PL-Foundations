@@ -860,7 +860,7 @@ whether the payload (the second part) has type `A` or `B`,
 respectively.
 
 ```
-open import Data.Bool
+open import Data.Bool using (Bool; true; false)
 
 select : (A : Set) → (B : Set) → Bool → Set
 select A B false = A
@@ -907,3 +907,41 @@ Example proofs about existentials:
   → (∀ (x : A) → B x → C)
 ∀∃-currying2 g x y = g ⟨ x , y ⟩
 ``` 
+
+Decidable
+---------
+
+An alternative way to represent a relation is Agda is with the
+relations characteristic function. That is, a function that takes the
+two elements and returns true or false, depending on whether the
+elements are in the relation.
+
+```
+less-eq : ℕ → ℕ → Bool
+less-eq zero n = true
+less-eq (suc m) zero = false
+less-eq (suc m) (suc n) = less-eq m n
+```
+
+In some sense, such a function is better than going with a data type
+because it also serves as a decision procedure. However, for some
+relations it is difficult or even impossible to come up with such a
+function.
+
+Sometimes its nice to link your decision procedure to the relation
+defined by a data type, building the correctness of your decision
+procedure into its type. The `Dec` type let's you do this.
+
+```
+open import Relation.Nullary using (Dec; yes; no)
+open import Data.Nat using (_≤_)
+
+less-eq? : (m n : ℕ) → Dec (m ≤ n)
+less-eq? zero n = yes z≤n
+less-eq? (suc m) zero = no (λ ())
+less-eq? (suc m) (suc n)
+    with less-eq? m n
+... | yes m≤n = yes (s≤s m≤n)
+... | no ¬m≤n = no λ sm≤sn → ¬m≤n (≤-pred sm≤sn)
+```
+

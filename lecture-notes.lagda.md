@@ -601,9 +601,9 @@ even⊎odd (suc n)
 ```
 
 Not only is every number either even or odd, but those two properties
-are mutually exclusive. We prove that if a number is odd, it is not
-even. To do this we need the following fact, which we prove by
-induction on both `n` and `m`.
+are mutually exclusive. In the following we prove that if a number is
+odd, it is not even. To do this we need the following fact, which we
+prove by induction on both `n` and `m`.
 
 ```
 2*n≢1+2*m : ∀ (n m : ℕ) → n + n ≢ suc (m + m)

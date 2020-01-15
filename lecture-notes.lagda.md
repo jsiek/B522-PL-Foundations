@@ -77,7 +77,7 @@ standard library.
 ```
 open import Data.Nat.Properties
 open Relation.Binary.PropositionalEquality.≡-Reasoning using (begin_; _≡⟨_⟩_; _∎)
-open import Relation.Binary.PropositionalEquality using (sym; cong)
+open import Relation.Binary.PropositionalEquality using (sym; cong; cong₂)
 ```
 
 The Agda standard library module
@@ -476,160 +476,6 @@ record _≃_ (A B : Set) : Set where
     to∘from : ∀ (y : B) → to (from y) ≡ y
 ```
 
-Example: ℕ is isomorphic to the even numbers.
-
-```
-even-m→m≡n+n : (m : ℕ) → Even m → Σ[ n ∈ ℕ ] m ≡ n + n
-even-m→m≡n+n .0 even-0 = ⟨ 0 , refl ⟩
-even-m→m≡n+n .(suc (suc n)) (even-+2 n even-m)
-  with even-m→m≡n+n n even-m
-... | ⟨ p , refl ⟩ =   
-    ⟨ suc p , EQ p ⟩
-  where
-  EQ : (p : ℕ) → suc (suc (p + p)) ≡ suc (p + suc p)
-  EQ = solve 1 (λ p → con 1 :+ (con 1 :+ (p :+ p)) := con 1 :+ (p :+ (con 1 :+ p))) refl
-```
-
-```
-dub-div2 : ∀ (n : ℕ) → ⌊ n + n /2⌋ ≡ n
-dub-div2 zero = refl
-dub-div2 (suc n) =
-  let IH = dub-div2 n in
-  begin
-  ⌊ suc (n + suc n) /2⌋        ≡⟨ cong ⌊_/2⌋ (EQ n) ⟩
-  ⌊ suc (suc (n + n)) /2⌋      ≡⟨ refl ⟩
-  suc ⌊ n + n /2⌋              ≡⟨ cong suc IH ⟩
-  suc n
-  ∎
-  where
-  EQ : (n : ℕ) → suc (n + suc n) ≡ suc (suc (n + n))
-  EQ = solve 1 (λ n → con 1 :+ (n :+ (con 1 :+ n)) := con 1 :+ (con 1 :+ (n :+ n))) refl
-
-```
-
-```
-data IsEven : ℕ → Set
-data IsOdd : ℕ → Set
-
-data IsEven where
-  is-even : ∀ n m → n ≡ m + m → IsEven n
-
-data IsOdd where
-  is-odd : ∀ n m → n ≡ suc (m + m) → IsOdd n
-
-open import Data.Sum
-
-sm+sm≡ss[m+m] : ∀ m → (suc m) + (suc m) ≡ suc (suc (m + m))
-sm+sm≡ss[m+m] = solve 1 (λ m → (con 1 :+ m) :+ (con 1 :+ m) := con 1 :+ (con 1 :+ (m :+ m))) refl
-
-even+odd : ∀ (n : ℕ) → IsEven n ⊎ IsOdd n
-even+odd zero = inj₁ (is-even 0 0 refl)
-even+odd (suc n)
-    with even+odd n
-... | inj₁ (is-even n m refl) =
-      inj₂ (is-odd (suc (m + m)) m refl)
-... | inj₂ (is-odd n m refl) =
-      inj₁ (is-even (suc (suc (m + m))) (suc m) (sym (sm+sm≡ss[m+m] m)))
-
-data Evens : Set where
-  even : (n : ℕ) → .(IsEven n) → Evens
-
-to-evens : ℕ → Evens
-to-evens n = even (n + n) (is-even (n + n) n refl)
-
-from-evens : Evens → ℕ
-from-evens (even n even-n) = ⌊ n /2⌋
-
-from∘to-evens : ∀ (n : ℕ) → from-evens (to-evens n) ≡ n
-from∘to-evens zero = refl
-from∘to-evens (suc n) =
-  begin
-  from-evens (to-evens (suc n))                            ≡⟨ refl ⟩
-  from-evens (even ((suc n) + (suc n)) (is-even (suc (n + suc n)) (suc n) refl)) ≡⟨ refl ⟩
-  ⌊ (suc n) + (suc n) /2⌋                                  ≡⟨ dub-div2 (suc n) ⟩
-  suc n
-  ∎ 
-
-Evens≡ : ∀(x y : ℕ).(p : IsEven x).(q : IsEven y) → x ≡ y → (even x p) ≡ (even y q)
-Evens≡ x y p q refl = refl  
-
-to∘from-evens : ∀ (e : Evens) → to-evens (from-evens e) ≡ e
-to∘from-evens (even n even-n) =
-  begin
-    to-evens ⌊ n /2⌋       ≡⟨ refl ⟩
-    even (⌊ n /2⌋ + ⌊ n /2⌋) (is-even (⌊ n /2⌋ + ⌊ n /2⌋) ⌊ n /2⌋ refl)  ≡⟨ Evens≡ (⌊ n /2⌋ + ⌊ n /2⌋) n (is-even (⌊ n /2⌋ + ⌊ n /2⌋) ⌊ n /2⌋ refl) even-n {!!} ⟩
-    even n even-n
-  ∎
-
-{-
-open import Data.Product using (proj₁)
-
-data Evens : Set where
-  even : (n : ℕ) → .(Even n) → Evens
-  
-
-to-evens : ℕ → Evens
-to-evens n = even (n + n) (even-dub n)
-
-from-evens : Evens → ℕ
-from-evens (even n even-n) = ⌊ n /2⌋
-
-from∘to-evens : ∀ (n : ℕ) → from-evens (to-evens n) ≡ n
-from∘to-evens zero = refl
-from∘to-evens (suc n) =
-  begin
-  from-evens (to-evens (suc n))                            ≡⟨ refl ⟩
-  from-evens (even ((suc n) + (suc n)) (even-dub (suc n))) ≡⟨ refl ⟩
-  ⌊ (suc n) + (suc n) /2⌋                                  ≡⟨ dub-div2 (suc n) ⟩
-  suc n
-  ∎ 
-
-⌊n/2⌋+⌈n/2⌉≡n : ∀ n → ⌊ n /2⌋ + ⌈ n /2⌉ ≡ n
-⌊n/2⌋+⌈n/2⌉≡n zero    = refl
-⌊n/2⌋+⌈n/2⌉≡n (suc n) = begin
-  ⌊ suc n /2⌋ + suc ⌊ n /2⌋   ≡⟨ +-comm ⌊ suc n /2⌋ (suc ⌊ n /2⌋) ⟩
-  suc ⌊ n /2⌋ + ⌊ suc n /2⌋   ≡⟨ refl ⟩
-  suc (⌊ n /2⌋ + ⌊ suc n /2⌋) ≡⟨ cong suc (⌊n/2⌋+⌈n/2⌉≡n n) ⟩
-  suc n                       ∎
-
-even-2+n→even-n : ∀ n → .(Even (suc (suc n))) → Even n
-even-2+n→even-n n e2n = {!!}
-
-⌊n/2⌋+⌊n/2⌋≡n : ∀ n → .(Even n) → ⌊ n /2⌋ + ⌊ n /2⌋ ≡ n
-⌊n/2⌋+⌊n/2⌋≡n zero even-n = refl
-⌊n/2⌋+⌊n/2⌋≡n (suc (suc n)) even-2+n =
-  begin
-  suc (⌊ n /2⌋ + suc ⌊ n /2⌋)      ≡⟨ cong suc (+-suc ⌊ n /2⌋ ⌊ n /2⌋) ⟩
-  suc (suc (⌊ n /2⌋ + ⌊ n /2⌋))    ≡⟨ cong (λ □ → suc (suc □)) (⌊n/2⌋+⌊n/2⌋≡n n EN) ⟩
-  suc (suc n)
-  ∎
-  where
-  EN : Even n
-  EN = even-2+n→even-n n even-2+n
-
-Evens≡ : ∀(x y : ℕ).(p : Even x).(q : Even y) → x ≡ y → (even x p) ≡ (even y q)
-Evens≡ x y p q refl = refl  
-
-to∘from-evens : ∀ (e : Evens) → to-evens (from-evens e) ≡ e
-to∘from-evens (even n even-n) =
-  begin
-  to-evens (from-evens (even n even-n))        ≡⟨ refl ⟩
-  to-evens ⌊ n /2⌋                             ≡⟨ refl ⟩
-  even (⌊ n /2⌋ + ⌊ n /2⌋) (even-dub ⌊ n /2⌋)  ≡⟨ Evens≡ ((⌊ n /2⌋ + ⌊ n /2⌋)) n ((even-dub ⌊ n /2⌋)) even-n (⌊n/2⌋+⌊n/2⌋≡n n even-n) ⟩
-  even n even-n
-  ∎
-
-ℕ≃Evens : ℕ ≃ Evens
-ℕ≃Evens =
-  record {
-    to = to-evens ; 
-    from = from-evens ;
-    from∘to = from∘to-evens ;
-    to∘from = to∘from-evens }
--}
-```
-
-
 Example: products are commutative upto isomorphism.
 
 ```
@@ -643,4 +489,180 @@ open import Data.Product renaming (_,_ to ⟨_,_⟩)
     from∘to = λ { ⟨ x , y ⟩ → refl }  ;
     to∘from = λ { ⟨ x , y ⟩ → refl } }
 ```
+
+Example: ℕ is isomorphic to the even numbers.
+
+Here is another definition of the even numbers.
+It's also helpful to define the odd numbers.
+
+```
+data IsEven : ℕ → Set
+data IsOdd : ℕ → Set
+
+data IsEven where
+  is-even : ∀ n m → n ≡ m + m → IsEven n
+
+data IsOdd where
+  is-odd : ∀ n m → n ≡ suc (m + m) → IsOdd n
+```
+
+We define the type `Evens` as a wrapper around the even numbers. We
+mark the proof of `IsEven n` as *irrelevant* so that it proving that
+two Evens are equal does not require proving that the proofs of
+`IsEven` are also equal.
+
+```
+data Evens : Set where
+  even : (n : ℕ) → .(IsEven n) → Evens
+```
+
+To form the isomorphim, we define the following two functions for
+converting a number to an even one, by multiplying by two, and for
+converting back, by dividing by two.
+
+```
+to-evens : ℕ → Evens
+to-evens n = even (n + n) (is-even (n + n) n refl)
+
+from-evens : Evens → ℕ
+from-evens (even n even-n) = ⌊ n /2⌋
+
+```
+We shall first prove that `from ∘ to` is the identity.
+
+We're going to need the fact that every number is either even or odd.
+The following two equations are helpful in proving that fact.
+
+```
+sm+sm≡ss[m+m] : ∀ m → (suc m) + (suc m) ≡ suc (suc (m + m))
+sm+sm≡ss[m+m] m rewrite +-comm m (suc m) = refl
+```
+
+```
+⌊n+n/2⌋≡n : ∀ (n : ℕ) → ⌊ n + n /2⌋ ≡ n
+⌊n+n/2⌋≡n zero = refl
+⌊n+n/2⌋≡n (suc n) =
+  let IH = ⌊n+n/2⌋≡n n in
+  begin
+  ⌊ suc (n + suc n) /2⌋        ≡⟨ cong ⌊_/2⌋ (sm+sm≡ss[m+m] n) ⟩
+  ⌊ suc (suc (n + n)) /2⌋      ≡⟨ refl ⟩
+  suc ⌊ n + n /2⌋              ≡⟨ cong suc IH ⟩
+  suc n
+  ∎
+```
+
+Now we prove that `from ∘ to` is the identity, by induction on `n`.
+
+```
+from∘to-evens : ∀ (n : ℕ) → from-evens (to-evens n) ≡ n
+from∘to-evens zero = refl
+from∘to-evens (suc n) =
+  begin
+  from-evens (to-evens (suc n))                            ≡⟨ refl ⟩
+  from-evens (even ((suc n) + (suc n)) (is-even (suc (n + suc n)) (suc n) refl)) ≡⟨ refl ⟩
+  ⌊ (suc n) + (suc n) /2⌋                                  ≡⟨ ⌊n+n/2⌋≡n (suc n) ⟩
+  suc n
+  ∎ 
+```
+
+The other direction, proving that `to ∘ from` is the identity, is more difficult.
+We shall need the following equation
+
+```
+⌊n/2⌋+⌊n/2⌋≡n : ∀ n → (IsEven n) → ⌊ n /2⌋ + ⌊ n /2⌋ ≡ n
+⌊n/2⌋+⌊n/2⌋≡n n (is-even .n m refl) rewrite ⌊n+n/2⌋≡n m = refl
+```
+
+However, in the context where we need it, we know that `n` is even but
+only in a proof irrelevant way. So we need a way to convert a proof
+irrelevant `IsEven n` to a proof relevant one. One of the few ways
+that one is allowed to use a proof irrelevant fact is in proving a
+contradiction. So we make the irrelevant assumption `IsEven n`.  Then
+we prove that even number is either even or odd (relevantly), and that
+even and odd are mutually exclusive.  In case the number is even, we
+have our relevant evidence that is is even. In case the number is odd,
+then it is not even, and we have a contradiction with the irrelevant
+fact that it is even.
+
+We start by proving that every number `n` is either even or odd, by
+induction on `n`.
+
+```
+open import Data.Sum
+
+even⊎odd : ∀ (n : ℕ) → IsEven n ⊎ IsOdd n
+even⊎odd zero = inj₁ (is-even 0 0 refl)
+even⊎odd (suc n)
+    with even⊎odd n
+... | inj₁ (is-even n m refl) =
+      inj₂ (is-odd (suc (m + m)) m refl)
+... | inj₂ (is-odd n m refl) =
+      inj₁ (is-even (suc (suc (m + m))) (suc m) (sym (sm+sm≡ss[m+m] m)))
+```
+
+Not only is every number either even or odd, but those two properties
+are mutually exclusive. We prove that if a number is odd, it is not
+even. To do this we need the following fact, which we prove by
+induction on both `n` and `m`.
+
+```
+2*n≢1+2*m : ∀ (n m : ℕ) → n + n ≢ suc (m + m)
+2*n≢1+2*m (suc n) zero eq rewrite +-comm n (suc n)
+    with eq
+... | ()
+2*n≢1+2*m (suc n) (suc m) eq rewrite +-comm n (suc n) | +-comm m (suc m) =
+    let IH = 2*n≢1+2*m n m in
+    IH (suc-injective (suc-injective eq))
+
+open import Relation.Nullary using (¬_)
+
+IsOdd→¬IsEven : ∀ n → IsOdd n → ¬ IsEven n
+IsOdd→¬IsEven n (is-odd .n m refl) (is-even .n m₁ eq) = 2*n≢1+2*m m₁ m (sym eq)
+```
+
+Now we can convert an irrelevant `IsEven n` to a relevant one.
+
+```
+import Data.Empty.Irrelevant
+
+IsEven-irrelevant→IsEven : ∀ n → .(IsEven n) → IsEven n
+IsEven-irrelevant→IsEven n even-n 
+    with even⊎odd n
+... | inj₁ even-n' = even-n'
+... | inj₂ odd-n = Data.Empty.Irrelevant.⊥-elim (IsOdd→¬IsEven n odd-n even-n)
+```
+
+To show that two `Evens` are equal, it suffices to show that the
+underlying numbers are equal (because the proofs of `IsEven` are
+irrelevant).
+
+```
+Evens≡ : ∀(x y : ℕ) .(p : IsEven x) .(q : IsEven y) → x ≡ y → (even x p) ≡ (even y q)
+Evens≡ x y p q refl = refl  
+```
+
+Now we can prove that `to ∘ from` is the identity.
+
+```
+to∘from-evens : ∀ (e : Evens) → to-evens (from-evens e) ≡ e
+to∘from-evens (even n even-n) =
+  Evens≡ (⌊ n /2⌋ + ⌊ n /2⌋) n (is-even (⌊ n /2⌋ + ⌊ n /2⌋) ⌊ n /2⌋ refl) even-n
+         (⌊n/2⌋+⌊n/2⌋≡n n (IsEven-irrelevant→IsEven n even-n))
+```
+
+Putting all these pieces together, we have that ℕ is isomorphic to
+`Evens`, which is rather odd because ℕ contains numbers that are not
+even. Yeah infinity!
+
+```
+ℕ≃Evens : ℕ ≃ Evens
+ℕ≃Evens =
+  record {
+    to = to-evens ;
+    from = from-evens ;
+    from∘to = from∘to-evens ;
+    to∘from = to∘from-evens }
+
+```
+
 

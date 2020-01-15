@@ -359,7 +359,7 @@ div→n≢0 m .(m + n) (div-step n .m mn) =
 An alternative way to state that a number evenly divides another
 number is using multiplication instead of repeated addition.  We shall
 prove that if `m div n`, then there exists some number `k` such that
-`k * m ≡ n`. In Agda, we use a **dependent product** to express
+`k * m ≡ n`. In Agda, we use a **dependent product type** to express
 "there exists". A dependent product is simply a pair where the
 **type** of the second part of the pair can refer to the the first
 part of the pair.  To express "there exists", the witness of the
@@ -839,7 +839,62 @@ _ = λ { (inj₁ ∀x,qx) p → inj₁ (∀x,qx p);
         (inj₂ ∀x,rx) p → inj₂ (∀x,rx p) }
 ```
 
-Existential quantification is represented using dependent products.
+Existential quantification is represented using dependent product types.
+Recall that in a dependent product type, the type of the second part
+can refer to the first part.
+
+Normal product type:
+
+   A × B
+
+Dependent product type:
+
+  Σ[ x ∈ A ] B x
+
+The values of dependent product types are good old pairs: `⟨ v₁ , v₂ ⟩`,
+where `v₁ : A` and `v₂ : B v₁`.
+
+The following example implements a disjoint union `A or B` using a
+dependent pair.  The first part is a tag, false or true, that says
+whether the payload (the second part) has type `A` or `B`,
+respectively.
+
+```
+open import Data.Bool
+
+select : (A : Set) → (B : Set) → Bool → Set
+select A B false = A
+select A B true = B
+
+_or_ : Set → Set → Set
+A or B = Σ[ flag ∈ Bool ] select A B flag
+
+forty-two : ℕ or (ℕ → ℕ)
+forty-two = ⟨ false , 42 ⟩
+
+inc : ℕ or (ℕ → ℕ)
+inc = ⟨ true , suc ⟩
+
+inject₁ : ∀{A B : Set} → A → A or B
+inject₁ a = ⟨ false , a ⟩
+
+inject₂ : ∀{A B : Set} → B → A or B
+inject₂ b = ⟨ true , b ⟩
+
+case : ∀{A B C : Set} → A or B → (A → C) → (B → C) → C
+case ⟨ false , a ⟩ ac bc = ac a
+case ⟨ true , b ⟩ ac bc = bc b
+```
+
+```
+_ : 42 ≡ case forty-two (λ n → n) (λ f → f 0)
+_ = refl
+
+_ : 1 ≡ case inc (λ n → n) (λ f → f 0)
+_ = refl
+```
+
+Example proofs about existentials:
 
 ```
 ∀∃-currying1 : ∀ {A : Set} {B : A → Set} {C : Set}

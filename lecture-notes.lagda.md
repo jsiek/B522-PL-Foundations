@@ -799,8 +799,7 @@ _ : 0 ≡ 1 → P
 _ = λ 0≡1 → ⊥-elim (0≢1+n 0≡1)
 ```
 
-Implication
------------
+Implication:
 
 ```
 _ : (P → Q) × (R → Q) → ((P ⊎ R) → Q)
@@ -816,8 +815,7 @@ f ⟨ pq , rq ⟩ (inj₁ p) = pq p
 f ⟨ pq , rq ⟩ (inj₂ r) = rq r
 ```
 
-Negation
---------
+Negation:
 
 Negation is shorthand for "implies false".
 
@@ -826,3 +824,31 @@ _ : (¬ P) ≡ (P → ⊥)
 _ = refl
 ```
 
+
+Quantifiers
+-----------
+
+As we have seen, universal quantification (for all) is represented
+using dependent function types.
+
+```
+_ : ∀{P : Set}{Q R : P → Set} →
+     (∀ (x : P) → Q x) ⊎ (∀ (x : P) → R x)
+  →  ∀ (x : P) → Q x ⊎ R x
+_ = λ { (inj₁ ∀x,qx) p → inj₁ (∀x,qx p);
+        (inj₂ ∀x,rx) p → inj₂ (∀x,rx p) }
+```
+
+Existential quantification is represented using dependent products.
+
+```
+∀∃-currying1 : ∀ {A : Set} {B : A → Set} {C : Set}
+  → (∀ (x : A) → B x → C)
+  → (Σ[ x ∈ A ] B x) → C
+∀∃-currying1 f ⟨ x , y ⟩ = f x y
+
+∀∃-currying2 : ∀ {A : Set} {B : A → Set} {C : Set}
+  → ((Σ[ x ∈ A ] B x) → C)
+  → (∀ (x : A) → B x → C)
+∀∃-currying2 g x y = g ⟨ x , y ⟩
+``` 

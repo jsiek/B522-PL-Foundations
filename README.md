@@ -47,9 +47,9 @@ Monday and Wednesday at 4:30-5:45pm in Luddy Hall Room 4101.
 | -------- | --- | -------- |
 | January  | 13  | [Naturals](https://plfa.github.io/Naturals/) & [Induction](https://plfa.github.io/Induction/) |
 |          | 15  | [Relations](https://plfa.github.io/Relations/) |
-|          | 20  | [Equality](https://plfa.github.io/Equality/) & [Isomorphism](https://plfa.github.io/Isomorphism/) (no lecture) |
-| 		   | 22  | [Connectives](https://plfa.github.io/Connectives/) & [Negation](https://plfa.github.io/Negation/) (no lecture) |
-|		   | 27  | [Quantifiers](https://plfa.github.io/Quantifiers/) & [Decidable](https://plfa.github.io/Decidable/) |
+|          | 16  | [Equality](https://plfa.github.io/Equality/) & [Isomorphism](https://plfa.github.io/Isomorphism/) (unusual day, regular time) |
+| 		   | 27  | [Connectives](https://plfa.github.io/Connectives/) & [Negation](https://plfa.github.io/Negation/) (no lecture) |
+|		   | 28  | [Quantifiers](https://plfa.github.io/Quantifiers/) & [Decidable](https://plfa.github.io/Decidable/) (unusual day, regular time) |
 |		   | 29  | [Lists](https://plfa.github.io/Lists/) and higher-order functions |
 | February | 3   | [Lambda](https://plfa.github.io/Lambda/) the Simply Typed Lambda Calculus |
 |          | 5   | [Properties](https://plfa.github.io/Properties/) such as type safety |

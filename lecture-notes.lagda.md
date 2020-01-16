@@ -252,20 +252,10 @@ We'll do this by defining a recursive function `even-dub`
 that takes a number `n` and produces an object of type
 `Even (n + n)`.
 
-To do this, we'll need a simple equation about addition, which we can
-obtain using the solver.
-
-```
-sn+sn≡ss[n+n] : ∀ n → (suc n) + (suc n) ≡ suc (suc (n + n))
-sn+sn≡ss[n+n] n rewrite +-comm n (suc n) = refl
-```
-
-Here's the definition of `even-dub`.
-
 ```
 even-dub : (n : ℕ) → Even (n + n)
 even-dub zero = even-0
-even-dub (suc n) rewrite sn+sn≡ss[n+n] n =
+even-dub (suc n) rewrite +-comm n (suc n) =
     let IH : Even (n + n)
         IH = even-dub n in
     even-+2 (n + n) IH 
@@ -544,7 +534,7 @@ The following equation is helpful in proving that fact.
 ```
 ⌊n+n/2⌋≡n : ∀ (n : ℕ) → ⌊ n + n /2⌋ ≡ n
 ⌊n+n/2⌋≡n zero = refl
-⌊n+n/2⌋≡n (suc n) rewrite sn+sn≡ss[n+n] n =
+⌊n+n/2⌋≡n (suc n) rewrite +-comm n (suc n) =
   let IH = ⌊n+n/2⌋≡n n in
   begin
   suc ⌊ n + n /2⌋         ≡⟨ cong (λ □ → suc □) IH ⟩
@@ -592,8 +582,10 @@ even⊎odd (suc n)
     with even⊎odd n
 ... | inj₁ (is-even n m refl) =
       inj₂ (is-odd (suc (m + m)) m refl)
-... | inj₂ (is-odd n m refl) =
-      inj₁ (is-even (suc (suc (m + m))) (suc m) (sym (sn+sn≡ss[n+n] m)))
+... | inj₂ (is-odd n m refl) 
+    with is-even (suc (suc (m + m))) (suc m)
+... | even[2+2*m] rewrite +-comm m (suc m) =
+    inj₁ (even[2+2*m] refl)
 ```
 
 Not only is every number either even or odd, but those two properties
@@ -603,17 +595,20 @@ prove by induction on both `n` and `m`.
 
 ```
 2*n≢1+2*m : ∀ (n m : ℕ) → n + n ≢ suc (m + m)
-2*n≢1+2*m (suc n) zero eq rewrite +-comm n (suc n)
+2*n≢1+2*m (suc n) zero eq
+    rewrite +-comm n (suc n)
     with eq
 ... | ()
-2*n≢1+2*m (suc n) (suc m) eq rewrite +-comm n (suc n) | +-comm m (suc m) =
+2*n≢1+2*m (suc n) (suc m) eq
+    rewrite +-comm n (suc n) | +-comm m (suc m) =
     let IH = 2*n≢1+2*m n m in
     IH (suc-injective (suc-injective eq))
 
 open import Relation.Nullary using (¬_)
 
 IsOdd→¬IsEven : ∀ n → IsOdd n → ¬ IsEven n
-IsOdd→¬IsEven n (is-odd .n m refl) (is-even .n m₁ eq) = 2*n≢1+2*m m₁ m (sym eq)
+IsOdd→¬IsEven n (is-odd .n m refl) (is-even .n m₁ eq) =
+    2*n≢1+2*m m₁ m (sym eq)
 ```
 
 Now we can convert an irrelevant `IsEven n` to a relevant one.
@@ -741,12 +736,37 @@ Quantifiers
 As we have seen, universal quantification (for all) is represented
 using dependent function types.
 
+You use (eliminate) a dependent function simply by applying it to an
+argument.
+
 ```
-_ : ∀{P : Set}{Q R : P → Set} →
-     (∀ (x : P) → Q x) ⊎ (∀ (x : P) → R x)
-  →  ∀ (x : P) → Q x ⊎ R x
-_ = λ { (inj₁ ∀x,qx) p → inj₁ (∀x,qx p);
-        (inj₂ ∀x,rx) p → inj₂ (∀x,rx p) }
+postulate Human : Set
+postulate Mortal : Human → Set
+postulate Socrates : Human
+postulate all-Humans-mortal : (p : Human) → Mortal p
+postulate all-Humans-mortal' : ∀ p → Mortal p               -- equivalent
+postulate all-Humans-mortal'' : ∀ (p : Human) → Mortal p    -- equivalent
+
+_ : Mortal Socrates
+_ = all-Humans-mortal Socrates
+```
+
+You prove a universally quantifies formula by writing a function of
+the appropriate type.
+
+```
+*-0ʳ : ∀ n → n * 0 ≡ 0
+*-0ʳ n rewrite *-comm n 0 = refl
+```
+
+The following shows how universals can distribute with disjunction.
+
+```
+_ : ∀{P : Set}{Q R : P → Set}
+    → (∀ (x : P) → Q x)  ⊎  (∀ (x : P) → R x)
+    → ∀ (x : P) → Q x ⊎ R x
+_ = λ { (inj₁ ∀x:P,Qx) p → inj₁ (∀x:P,Qx p);
+        (inj₂ ∀x:P,Rx) p → inj₂ (∀x:P,Rx p) }
 ```
 
 Existential quantification is represented using dependent product types.
@@ -914,7 +934,9 @@ function.
 
 Sometimes its nice to link your decision procedure to the relation
 defined by a data type, building the correctness of your decision
-procedure into its type. The `Dec` type let's you do this.
+procedure into its type. The `Dec` type let's you do this by including
+both the true/false regarding whether the relation holds for the input
+but also the proof that it holds or that its negation holds.
 
 ```
 open import Relation.Nullary using (Dec; yes; no)
@@ -928,4 +950,7 @@ less-eq? (suc m) (suc n)
 ... | yes m≤n = yes (s≤s m≤n)
 ... | no ¬m≤n = no λ sm≤sn → ¬m≤n (≤-pred sm≤sn)
 ```
+
+Lists
+-----
 

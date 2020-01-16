@@ -4,6 +4,8 @@ open import Data.Nat
 open import Data.Nat.Properties
 open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; sym; trans; cong; subst)
+open Relation.Binary.PropositionalEquality.≡-Reasoning
+  using (begin_; _≡⟨_⟩_; _≡⟨⟩_; _∎)
 
 0≡0+0 : 0 ≡ 0 + 0
 0≡0+0 = refl
@@ -24,12 +26,9 @@ data Even : ℕ → Set where
   even-0 : Even 0
   even-+2 : (n : ℕ) → Even n → Even (2 + n)
 
-sn+sn≡ss[n+n] : ∀ n → (suc n) + (suc n) ≡ suc (suc (n + n))
-sn+sn≡ss[n+n] n rewrite +-comm n (suc n) = refl
-
 even-dub : (n : ℕ) → Even (n + n)
 even-dub zero = even-0
-even-dub (suc n) rewrite sn+sn≡ss[n+n] n =
+even-dub (suc n) rewrite +-comm n (suc n) =
     let IH : Even (n + n)
         IH = even-dub n in
     even-+2 (n + n) IH 
@@ -38,9 +37,6 @@ even-dub' : (n m : ℕ) → m + m ≡ n → Even n
 even-dub' n m eq =
   let even-m = even-dub m in
   subst (λ □ → Even □) eq even-m
-
-open Relation.Binary.PropositionalEquality.≡-Reasoning
-  using (begin_; _≡⟨_⟩_; _≡⟨⟩_; _∎)
 
 _ : 0 ≡ 0 + 0 + 0
 _ =

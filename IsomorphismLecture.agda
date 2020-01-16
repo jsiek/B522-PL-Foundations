@@ -1,9 +1,17 @@
 module IsomorphismLecture where
 
 open import Data.Nat
-
+open import Data.Nat.Properties
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; sym; cong)
+open import Data.Product using (_×_; proj₁; proj₂) renaming (_,_ to ⟨_,_⟩)
+open Relation.Binary.PropositionalEquality.≡-Reasoning
+  using (begin_; _≡⟨_⟩_; _∎)
+open import Relation.Nullary using (¬_)
+open import Data.Sum
+import Data.Empty.Irrelevant
+open import Data.Empty using (⊥-elim)
+
 
 infix 0 _≃_
 
@@ -13,8 +21,6 @@ record _≃_ (A B : Set) : Set where
     from : B → A
     from∘to : ∀ (x : A) → from (to x) ≡ x
     to∘from : ∀ (y : B) → to (from y) ≡ y
-
-open import Data.Product using (_×_; proj₁; proj₂) renaming (_,_ to ⟨_,_⟩)
 
 ×-comm : ∀{A B : Set} → A × B ≃ B × A
 ×-comm =
@@ -46,17 +52,9 @@ to-evens n = even (n + n) (is-even (n + n) n refl)
 from-evens : Evens → ℕ
 from-evens (even n even-n) = ⌊ n /2⌋
 
-open import Data.Nat.Properties
-
-sn+sn≡ss[n+n] : ∀ n → (suc n) + (suc n) ≡ suc (suc (n + n))
-sn+sn≡ss[n+n] n rewrite +-comm n (suc n) = refl
-
-open Relation.Binary.PropositionalEquality.≡-Reasoning
-  using (begin_; _≡⟨_⟩_; _∎)
-
 ⌊n+n/2⌋≡n : ∀ (n : ℕ) → ⌊ n + n /2⌋ ≡ n
 ⌊n+n/2⌋≡n zero = refl
-⌊n+n/2⌋≡n (suc n) rewrite sn+sn≡ss[n+n] n =
+⌊n+n/2⌋≡n (suc n) rewrite +-comm n (suc n) =
   let IH = ⌊n+n/2⌋≡n n in
   begin
   suc ⌊ n + n /2⌋         ≡⟨ cong (λ □ → suc □) IH ⟩
@@ -69,19 +67,16 @@ from∘to-evens n = ⌊n+n/2⌋≡n n
 ⌊n/2⌋+⌊n/2⌋≡n : ∀ n → (IsEven n) → ⌊ n /2⌋ + ⌊ n /2⌋ ≡ n
 ⌊n/2⌋+⌊n/2⌋≡n n (is-even .n m refl) rewrite ⌊n+n/2⌋≡n m = refl
 
-
-open import Data.Sum
-
 even⊎odd : ∀ (n : ℕ) → IsEven n ⊎ IsOdd n
 even⊎odd zero = inj₁ (is-even 0 0 refl)
 even⊎odd (suc n)
     with even⊎odd n
 ... | inj₁ (is-even n m refl) =
       inj₂ (is-odd (suc (m + m)) m refl)
-... | inj₂ (is-odd n m refl) =
-      inj₁ (is-even (suc (suc (m + m))) (suc m) (sym (sn+sn≡ss[n+n] m)))
-
-open import Relation.Nullary using (¬_)
+... | inj₂ (is-odd n m refl) 
+    with is-even (suc (suc (m + m))) (suc m)
+... | even[2+2*m] rewrite +-comm m (suc m) =
+    inj₁ (even[2+2*m] refl)
 
 2*n≢1+2*m : ∀ (n m : ℕ) → n + n ≢ suc (m + m)
 2*n≢1+2*m (suc n) zero eq rewrite +-comm n (suc n)
@@ -95,10 +90,6 @@ IsOdd→¬IsEven : ∀ n → IsOdd n → ¬ IsEven n
 IsOdd→¬IsEven n (is-odd .n m refl) (is-even .n m₁ eq) =
   2*n≢1+2*m m₁ m (sym eq)
 
-import Data.Empty.Irrelevant
-
-open import Data.Empty using (⊥-elim)
-
 IsEven-irrelevant→IsEven : ∀ n → .(IsEven n) → IsEven n
 IsEven-irrelevant→IsEven n even-n
     with even⊎odd n
@@ -106,7 +97,6 @@ IsEven-irrelevant→IsEven n even-n
 ... | inj₂ odd-n =
    let not-even = IsOdd→¬IsEven n odd-n in
    Data.Empty.Irrelevant.⊥-elim (not-even even-n)
-
 
 to∘from-evens : ∀ (e : Evens) → to-evens (from-evens e) ≡ e
 to∘from-evens (even n even-n) =

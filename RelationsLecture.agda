@@ -50,14 +50,14 @@ data _div_ : ℕ → ℕ → Set where
 3-div-6 = div-step 3 3 (div-refl 3 (λ ()))
 
 mdivn→m≢0 : (m n : ℕ) → m div n → m ≢ 0
-mdivn→m≢0 m .m (div-refl .m m≢0) m≡0 = m≢0 m≡0
-mdivn→m≢0 m .(m + n) (div-step n .m mdivn) m≡0 = mdivn→m≢0 m n mdivn m≡0
+mdivn→m≢0 m .m (div-refl .m m≢0) = m≢0
+mdivn→m≢0 m .(m + n) (div-step n .m mdivn) = mdivn→m≢0 m n mdivn
 
 mdivn→n≢0 : (m n : ℕ) → m div n → n ≢ 0
-mdivn→n≢0 m .m (div-refl .m x) n≡0 = x n≡0
-mdivn→n≢0 m .(m + n) (div-step n .m mdivn) m+n≡0 =
-  let IH = mdivn→n≢0 m n mdivn in
-  IH (m+n≡0⇒n≡0 m m+n≡0)
+mdivn→n≢0 m .m (div-refl .m m≢0) = m≢0
+mdivn→n≢0 m .(m + p) (div-step p .m mdivp) m+p≡0 =
+  let IH = mdivn→n≢0 m p mdivp in
+  IH (m+n≡0⇒n≡0 m m+p≡0)
 
 open import Data.Product using (Σ-syntax) renaming (_,_ to ⟨_,_⟩)
 

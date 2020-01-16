@@ -514,6 +514,17 @@ data Evens : Set where
   even : (n : ℕ) → .(IsEven n) → Evens
 ```
 
+To show that two `Evens` are equal, it suffices to show that the
+underlying numbers are equal (because the proofs of `IsEven` are
+irrelevant).
+
+```
+Evens≡ : ∀{x y : ℕ} .{p : IsEven x} .{q : IsEven y}
+       → x ≡ y
+       → (even x p) ≡ (even y q)
+Evens≡ {x} {y} {p} {q} refl = refl  
+```
+
 To form the isomorphim, we define the following two functions for
 converting a number to an even one, by multiplying by two, and for
 converting back, by dividing by two (rounding down).
@@ -524,7 +535,6 @@ to-evens n = even (n + n) (is-even (n + n) n refl)
 
 from-evens : Evens → ℕ
 from-evens (even n even-n) = ⌊ n /2⌋
-
 ```
 We shall first prove that `from ∘ to` is the identity.
 The following equation is helpful in proving that fact.
@@ -532,12 +542,10 @@ The following equation is helpful in proving that fact.
 ```
 ⌊n+n/2⌋≡n : ∀ (n : ℕ) → ⌊ n + n /2⌋ ≡ n
 ⌊n+n/2⌋≡n zero = refl
-⌊n+n/2⌋≡n (suc n) =
+⌊n+n/2⌋≡n (suc n) rewrite sn+sn≡ss[n+n] n =
   let IH = ⌊n+n/2⌋≡n n in
   begin
-  ⌊ suc (n + suc n) /2⌋        ≡⟨ cong ⌊_/2⌋ (sn+sn≡ss[n+n] n) ⟩
-  ⌊ suc (suc (n + n)) /2⌋      ≡⟨ refl ⟩
-  suc ⌊ n + n /2⌋              ≡⟨ cong suc IH ⟩
+  suc ⌊ n + n /2⌋         ≡⟨ cong (λ □ → suc □) IH ⟩
   suc n
   ∎
 ```
@@ -546,15 +554,7 @@ Now we prove that `from ∘ to` is the identity, by induction on `n`.
 
 ```
 from∘to-evens : ∀ (n : ℕ) → from-evens (to-evens n) ≡ n
-from∘to-evens zero = refl
-from∘to-evens (suc n) =
-  begin
-  from-evens (to-evens (suc n))                ≡⟨ refl ⟩
-  from-evens (even ((suc n) + (suc n)) P)      ≡⟨ refl ⟩
-  ⌊ (suc n) + (suc n) /2⌋                      ≡⟨ ⌊n+n/2⌋≡n (suc n) ⟩
-  suc n
-  ∎
-  where P = is-even ((suc n) + (suc n)) (suc n) refl
+from∘to-evens n = ⌊n+n/2⌋≡n n
 ```
 
 The other direction, proving that `to ∘ from` is the identity, is more difficult.
@@ -624,17 +624,6 @@ IsEven-irrelevant→IsEven n even-n
     with even⊎odd n
 ... | inj₁ even-n' = even-n'
 ... | inj₂ odd-n = Data.Empty.Irrelevant.⊥-elim (IsOdd→¬IsEven n odd-n even-n)
-```
-
-To show that two `Evens` are equal, it suffices to show that the
-underlying numbers are equal (because the proofs of `IsEven` are
-irrelevant).
-
-```
-Evens≡ : ∀{x y : ℕ} .{p : IsEven x} .{q : IsEven y}
-       → x ≡ y
-       → (even x p) ≡ (even y q)
-Evens≡ {x} {y} {p} {q} refl = refl  
 ```
 
 Now we can prove that `to ∘ from` is the identity.

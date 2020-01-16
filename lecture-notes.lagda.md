@@ -310,6 +310,7 @@ inv-Even n .(suc (suc n')) (even-+2 n' even-m) m≢0 refl = even-m
   the goal is `Even n`, so we conclude by rewriting by 
   `n = n'` and then using `even-m`.
 
+
 Relations, Inductively Defined
 ------------------------------
 
@@ -339,126 +340,46 @@ For example, `3 div 3`, `3 div 6`, and `3 div 6`.
 3-div-9 = div-step 6 3 3-div-6
 ```
 
-If `m div n`, then neither `m` nor `n` can be zero.  We can prove these
-two facts by eliminating `m div n` with recursive functions.
-
-```
-mdivn→m≢0 : (m n : ℕ) → m div n → m ≢ 0
-mdivn→m≢0 m .m (div-refl .m m≢0) = m≢0
-mdivn→m≢0 m .(m + n) (div-step n .m mn) = mdivn→m≢0 m n mn
-```
-
-```
-mdivn→n≢0 : (m n : ℕ) → m div n → n ≢ 0
-mdivn→n≢0 m .m (div-refl .m m≢0) = m≢0
-mdivn→n≢0 m .(m + n) (div-step n .m mn) =
-  let IH = mdivn→n≢0 m n mn in
-  λ mn0 → IH (m+n≡0⇒n≡0 m mn0)
-```
-
-An alternative way to state that a number evenly divides another
-number is using multiplication instead of repeated addition.  We shall
-prove that if `m div n`, then there exists some number `k` such that
-`k * m ≡ n`. In Agda, we use a **dependent product type** to express
-"there exists". A dependent product is simply a pair where the
-**type** of the second part of the pair can refer to the the first
-part of the pair.  To express "there exists", the witness of the
-existential is the first part of the pair. The type of the second part
-of the pair is some formula involving the first part, and the value in
-the second part of the pair is a proof of that formula. So to
-express "there exists some number `k` such that
-`k * m ≡ n`", we use the type
-
-    Σ[ k ∈ ℕ ] k * m ≡ n
-
-where `k` is a name for the first part of the pair,
-`ℕ` is it's type, and `k * m ≡ n` is the type
-for the second part of the pair.
-(This is covered in more depth in Chapter
-[Quantifiers](https://plfa.github.io/Quantifiers/)).
-
-```
-open import Data.Product using (Σ-syntax) renaming (_,_ to ⟨_,_⟩)
-```
-
-We construct a dependent product using the notation `⟨_,_⟩`.
-For example, the following proves that there exists
-some number `k` such that `k * m ≡ 0`, for any `m`.
-
-```
-_ : (m : ℕ) → Σ[ k ∈ ℕ ] k * m ≡ 0
-_ = λ m → ⟨ 0 , refl ⟩
-```
-
-Getting back to the alternative way to state the divides relation, the
-following proof by induction shows that `m div n` implies
-that there exists some `k` such that `k * m ≡ n`.
-
-```
-mdivn→k*m≡n : (m n : ℕ) → m div n → Σ[ k ∈ ℕ ] k * m ≡ n
-mdivn→k*m≡n m .m (div-refl .m x) = ⟨ 1 , +-identityʳ m ⟩
-mdivn→k*m≡n m .(m + n) (div-step n .m mn)
-    with mdivn→k*m≡n m n mn
-... | ⟨ q , q*m≡n ⟩
-    rewrite sym q*m≡n =
-      ⟨ (suc q) , refl ⟩
-```
-
-* For the case `div-refl`, we need to show that `k * m ≡ m`
-  for some `k`. That's easy, choose `k ≡ 1`. So we
-  form a dependent pair with `1` as the first part
-  and a proof of `1 * m ≡ m` as the second part.
-
-* For the case `div-step`, we need to show that `k * m ≡ m + n` for some `k`.
-  The induction hypothesis tells us that `q * m ≡ n` for some `q`.
-  We can get our hands on this `q` by pattern matching on the
-  dependent pair returned by `mdivn→k*m≡n`, using the `with` construct.
-  If we replace the `n` in the goal with `q * m`, the goal becomes
-  `k * m ≡ m + q * m` which is equivalent to
-  `k * m ≡ suc q * m`. We can accomplish this replacement by
-  using `rewrite` with the symmetric version of the equation `q * m ≡ n`.
-  Finally, we conclude the proof by choosing `suc q` as the witness
-  for `k`, and `refl` for the proof that `suc q * m ≡ suc q * m`.
-
-Going in the other direction, if we know that `n ≡ k * m`, then `m div n`
-(provided `k` and `m` are not zero).
-
-```
-m-div-k*m : (k m : ℕ) → m ≢ 0 → k ≢ 0 → m div (k * m)
-m-div-k*m zero m m≢0 k≢0 = ⊥-elim (k≢0 refl)
-m-div-k*m (suc zero) m m≢0 k≢0
-    rewrite +-identityʳ m = div-refl m m≢0
-m-div-k*m (suc (suc k)) m m≢0 k≢0 =
-    let IH = m-div-k*m (suc k) m m≢0 λ () in
-    div-step (m + k * m) m IH
-```
-
 A common property of relations is transitivity.  Indeed, the `div`
-relation is transitive. We prove this fact directly using the facts
-that we've already proved about `div`. That is, from `m div n` and `n
-div p`, we have `k₁ * m ≡ n` and `k₂ * n ≡ p` (by `mdivn→k*m≡n`). We can
-substitute `k₁ * m` for `n` in the later formula to obtain `k₂ * k₁ *
-m ≡ p`, which shows that `m` divides `p` (by `m-div-k*m`).  However,
-to use `m-div-k*m` we have two remaining details to prove.
-We need to show that `m ≢ 0` and `k₂ * k₁ ≢ 0`.
-We obtain `m ≢ 0` using `mdivn→m≢0`.
-Similarly, by `mdivn→n≢0` we know `k₂ * k₁ * m ≢ 0`.  Towards a contradiction, if
-`k₂ * k₁ ≡ 0`, then we would also have `k₂ * k₁ * m ≡ 0`, but we know
-that is false.
+relation is transitive. To prove this we need the following standard
+fact about divides and addition.
 
 ```
-open import Relation.Binary.PropositionalEquality using (subst)
-
-div-trans : (m n p : ℕ) → m div n → n div p → m div p
-div-trans m n p mn np
-    with mdivn→k*m≡n m n mn | mdivn→k*m≡n n p np
-... | ⟨ k₁ , k₁*m≡n ⟩ | ⟨ k₂ , k₂*k₁*m≡p ⟩
-    rewrite sym k₁*m≡n | sym k₂*k₁*m≡p | sym (*-assoc k₂ k₁ m) =
-    let m≢0 = (mdivn→m≢0 m (k₁ * m) mn) in
-    let k₂*k₁≢0 = (λ k₂*k₁≡0 → mdivn→n≢0 (k₁ * m) (k₂ * k₁ * m) np
-         (subst (λ □ → □ * m ≡ 0) (sym k₂*k₁≡0) refl)) in
-    m-div-k*m (k₂ * k₁) m m≢0 k₂*k₁≢0
+div-+ : ∀ l m n → l div m → l div n → l div (m + n)
+div-+ l .l n (div-refl .l l≢0) ln = div-step n l ln
+div-+ l .(l + m) n (div-step m .l lm) ln
+   rewrite +-assoc l m n =
+   let IH = div-+ l m n lm ln in
+   div-step (m + n) l IH
 ```
+* In the case for `div-refl`, we have `m ≡ l` so we need to
+  prove that `l div (l + n)`, which we do directly with `div-step`.
+
+* In the case for `div-step`, we need to prove that `l div ((l + m) + n)`,
+  which we re-associate to `l div (l + (m + n))`.
+  The induction hypothesis gives us `l div (m + n)`,
+  so we conclude by applying `div-step`.
+
+We prove that `div` is transitive by induction on the derivation
+of `m div n`.
+
+```
+div-trans : ∀ l m n → l div m → m div n → l div n
+div-trans l m .m lm (div-refl .m m≢0) = lm
+div-trans l m .(m + n) lm (div-step n .m mn) =
+  let IH:ln = div-trans l m n lm mn in
+  div-+ l m n lm IH:ln
+```
+* In the case for `div-refl`, we have `n ≡ m`
+  so we need to prove `l div m`, which we already know.
+
+* In the case for `div-step`, we need to prove
+  that `l div (m + n)`
+  and the induction hypothesis for `m div n` gives us
+  `l div n`. So using this with the assumption that
+  `l div m`, we apply `div-+` to conclude that
+  `l div (m + n)`.
+
 
 Equality
 --------
@@ -533,6 +454,7 @@ even-dub'' : (n m : ℕ) → m + m ≡ n → Even n
 even-dub'' n m eq rewrite (sym eq) = even-dub m
 ```
 
+
 Isomorphism
 -----------
 
@@ -555,7 +477,7 @@ record _≃_ (A B : Set) : Set where
 Example: products are commutative upto isomorphism.
 
 ```
-open import Data.Product using (_×_)
+open import Data.Product using (_×_) renaming (_,_ to ⟨_,_⟩)
 
 ×-comm : ∀{A B : Set} → A × B ≃ B × A
 ×-comm =
@@ -851,9 +773,18 @@ Dependent product type:
 The values of dependent product types are good old pairs: `⟨ v₁ , v₂ ⟩`,
 where `v₁ : A` and `v₂ : B v₁`.
 
-The following example implements a disjoint union `A or B` using a
-dependent pair.  The first part is a tag, false or true, that says
-whether the payload (the second part) has type `A` or `B`,
+To express "there exists", the witness of the existential is the first
+part of the pair. The type of the second part of the pair is some
+formula involving the first part, and the value in the second part of
+the pair is a proof of that formula.
+
+```
+open import Data.Product using (Σ-syntax)
+```
+
+The following example implements a disjoint union type `A or B` using
+a dependent pair.  The first part is a tag, false or true, that says
+whether the payload (the second part) has type `A` or type `B`,
 respectively.
 
 ```
@@ -891,7 +822,7 @@ _ : 1 ≡ case inc (λ n → n) (λ f → f 0)
 _ = refl
 ```
 
-Example proofs about existentials:
+Example proofs about existentials and universals:
 
 ```
 ∀∃-currying1 : ∀ {A : Set} {B : A → Set} {C : Set}
@@ -905,11 +836,76 @@ Example proofs about existentials:
 ∀∃-currying2 g x y = g ⟨ x , y ⟩
 ``` 
 
+Example use of existentials for even numbers:
+
+An alternative way to state that a number evenly divides another
+number is using multiplication instead of repeated addition.  We shall
+prove that if `m div n`, then there exists some number `k` such that
+`k * m ≡ n`.  To express "there exists some number `k` such that `k *
+m ≡ n`", we use the dependent produce type
+
+    Σ[ k ∈ ℕ ] k * m ≡ n
+
+where `k` is a name for the first part of the pair,
+`ℕ` is it's type, and `k * m ≡ n` is the type
+for the second part of the pair.
+For example, the following proves that there exists
+some number `k` such that `k * m ≡ 0`, for any `m`.
+
+```
+_ : (m : ℕ) → Σ[ k ∈ ℕ ] k * m ≡ 0
+_ = λ m → ⟨ 0 , refl ⟩
+```
+
+Getting back to the alternative way to state the divides relation, the
+following proof by induction shows that `m div n` implies
+that there exists some `k` such that `k * m ≡ n`.
+
+```
+mdivn→k*m≡n : (m n : ℕ) → m div n → Σ[ k ∈ ℕ ] k * m ≡ n
+mdivn→k*m≡n m .m (div-refl .m x) = ⟨ 1 , +-identityʳ m ⟩
+mdivn→k*m≡n m .(m + n) (div-step n .m mn)
+    with mdivn→k*m≡n m n mn
+... | ⟨ q , q*m≡n ⟩
+    rewrite sym q*m≡n =
+      ⟨ (suc q) , refl ⟩
+```
+
+* For the case `div-refl`, we need to show that `k * m ≡ m`
+  for some `k`. That's easy, choose `k ≡ 1`. So we
+  form a dependent pair with `1` as the first part
+  and a proof of `1 * m ≡ m` as the second part.
+
+* For the case `div-step`, we need to show that `k * m ≡ m + n` for some `k`.
+  The induction hypothesis tells us that `q * m ≡ n` for some `q`.
+  We can get our hands on this `q` by pattern matching on the
+  dependent pair returned by `mdivn→k*m≡n`, using the `with` construct.
+  If we replace the `n` in the goal with `q * m`, the goal becomes
+  `k * m ≡ m + q * m` which is equivalent to
+  `k * m ≡ suc q * m`. We can accomplish this replacement by
+  using `rewrite` with the symmetric version of the equation `q * m ≡ n`.
+  Finally, we conclude the proof by choosing `suc q` as the witness
+  for `k`, and `refl` for the proof that `suc q * m ≡ suc q * m`.
+
+Going in the other direction, if we know that `n ≡ k * m`, then `m div n`
+(provided `k` and `m` are not zero).
+
+```
+m-div-k*m : (k m : ℕ) → m ≢ 0 → k ≢ 0 → m div (k * m)
+m-div-k*m zero m m≢0 k≢0 = ⊥-elim (k≢0 refl)
+m-div-k*m (suc zero) m m≢0 k≢0
+    rewrite +-identityʳ m = div-refl m m≢0
+m-div-k*m (suc (suc k)) m m≢0 k≢0 =
+    let IH = m-div-k*m (suc k) m m≢0 λ () in
+    div-step (m + k * m) m IH
+```
+
+
 Decidable
 ---------
 
 An alternative way to represent a relation is Agda is with the
-relations characteristic function. That is, a function that takes the
+relation's characteristic function. That is, a function that takes the
 two elements and returns true or false, depending on whether the
 elements are in the relation.
 

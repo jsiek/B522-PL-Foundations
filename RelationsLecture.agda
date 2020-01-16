@@ -78,9 +78,14 @@ m-div-k*m (suc (suc k)) m m≢0 k≢0 =
   let IH = (m-div-k*m (suc k) m m≢0 (λ ())) in
   div-step (m + k * m) m IH
 
+open import Relation.Binary.PropositionalEquality using (subst)
+
 div-trans : (m n p : ℕ) → m div n → n div p → m div p
 div-trans m n p mn np
     with mdivn→k*m≡n m n mn | mdivn→k*m≡n n p np
 ... | ⟨ k₁ , k₁*m≡n ⟩ | ⟨ k₂ , k₂*k₁*m≡p ⟩
-      rewrite sym k₁*m≡n | sym k₂*k₁*m≡p | sym (*-assoc k₂ k₁ m) =
-   m-div-k*m (k₂ * k₁) m (mdivn→m≢0 m (k₁ * m) mn) {!!}
+    rewrite sym k₁*m≡n | sym k₂*k₁*m≡p | sym (*-assoc k₂ k₁ m) =
+    let m≢0 = (mdivn→m≢0 m (k₁ * m) mn) in
+    let k₂*k₁≢0 = (λ k₂*k₁≡0 → mdivn→n≢0 (k₁ * m) (k₂ * k₁ * m) np
+         (subst (λ □ → □ * m ≡ 0) (sym k₂*k₁≡0) refl)) in
+    m-div-k*m (k₂ * k₁) m m≢0 k₂*k₁≢0

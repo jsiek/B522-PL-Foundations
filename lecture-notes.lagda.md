@@ -343,16 +343,16 @@ If `m div n`, then neither `m` nor `n` can be zero.  We can prove these
 two facts by eliminating `m div n` with recursive functions.
 
 ```
-div→m≢0 : (m n : ℕ) → m div n → m ≢ 0
-div→m≢0 m .m (div-refl .m m≢0) = m≢0
-div→m≢0 m .(m + n) (div-step n .m mn) = div→m≢0 m n mn
+mdivn→m≢0 : (m n : ℕ) → m div n → m ≢ 0
+mdivn→m≢0 m .m (div-refl .m m≢0) = m≢0
+mdivn→m≢0 m .(m + n) (div-step n .m mn) = mdivn→m≢0 m n mn
 ```
 
 ```
-div→n≢0 : (m n : ℕ) → m div n → n ≢ 0
-div→n≢0 m .m (div-refl .m m≢0) = m≢0
-div→n≢0 m .(m + n) (div-step n .m mn) =
-  let IH = div→n≢0 m n mn in
+mdivn→n≢0 : (m n : ℕ) → m div n → n ≢ 0
+mdivn→n≢0 m .m (div-refl .m m≢0) = m≢0
+mdivn→n≢0 m .(m + n) (div-step n .m mn) =
+  let IH = mdivn→n≢0 m n mn in
   λ mn0 → IH (m+n≡0⇒n≡0 m mn0)
 ```
 
@@ -441,26 +441,23 @@ substitute `k₁ * m` for `n` in the later formula to obtain `k₂ * k₁ *
 m ≡ p`, which shows that `m` divides `p` (by `m-div-k*m`).  However,
 to use `m-div-k*m` we have two remaining details to prove.
 We need to show that `m ≢ 0` and `k₂ * k₁ ≢ 0`.
-We obtain `m ≢ 0` using `div→m≢0`.
-Similarly, by `div→n≢0` we know `k₂ * k₁ * m ≢ 0`.  Towards a contradiction, if
+We obtain `m ≢ 0` using `mdivn→m≢0`.
+Similarly, by `mdivn→n≢0` we know `k₂ * k₁ * m ≢ 0`.  Towards a contradiction, if
 `k₂ * k₁ ≡ 0`, then we would also have `k₂ * k₁ * m ≡ 0`, but we know
 that is false.
 
 ```
+open import Relation.Binary.PropositionalEquality using (subst)
+
 div-trans : (m n p : ℕ) → m div n → n div p → m div p
 div-trans m n p mn np
     with mdivn→k*m≡n m n mn | mdivn→k*m≡n n p np
 ... | ⟨ k₁ , k₁*m≡n ⟩ | ⟨ k₂ , k₂*k₁*m≡p ⟩
     rewrite sym k₁*m≡n | sym k₂*k₁*m≡p | sym (*-assoc k₂ k₁ m) =
-    m-div-k*m (k₂ * k₁) m m≢0 (k₂*k₁≢0 k₂*k₁*m≢0)
-    
-    where
-    m≢0 = div→m≢0 m (k₁ * m) mn
-    k₂*k₁*m≢0 = div→n≢0 (k₁ * m) (k₂ * k₁ * m) np
-
-    k₂*k₁≢0 : k₂ * k₁ * m ≢ 0 → k₂ * k₁ ≢ 0
-    k₂*k₁≢0 k₂*k₁*m≢0 k₂*k₁≡0
-        rewrite k₂*k₁≡0 = k₂*k₁*m≢0 refl
+    let m≢0 = (mdivn→m≢0 m (k₁ * m) mn) in
+    let k₂*k₁≢0 = (λ k₂*k₁≡0 → mdivn→n≢0 (k₁ * m) (k₂ * k₁ * m) np
+         (subst (λ □ → □ * m ≡ 0) (sym k₂*k₁≡0) refl)) in
+    m-div-k*m (k₂ * k₁) m m≢0 k₂*k₁≢0
 ```
 
 Equality

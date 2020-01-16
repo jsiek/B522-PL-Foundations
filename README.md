@@ -28,6 +28,7 @@ Monday and Wednesday at 4:30-5:45pm in Luddy Hall Room 4101.
 
 * Monday 3:00-4:30pm
 * Tuesday 11:00-12:30pm
+* Friday 1:30-3:00pm
 
 ## Assignments
 
@@ -79,6 +80,8 @@ Monday and Wednesday at 4:30-5:45pm in Luddy Hall Room 4101.
 |          | 29  | TBD |
 
 ## Resources
+
+* Join the course mailing list on [Piazza](https://piazza.com/iu/spring2020/b522/home).
 
 * Join the PLFA mailing list [plfa-interest](http://lists.inf.ed.ac.uk/mailman/listinfo/plfa-interest)
   and ask questions!

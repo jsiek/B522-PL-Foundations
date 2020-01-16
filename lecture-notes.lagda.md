@@ -542,7 +542,6 @@ round trip starting from either `A` or `B` brings you back to where
 you started, that is, composing the two functions in either order is
 the identity function.
 
-
 ```
 infix 0 _≃_
 record _≃_ (A B : Set) : Set where
@@ -584,9 +583,9 @@ data IsOdd where
 ```
 
 We define the type `Evens` as a wrapper around the even numbers. We
-mark the proof of `IsEven n` as *irrelevant* so that it proving that
-two Evens are equal does not require proving that the proofs of
-`IsEven` are also equal.
+mark the proof of `IsEven n` as *irrelevant*, with a period, so that
+the equality of two Evens does not require the two proofs of `IsEven`
+to be equal.
 
 ```
 data Evens : Set where
@@ -595,7 +594,7 @@ data Evens : Set where
 
 To form the isomorphim, we define the following two functions for
 converting a number to an even one, by multiplying by two, and for
-converting back, by dividing by two.
+converting back, by dividing by two (rounding down).
 
 ```
 to-evens : ℕ → Evens
@@ -606,9 +605,7 @@ from-evens (even n even-n) = ⌊ n /2⌋
 
 ```
 We shall first prove that `from ∘ to` is the identity.
-
-We're going to need the fact that every number is either even or odd.
-The equation is helpful in proving that fact.
+The following equation is helpful in proving that fact.
 
 ```
 ⌊n+n/2⌋≡n : ∀ (n : ℕ) → ⌊ n + n /2⌋ ≡ n
@@ -630,11 +627,12 @@ from∘to-evens : ∀ (n : ℕ) → from-evens (to-evens n) ≡ n
 from∘to-evens zero = refl
 from∘to-evens (suc n) =
   begin
-  from-evens (to-evens (suc n))                            ≡⟨ refl ⟩
-  from-evens (even ((suc n) + (suc n)) (is-even (suc (n + suc n)) (suc n) refl)) ≡⟨ refl ⟩
-  ⌊ (suc n) + (suc n) /2⌋                                  ≡⟨ ⌊n+n/2⌋≡n (suc n) ⟩
+  from-evens (to-evens (suc n))                ≡⟨ refl ⟩
+  from-evens (even ((suc n) + (suc n)) P)      ≡⟨ refl ⟩
+  ⌊ (suc n) + (suc n) /2⌋                      ≡⟨ ⌊n+n/2⌋≡n (suc n) ⟩
   suc n
-  ∎ 
+  ∎
+  where P = is-even ((suc n) + (suc n)) (suc n) refl
 ```
 
 The other direction, proving that `to ∘ from` is the identity, is more difficult.
@@ -653,8 +651,10 @@ contradiction. So let us assume `IsEven n` (irrelevantly).  Then we
 prove that every number is either even or odd (relevantly), and that
 even and odd are mutually exclusive.  In case the number is even, we
 have our relevant evidence that is is even. In case the number is odd,
-then it is not even, and we have a contradiction with the irrelevant
-fact that it is even.
+then we know is not even, and we have a contradiction with the
+irrelevant fact that it is even. In general, whenever you have a
+decidable predicate, you can convert from knowing it irrelevantly to
+knowing it relevantly using this recipe.
 
 We start by proving that every number `n` is either even or odd, by
 induction on `n`.
@@ -709,17 +709,18 @@ underlying numbers are equal (because the proofs of `IsEven` are
 irrelevant).
 
 ```
-Evens≡ : ∀(x y : ℕ) .(p : IsEven x) .(q : IsEven y) → x ≡ y → (even x p) ≡ (even y q)
-Evens≡ x y p q refl = refl  
+Evens≡ : ∀{x y : ℕ} .{p : IsEven x} .{q : IsEven y}
+       → x ≡ y
+       → (even x p) ≡ (even y q)
+Evens≡ {x} {y} {p} {q} refl = refl  
 ```
 
 Now we can prove that `to ∘ from` is the identity.
 
 ```
 to∘from-evens : ∀ (e : Evens) → to-evens (from-evens e) ≡ e
-to∘from-evens (even n even-n) =
-  Evens≡ (⌊ n /2⌋ + ⌊ n /2⌋) n (is-even (⌊ n /2⌋ + ⌊ n /2⌋) ⌊ n /2⌋ refl) even-n
-         (⌊n/2⌋+⌊n/2⌋≡n n (IsEven-irrelevant→IsEven n even-n))
+to∘from-evens (even n even-n) = Evens≡ (⌊n/2⌋+⌊n/2⌋≡n n even-n-rlvnt)
+  where even-n-rlvnt = IsEven-irrelevant→IsEven n even-n
 ```
 
 Putting all these pieces together, we have that ℕ is isomorphic to
@@ -734,7 +735,6 @@ even. Yeah infinity!
     from = from-evens ;
     from∘to = from∘to-evens ;
     to∘from = to∘from-evens }
-
 ```
 
 

@@ -476,6 +476,8 @@ record _≃_ (A B : Set) : Set where
 
 Example: products are commutative upto isomorphism.
 
+(Note that we're using implicit parameters for the first time.)
+
 ```
 open import Data.Product using (_×_) renaming (_,_ to ⟨_,_⟩)
 

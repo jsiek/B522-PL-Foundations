@@ -1,5 +1,11 @@
 module IsomorphismLecture where
 
+{-
+
+ Jan. 16, 2020
+
+ -}
+
 open import Data.Nat
 open import Data.Nat.Properties
 open import Relation.Binary.PropositionalEquality
@@ -24,18 +30,27 @@ record _≃_ (A B : Set) : Set where
 
 ×-comm : ∀{A B : Set} → A × B ≃ B × A
 ×-comm =
-  record { to = λ { ⟨ x , y ⟩ → ⟨ y , x ⟩ } ;
-           from = λ p → ⟨ proj₂ p , proj₁ p ⟩ ;
-           from∘to = λ { ⟨ x , y ⟩ → refl } ;
-           to∘from = λ { ⟨ x , y ⟩ → refl } }
+  record {
+    to = λ { ⟨ a , b ⟩ → ⟨ b , a ⟩ } ;
+    from = λ { ⟨ b , a ⟩ → ⟨ a , b ⟩ }  ;
+    from∘to =  λ ab → refl ;
+    to∘from = λ ba → refl }
 
-data IsEven : ℕ → Set
-data IsOdd : ℕ → Set
 
-data IsEven where
+open import Data.Bool
+
+_ : ∀{A B : Set} → ((A → B) × (A → B) ≃ ((A × Bool) → B))
+_ = record {
+      to = λ { fg ⟨ a , true ⟩ → proj₁ fg a ;
+               fg ⟨ a , false ⟩ → proj₂ fg a };
+      from = λ h → ⟨ (λ a → h ⟨ a , true ⟩) , (λ a → h ⟨ a , false ⟩) ⟩ ;
+      from∘to = λ fg → refl ;
+      to∘from = λ h → {!!} }
+
+data IsEven : ℕ → Set where
   is-even : ∀ n m → n ≡ m + m → IsEven n
 
-data IsOdd where
+data IsOdd : ℕ → Set where
   is-odd : ∀ n m → n ≡ suc (m + m) → IsOdd n
 
 data Evens : Set where
@@ -44,7 +59,7 @@ data Evens : Set where
 Evens≡ : ∀{x y : ℕ} .{p : IsEven x} .{q : IsEven y}
        → x ≡ y
        → (even x p) ≡ (even y q)
-Evens≡ {x} {y} {p} {q} x≡y rewrite x≡y = refl
+Evens≡ {x} {y} {p} {q} refl = refl
 
 to-evens : ℕ → Evens
 to-evens n = even (n + n) (is-even (n + n) n refl)
@@ -52,14 +67,11 @@ to-evens n = even (n + n) (is-even (n + n) n refl)
 from-evens : Evens → ℕ
 from-evens (even n even-n) = ⌊ n /2⌋
 
-⌊n+n/2⌋≡n : ∀ (n : ℕ) → ⌊ n + n /2⌋ ≡ n
+⌊n+n/2⌋≡n : (n : ℕ) → ⌊ n + n /2⌋ ≡ n
 ⌊n+n/2⌋≡n zero = refl
 ⌊n+n/2⌋≡n (suc n) rewrite +-comm n (suc n) =
   let IH = ⌊n+n/2⌋≡n n in
-  begin
-  suc ⌊ n + n /2⌋         ≡⟨ cong (λ □ → suc □) IH ⟩
-  suc n
-  ∎
+  cong suc IH
 
 from∘to-evens : ∀ (n : ℕ) → from-evens (to-evens n) ≡ n
 from∘to-evens n = ⌊n+n/2⌋≡n n
@@ -73,10 +85,8 @@ even⊎odd (suc n)
     with even⊎odd n
 ... | inj₁ (is-even n m refl) =
       inj₂ (is-odd (suc (m + m)) m refl)
-... | inj₂ (is-odd n m refl) 
-    with is-even (suc (suc (m + m))) (suc m)
-... | even[2+2*m] rewrite +-comm m (suc m) =
-    inj₁ (even[2+2*m] refl)
+... | inj₂ (is-odd n m refl) =
+      inj₁ (is-even (suc (suc (m + m))) (suc m) (cong suc (sym (+-suc m m))))
 
 2*n≢1+2*m : ∀ (n m : ℕ) → n + n ≢ suc (m + m)
 2*n≢1+2*m (suc n) zero eq rewrite +-comm n (suc n)
@@ -99,8 +109,7 @@ IsEven-irrelevant→IsEven n even-n
    Data.Empty.Irrelevant.⊥-elim (not-even even-n)
 
 to∘from-evens : ∀ (e : Evens) → to-evens (from-evens e) ≡ e
-to∘from-evens (even n even-n) =
-  Evens≡ (⌊n/2⌋+⌊n/2⌋≡n n (IsEven-irrelevant→IsEven n even-n))
+to∘from-evens (even n even-n) = Evens≡ (⌊n/2⌋+⌊n/2⌋≡n n (IsEven-irrelevant→IsEven n even-n))
 
 ℕ≃Evens : ℕ ≃ Evens
 ℕ≃Evens =

@@ -574,7 +574,7 @@ We start by proving that every number `n` is either even or odd, by
 induction on `n`.
 
 ```
-open import Data.Sum
+open import Data.Sum using (_⊎_; inj₁; inj₂)
 
 even⊎odd : ∀ (n : ℕ) → IsEven n ⊎ IsOdd n
 even⊎odd zero = inj₁ (is-even 0 0 refl)
@@ -953,4 +953,63 @@ less-eq? (suc m) (suc n)
 
 Lists
 -----
+
+Agda provides Lisp-style lists, with nil and cons.
+
+```
+open import Data.List
+
+_ : List ℕ
+_ = 1 ∷ 2 ∷ []
+```
+
+Agda provides lots of standard operations on lists, such as `reverse`
+and `splitAt`. Here's one way to rotate the elements of a list, by
+three reverses.
+
+```
+rotate : ∀ {A : Set} → List A → ℕ → List A
+rotate xs k
+    with splitAt k xs
+... | ⟨ ls , rs ⟩ =
+    let ls' = reverse ls in
+    let rs' = reverse rs in
+    reverse (ls' ++ rs')
+```
+
+Here's a few examples of `rotate` in action.
+
+```
+_ : rotate (1 ∷ 2 ∷ 3 ∷ []) 1 ≡ (2 ∷ 3 ∷ 1 ∷ [])
+_ = refl
+
+_ : rotate (1 ∷ 2 ∷ 3 ∷ []) 2 ≡ (3 ∷ 1 ∷ 2 ∷ [])
+_ = refl
+
+_ : rotate (1 ∷ 2 ∷ 3 ∷ []) 3 ≡ (1 ∷ 2 ∷ 3 ∷ [])
+_ = refl
+```
+
+One way to think about `rotate` is in terms of swapping a front portion
+of the list to the back.
+
+    rotate 3 | a b c | d e |
+           ≡ | d e | a b c |
+
+With this view in mind, we prove that `rotate` is correct using some
+equations from the Agda standard library about reverse and append.
+
+```
+open import Data.List.Properties
+
+rotate-correct : ∀ {A : Set} {xs ys zs : List A} {k : ℕ}
+   → splitAt k xs ≡ ⟨ ys , zs ⟩
+   → rotate xs k ≡ zs ++ ys
+rotate-correct {A}{xs}{ys}{zs} sk rewrite sk =
+  begin
+     reverse (reverse ys ++ reverse zs)   ≡⟨ cong reverse (sym (reverse-++-commute zs ys)) ⟩
+     reverse (reverse (zs ++ ys))         ≡⟨ reverse-involutive (zs ++ ys) ⟩
+     zs ++ ys
+  ∎
+```
 

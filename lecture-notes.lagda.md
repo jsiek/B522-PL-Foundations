@@ -483,168 +483,36 @@ open import Data.Product using (_×_) renaming (_,_ to ⟨_,_⟩)
 Example: ℕ is isomorphic to the even numbers.
 
 Here is another definition of the even numbers.
-It's also helpful to define the odd numbers.
 
 ```
-data IsEven : ℕ → Set
-data IsOdd : ℕ → Set
-
-data IsEven where
+data IsEven : ℕ → Set where
   is-even : ∀ n m → n ≡ m + m → IsEven n
-
-data IsOdd where
-  is-odd : ∀ n m → n ≡ suc (m + m) → IsOdd n
 ```
 
-We define the type `Evens` as a wrapper around the even numbers. We
-mark the proof of `IsEven n` as *irrelevant*, with a period, so that
-the equality of two Evens does not require the two proofs of `IsEven`
-to be equal.
+We define the type `Evens` as a wrapper around the even numbers
+that combines the number with a proof that it is even.
 
 ```
 data Evens : Set where
-  even : (n : ℕ) → .(IsEven n) → Evens
+  even : (n : ℕ) → (IsEven n) → Evens
 ```
 
-To show that two `Evens` are equal, it suffices to show that the
-underlying numbers are equal (because the proofs of `IsEven` are
-irrelevant).
-
-```
-Evens≡ : ∀{x y : ℕ} .{p : IsEven x} .{q : IsEven y}
-       → x ≡ y
-       → (even x p) ≡ (even y q)
-Evens≡ {x} {y} {p} {q} refl = refl  
-```
-
-To form the isomorphim, we define the following two functions for
-converting a number to an even one, by multiplying by two, and for
-converting back, by dividing by two (rounding down).
-
-```
-to-evens : ℕ → Evens
-to-evens n = even (n + n) (is-even (n + n) n refl)
-
-from-evens : Evens → ℕ
-from-evens (even n even-n) = ⌊ n /2⌋
-```
-We shall first prove that `from ∘ to` is the identity.
-The following equation is helpful in proving that fact.
-
-```
-⌊n+n/2⌋≡n : ∀ (n : ℕ) → ⌊ n + n /2⌋ ≡ n
-⌊n+n/2⌋≡n zero = refl
-⌊n+n/2⌋≡n (suc n) rewrite +-comm n (suc n) =
-  let IH = ⌊n+n/2⌋≡n n in
-  begin
-  suc ⌊ n + n /2⌋         ≡⟨ cong (λ □ → suc □) IH ⟩
-  suc n
-  ∎
-```
-
-Now we prove that `from ∘ to` is the identity, by induction on `n`.
-
-```
-from∘to-evens : ∀ (n : ℕ) → from-evens (to-evens n) ≡ n
-from∘to-evens n = ⌊n+n/2⌋≡n n
-```
-
-The other direction, proving that `to ∘ from` is the identity, is more difficult.
-We shall need the following equation
-
-```
-⌊n/2⌋+⌊n/2⌋≡n : ∀ n → (IsEven n) → ⌊ n /2⌋ + ⌊ n /2⌋ ≡ n
-⌊n/2⌋+⌊n/2⌋≡n n (is-even .n m refl) rewrite ⌊n+n/2⌋≡n m = refl
-```
-
-However, in the context where we need it, we know that `n` is even but
-only in a proof irrelevant way. So we need a way to convert a proof
-irrelevant `IsEven n` to a proof relevant one. One of the few ways
-that we are allowed to use a proof irrelevant fact is in proving a
-contradiction. So let us assume `IsEven n` (irrelevantly).  Then we
-prove that every number is either even or odd (relevantly), and that
-even and odd are mutually exclusive.  In case the number is even, we
-have our relevant evidence that is is even. In case the number is odd,
-then we know is not even, and we have a contradiction with the
-irrelevant fact that it is even. In general, whenever you have a
-decidable predicate, you can convert from knowing it irrelevantly to
-knowing it relevantly using this recipe.
-
-We start by proving that every number `n` is either even or odd, by
-induction on `n`.
-
-```
-open import Data.Sum using (_⊎_; inj₁; inj₂)
-
-even⊎odd : ∀ (n : ℕ) → IsEven n ⊎ IsOdd n
-even⊎odd zero = inj₁ (is-even 0 0 refl)
-even⊎odd (suc n)
-    with even⊎odd n
-... | inj₁ (is-even n m refl) =
-      inj₂ (is-odd (suc (m + m)) m refl)
-... | inj₂ (is-odd n m refl) 
-    with is-even (suc (suc (m + m))) (suc m)
-... | →even[2+2*m] rewrite +-comm m (suc m) =
-    inj₁ (→even[2+2*m] refl)
-```
-
-Not only is every number either even or odd, but those two properties
-are mutually exclusive. In the following we prove that if a number is
-odd, it is not even. To do this we need the following fact, which we
-prove by induction on both `n` and `m`.
-
-```
-2*n≢1+2*m : ∀ (n m : ℕ) → n + n ≢ suc (m + m)
-2*n≢1+2*m (suc n) zero eq
-    rewrite +-comm n (suc n)
-    with eq
-... | ()
-2*n≢1+2*m (suc n) (suc m) eq
-    rewrite +-comm n (suc n) | +-comm m (suc m) =
-    let IH = 2*n≢1+2*m n m in
-    IH (suc-injective (suc-injective eq))
-
-open import Relation.Nullary using (¬_)
-
-IsOdd→¬IsEven : ∀ n → IsOdd n → ¬ IsEven n
-IsOdd→¬IsEven n (is-odd .n m refl) (is-even .n m₁ eq) =
-    2*n≢1+2*m m₁ m (sym eq)
-```
-
-Now we can convert an irrelevant `IsEven n` to a relevant one.
-
-```
-import Data.Empty.Irrelevant
-
-IsEven-irrelevant→IsEven : ∀ n → .(IsEven n) → IsEven n
-IsEven-irrelevant→IsEven n even-n 
-    with even⊎odd n
-... | inj₁ even-n' = even-n'
-... | inj₂ odd-n = Data.Empty.Irrelevant.⊥-elim (IsOdd→¬IsEven n odd-n even-n)
-```
-
-Now we can prove that `to ∘ from` is the identity.
-
-```
-to∘from-evens : ∀ (e : Evens) → to-evens (from-evens e) ≡ e
-to∘from-evens (even n even-n) = Evens≡ (⌊n/2⌋+⌊n/2⌋≡n n even-n-rlvnt)
-  where even-n-rlvnt = IsEven-irrelevant→IsEven n even-n
-```
-
-Putting all these pieces together, we have that ℕ is isomorphic to
-`Evens`, which is rather odd because ℕ contains numbers that are not
-even. Yeah infinity!
+We convert from natural numbers to evens by multiplying by 2.  Going
+the other way, it is tempting to divide by 2 using the operator
+`⌊_/2⌋`. However, that approach complicates matters
+considerably. Instead, we can recognize that a value of `Even` carries
+with it the witness `m` that is half of `n`, so we can just return
+that.
 
 ```
 ℕ≃Evens : ℕ ≃ Evens
 ℕ≃Evens =
   record {
-    to = to-evens ;
-    from = from-evens ;
-    from∘to = from∘to-evens ;
-    to∘from = to∘from-evens }
+    to = λ n → even (n + n) (is-even (n + n) n refl) ;
+    from = λ { (even n (is-even n m refl)) → m } ;
+    from∘to = λ x → refl ;
+    to∘from = λ { (even n (is-even n m refl)) → refl } }
 ```
-
 
 Connectives
 -----------
@@ -725,6 +593,8 @@ Negation:
 Negation is shorthand for "implies false".
 
 ```
+open import Relation.Nullary using (¬_)
+
 _ : (¬ P) ≡ (P → ⊥)
 _ = refl
 ```

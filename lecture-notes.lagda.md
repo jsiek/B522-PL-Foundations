@@ -584,8 +584,8 @@ even⊎odd (suc n)
       inj₂ (is-odd (suc (m + m)) m refl)
 ... | inj₂ (is-odd n m refl) 
     with is-even (suc (suc (m + m))) (suc m)
-... | even[2+2*m] rewrite +-comm m (suc m) =
-    inj₁ (even[2+2*m] refl)
+... | →even[2+2*m] rewrite +-comm m (suc m) =
+    inj₁ (→even[2+2*m] refl)
 ```
 
 Not only is every number either even or odd, but those two properties

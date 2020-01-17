@@ -820,10 +820,12 @@ less-eq? (suc m) (suc n)
 ... | no ¬m≤n = no λ sm≤sn → ¬m≤n (≤-pred sm≤sn)
 ```
 
+
 Lists
 -----
 
-Agda provides Lisp-style lists, with nil and cons.
+Agda provides Lisp-style lists, with nil and cons, spelled `[]` and `_∷_`.
+For example:
 
 ```
 open import Data.List

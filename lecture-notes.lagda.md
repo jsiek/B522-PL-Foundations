@@ -850,7 +850,7 @@ Agda provides Lisp-style lists, with nil and cons, spelled `[]` and `_∷_`.
 For example:
 
 ```
-open import Data.List
+open import Data.List using (List; []; _∷_; map)
 
 _ : List ℕ
 _ = 1 ∷ 2 ∷ []
@@ -861,9 +861,23 @@ Agda provides lots of standard operations on lists, such as append
 `splitAt`, and many more. The Agda standard library also provides many
 theorems about these operations.
 
-There are yet more operations and theorems in the works of Richard
-Bird about the interactions between lists, functions, pairs, and sums.
-Concerning functions and products, there are the "fork" and "cross"
+Here is a simplified version of the `map-compose` theorem from the
+standard library. It says that mapping functions `f` then `g` over a
+list is equivalent to mapping the composition `g ∘ f` over the list.
+
+```
+open import Function using (_∘_)
+
+map-compose : ∀{A B C : Set}{g : B → C} {f : A → B}
+              → (xs : List A)
+              → map (g ∘ f) xs ≡ map g (map f xs)
+map-compose []       = refl
+map-compose (x ∷ xs) = cong (_ ∷_) (map-compose xs)
+```
+
+There are many more operations and theorems in the works of Richard
+Bird concerning the interactions between lists, functions, pairs, and
+sums.  For example, the following are the "fork" and "cross"
 operations.
 
 ```
@@ -874,11 +888,38 @@ _⊗_ : ∀{A B C D : Set} → (A → B) → (C → D) → A × C → B × D
 (f ⊗ g) ⟨ a , c ⟩ = ⟨ f a , g c ⟩
 ```
 
-Recall that `unzip` converts a list of pairs into a pair of lists.
-The `unzip` operation can also be expressed in terms of `map` and
-fork, as follows.
+Recall that `unzip` converts a list of pairs `xs` into a pair of
+lists.  One way to implement `unzip` is to 1) `map` the `proj₁`
+function over `xs`, 2) `map` the `proj₂` over `xs` and 3) pair the two
+resulting lists. This can be expressed using fork in the following
+way.
 
 ```
+unzip-slow : {A B : Set} → List (A × B) → List A × List B
+unzip-slow xs = ((map proj₁) ▵ (map proj₂)) xs
+```
+
+This implementation of `zip` is obviously correct but not very
+efficient because it makes two passes over the list of pairs. The real
+implementation is more clever and makes only a single pass over the
+list of pairs, as shown below. (The `unzip` in the Agda standard
+library is equivalent to the following `unzip-fast`, but it is
+implemented in terms of a more general function named `unzipWith`.)
+
+```
+unzip-fast : {A B : Set} → List (A × B) → List A × List B
+unzip-fast [] = ⟨ [] , [] ⟩
+unzip-fast (⟨ a , b ⟩ ∷ xs) =
+  let ⟨ as , bs ⟩ = unzip-fast xs in
+  ⟨ a ∷ as , b ∷ bs ⟩
+```
+
+The fast and slow versions of `unzip` are equivalent, which is
+straightforward to prove by induction on the input list `xs`.
+
+```
+open import Data.List using (unzip)
+
 unzip≡▵map : ∀{A B : Set}
            → (xs : List (A × B))
            → unzip xs ≡ ((map proj₁) ▵ (map proj₂)) xs
@@ -886,22 +927,34 @@ unzip≡▵map {A} {B} [] = refl
 unzip≡▵map {A} {B} (⟨ a , b ⟩ ∷ xs) =              begin
   unzip (⟨ a , b ⟩ ∷ xs)                           ≡⟨⟩
   ⟨ a ∷ proj₁ (unzip xs) , b ∷ proj₂ (unzip xs) ⟩  ≡⟨ cong₂ ⟨_,_⟩ IH1 IH2 ⟩
-  ⟨ a ∷ proj₁ xs₁,xs₂ , b ∷ proj₂ xs₁,xs₂ ⟩        ≡⟨⟩
+  ⟨ a ∷ map proj₁ xs , b ∷ map proj₂ xs ⟩          ≡⟨⟩
   (map proj₁ ▵ map proj₂) (⟨ a , b ⟩ ∷ xs)
   ∎
   where
   IH = unzip≡▵map xs
-  xs₁,xs₂ = (map proj₁ ▵ map proj₂) xs
   IH1 = cong (λ □ → a ∷ (proj₁ □)) IH
   IH2 = cong (λ □ → b ∷ (proj₂ □)) IH
 ```
 
-to do: cross(map f, map g) ∘ unzip = unzip ∘ map (cross(f,g))
 
 
-One operation that is not defined in the Agda standard library is
-rotating the element of a list (to the left) by `k` positions, with
-wrap-around. For example,
+```
+⊗-distrib-unzip : ∀{A B C D} {f : A → B} {g : C → D}
+    → (xs : List (A × C))
+    → (map f ⊗ map g) (unzip xs) ≡ unzip (map (f ⊗ g) xs)
+⊗-distrib-unzip {A}{B}{C}{D}{f}{g} xs =               begin
+  (map f ⊗ map g) (unzip xs)                            ≡⟨ cong (map f ⊗ map g) (unzip≡▵map xs) ⟩
+  (map f ⊗ map g) (((map proj₁) ▵ (map proj₂)) xs)      ≡⟨⟩
+  ⟨ (map f ∘ map proj₁) xs , (map g ∘ map proj₂) xs ⟩   ≡⟨ cong₂ ⟨_,_⟩ (sym (map-compose xs)) (sym (map-compose xs)) ⟩
+  ⟨ map (f ∘ proj₁) xs , map (g ∘ proj₂) xs ⟩                  ≡⟨⟩
+  ⟨ map (proj₁ ∘ (f ⊗ g)) xs , map (proj₂ ∘ (f ⊗ g)) xs ⟩      ≡⟨ cong₂ ⟨_,_⟩ (map-compose xs) (map-compose xs) ⟩ 
+  ⟨ map proj₁ (map (f ⊗ g) xs) , map proj₂ (map (f ⊗ g) xs) ⟩  ≡⟨⟩ 
+  (map proj₁ ▵ map proj₂) (map (f ⊗ g) xs)                     ≡⟨ sym (unzip≡▵map (map (f ⊗ g) xs)) ⟩ 
+  unzip (map (f ⊗ g) xs)                                       ∎
+```
+
+Next we consider the operation that rotates the elements of a list to
+the left by `k` positions, with wrap-around. For example,
 
     rotate (1 ∷ 2 ∷ 3 ∷ []) 2 ≡ (3 ∷ 1 ∷ 2 ∷ [])
 
@@ -909,6 +962,8 @@ One clever way to rotate a list is to split it into two parts, reverse
 each part, append them, and then reverse again.
 
 ```
+open import Data.List using (reverse; splitAt; _++_)
+
 rotate : ∀ {A : Set} → List A → ℕ → List A
 rotate xs k
     with splitAt k xs

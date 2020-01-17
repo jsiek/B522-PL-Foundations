@@ -499,10 +499,9 @@ data Evens : Set where
 
 We convert from natural numbers to evens by multiplying by 2.  Going
 the other way, it is tempting to divide by 2 using the operator
-`⌊_/2⌋`. However, that approach complicates matters
-considerably. Instead, we can recognize that a value of `Even` carries
-with it the witness `m` that is half of `n`, so we can just return
-that.
+`⌊_/2⌋`. However, a simpler approach is to recognize that a value of
+`Even` carries with it the witness `m` that is half of `n`, so we can
+just return that.
 
 ```
 ℕ≃Evens : ℕ ≃ Evens

@@ -553,11 +553,55 @@ from∘to-evens (suc n) =
 Evens≡ : ∀(x y : ℕ).(p : IsEven x).(q : IsEven y) → x ≡ y → (even x p) ≡ (even y q)
 Evens≡ x y p q refl = refl  
 
+open import Data.Empty using (⊥)
+
+n+n≢1 : ∀ n → n + n ≢ 1
+n+n≢1 zero = λ ()
+n+n≢1 (suc n) rewrite +-comm n (suc n) = λ ()
+
+suc[z+z]≢y+y : ∀ z y → suc (z + z) ≡ y + y → ⊥
+suc[z+z]≢y+y z y eq =
+  let eq2 : 1 + (z + z) ≡ y + y
+      eq2 = eq in
+  let eq3 : 1 ≡ (y + y) ∸ (z + z)
+      eq3 = begin
+            1                      ≡⟨ {!!} ⟩
+            1 + (z + z) ∸ (z + z)  ≡⟨ {!!} ⟩
+            (y + y) ∸ (z + z)
+            ∎ in
+  {!!}
+
+{-
+
+1 ≡ 2y - 2z ≡ 2(y - z)
+
+-}
+
+odd-not-even : ∀ n → IsEven (suc (n + n)) → ⊥
+odd-not-even n (is-even .(suc (n + n)) m x) = {!!}
+
+{-
+odd-not-even zero (is-even .1 m 1≡m+m) = n+n≢1 m (sym 1≡m+m)
+odd-not-even (suc n) =
+  let IH = odd-not-even n in
+  λ even+3 → IH {!!}
+-}
+
+import Data.Empty.Irrelevant
+
+⌊n/2⌋+⌊n/2⌋≡n : ∀ n → .(IsEven n) → ⌊ n /2⌋ + ⌊ n /2⌋ ≡ n
+⌊n/2⌋+⌊n/2⌋≡n n even-n
+    with even+odd n
+... | inj₁ (is-even n m refl)
+    rewrite dub-div2 m = refl
+... | inj₂ (is-odd n m refl) =
+    Data.Empty.Irrelevant.⊥-elim {!!}
+
 to∘from-evens : ∀ (e : Evens) → to-evens (from-evens e) ≡ e
 to∘from-evens (even n even-n) =
   begin
     to-evens ⌊ n /2⌋       ≡⟨ refl ⟩
-    even (⌊ n /2⌋ + ⌊ n /2⌋) (is-even (⌊ n /2⌋ + ⌊ n /2⌋) ⌊ n /2⌋ refl)  ≡⟨ Evens≡ (⌊ n /2⌋ + ⌊ n /2⌋) n (is-even (⌊ n /2⌋ + ⌊ n /2⌋) ⌊ n /2⌋ refl) even-n {!!} ⟩
+    even (⌊ n /2⌋ + ⌊ n /2⌋) (is-even (⌊ n /2⌋ + ⌊ n /2⌋) ⌊ n /2⌋ refl)  ≡⟨ Evens≡ (⌊ n /2⌋ + ⌊ n /2⌋) n (is-even (⌊ n /2⌋ + ⌊ n /2⌋) ⌊ n /2⌋ refl) even-n (⌊n/2⌋+⌊n/2⌋≡n n even-n) ⟩
     even n even-n
   ∎
 

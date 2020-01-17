@@ -39,13 +39,19 @@ record _≃_ (A B : Set) : Set where
 
 open import Data.Bool
 
+postulate
+  extensionality : ∀ {A B : Set} {f g : A → B}
+    → (∀ (x : A) → f x ≡ g x)
+      -----------------------
+    → f ≡ g
+
 _ : ∀{A B : Set} → ((A → B) × (A → B) ≃ ((A × Bool) → B))
 _ = record {
       to = λ { fg ⟨ a , true ⟩ → proj₁ fg a ;
                fg ⟨ a , false ⟩ → proj₂ fg a };
       from = λ h → ⟨ (λ a → h ⟨ a , true ⟩) , (λ a → h ⟨ a , false ⟩) ⟩ ;
       from∘to = λ fg → refl ;
-      to∘from = λ h → {!!} }
+      to∘from = λ h → extensionality λ { ⟨ a , true ⟩ → refl ; ⟨ a , false ⟩ → refl } }
 
 data IsEven : ℕ → Set where
   is-even : ∀ n m → n ≡ m + m → IsEven n

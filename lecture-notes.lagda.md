@@ -469,7 +469,7 @@ Example: products are commutative upto isomorphism.
 (Note that we're using implicit parameters for the first time.)
 
 ```
-open import Data.Product using (_×_) renaming (_,_ to ⟨_,_⟩)
+open import Data.Product using (_×_; proj₁; proj₂) renaming (_,_ to ⟨_,_⟩)
 
 ×-comm : ∀{A B : Set} → A × B ≃ B × A
 ×-comm =
@@ -478,6 +478,28 @@ open import Data.Product using (_×_) renaming (_,_ to ⟨_,_⟩)
     from = λ { ⟨ x , y ⟩ → ⟨ y , x ⟩ } ;
     from∘to = λ { ⟨ x , y ⟩ → refl }  ;
     to∘from = λ { ⟨ x , y ⟩ → refl } }
+```
+
+Example: two functions can always be merged into a single function
+with an extra Boolean parameter. The proof of this isomorphism
+requires the principle of extensionality.
+
+```
+open import Data.Bool using (Bool; true; false)
+
+postulate
+  extensionality : ∀ {A B : Set} {f g : A → B}
+    → (∀ (x : A) → f x ≡ g x)
+      -----------------------
+    → f ≡ g
+
+_ : ∀{A B : Set} → ((A → B) × (A → B) ≃ ((A × Bool) → B))
+_ = record {
+      to = λ { fg ⟨ a , true ⟩ → proj₁ fg a ;
+               fg ⟨ a , false ⟩ → proj₂ fg a };
+      from = λ h → ⟨ (λ a → h ⟨ a , true ⟩) , (λ a → h ⟨ a , false ⟩) ⟩ ;
+      from∘to = λ fg → refl ;
+      to∘from = λ h → extensionality λ { ⟨ a , true ⟩ → refl ; ⟨ a , false ⟩ → refl } }
 ```
 
 Example: ℕ is isomorphic to the even numbers.

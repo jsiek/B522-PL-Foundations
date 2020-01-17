@@ -77,7 +77,7 @@ standard library.
 ```
 open import Data.Nat.Properties
 open Relation.Binary.PropositionalEquality.≡-Reasoning using (begin_; _≡⟨_⟩_; _∎)
-open import Relation.Binary.PropositionalEquality using (sym; cong)
+open import Relation.Binary.PropositionalEquality using (sym; cong; cong₂)
 ```
 
 The Agda standard library module
@@ -252,20 +252,10 @@ We'll do this by defining a recursive function `even-dub`
 that takes a number `n` and produces an object of type
 `Even (n + n)`.
 
-To do this, we'll need a simple equation about addition, which we can
-obtain using the solver.
-
-```
-sn+sn≡n+n+2 : (n : ℕ) → (suc (n + (suc n))) ≡ (suc (suc (n + n)))
-sn+sn≡n+n+2 = solve 1 (λ n → (con 1 :+ (n :+ (con 1 :+ n))) := (con 1 :+ (con 1 :+ (n :+ n)))) refl
-```
-
-Here's the definition of `even-dub`.
-
 ```
 even-dub : (n : ℕ) → Even (n + n)
 even-dub zero = even-0
-even-dub (suc n) rewrite sn+sn≡n+n+2 n =
+even-dub (suc n) rewrite +-comm n (suc n) =
     let IH : Even (n + n)
         IH = even-dub n in
     even-+2 (n + n) IH 
@@ -310,6 +300,7 @@ inv-Even n .(suc (suc n')) (even-+2 n' even-m) m≢0 refl = even-m
   the goal is `Even n`, so we conclude by rewriting by 
   `n = n'` and then using `even-m`.
 
+
 Relations, Inductively Defined
 ------------------------------
 
@@ -339,49 +330,406 @@ For example, `3 div 3`, `3 div 6`, and `3 div 6`.
 3-div-9 = div-step 6 3 3-div-6
 ```
 
-If `m div n`, then neither `m` nor `n` can be zero.  We can prove these
-two facts by eliminating `m div n` with recursive functions.
+A common property of relations is transitivity.  Indeed, the `div`
+relation is transitive. To prove this we need the following standard
+fact about divides and addition.
 
 ```
-div→m≢0 : (m n : ℕ) → m div n → m ≢ 0
-div→m≢0 m .m (div-refl .m m≢0) = m≢0
-div→m≢0 m .(m + n) (div-step n .m mn) = div→m≢0 m n mn
+div-+ : ∀ l m n → l div m → l div n → l div (m + n)
+div-+ l .l n (div-refl .l l≢0) ln = div-step n l ln
+div-+ l .(l + m) n (div-step m .l lm) ln
+   rewrite +-assoc l m n =
+   let IH = div-+ l m n lm ln in
+   div-step (m + n) l IH
+```
+* In the case for `div-refl`, we have `m ≡ l` so we need to
+  prove that `l div (l + n)`, which we do directly with `div-step`.
+
+* In the case for `div-step`, we need to prove that `l div ((l + m) + n)`,
+  which we re-associate to `l div (l + (m + n))`.
+  The induction hypothesis gives us `l div (m + n)`,
+  so we conclude by applying `div-step`.
+
+We prove that `div` is transitive by induction on the derivation
+of `m div n`.
+
+```
+div-trans : ∀ l m n → l div m → m div n → l div n
+div-trans l m .m lm (div-refl .m m≢0) = lm
+div-trans l m .(m + n) lm (div-step n .m mn) =
+  let IH:ln = div-trans l m n lm mn in
+  div-+ l m n lm IH:ln
+```
+* In the case for `div-refl`, we have `n ≡ m`
+  so we need to prove `l div m`, which we already know.
+
+* In the case for `div-step`, we need to prove
+  that `l div (m + n)`
+  and the induction hypothesis for `m div n` gives us
+  `l div n`. So using this with the assumption that
+  `l div m`, we apply `div-+` to conclude that
+  `l div (m + n)`.
+
+
+Equality
+--------
+
+Review:
+
+* `≡` is an equivalence relation: `refl`, `sym`, `trans`
+* `cong`
+
+```
+open import Relation.Binary.PropositionalEquality using (refl; sym; trans)
+```
+
+Example of `refl`:
+
+```
+0≡0+0 : 0 ≡ 0 + 0
+0≡0+0 = refl
+```
+
+Example of `sym`:
+
+```
+0+0≡0 : 0 + 0 ≡ 0
+0+0≡0 = sym 0≡0+0
+```
+
+Example of `cong`:
+
+```
+0+0≡0+0+0 : 0 + 0 ≡ 0 + (0 + 0)
+0+0≡0+0+0 = cong (λ □ → 0 + □) 0≡0+0
+```
+
+Example of `trans`:
+
+```
+0≡0+0+0 : 0 ≡ 0 + 0 + 0
+0≡0+0+0 = trans 0≡0+0 0+0≡0+0+0
+```
+
+* `subst`
+
+  Example:
+
+```
+open import Relation.Binary.PropositionalEquality using (subst)
+
+even-dub' : (n m : ℕ) → m + m ≡ n → Even n
+even-dub' n m eq = subst (λ □ → Even □) eq (even-dub m)
+```
+
+* Chains of equations
+
+```
+_ : 0 ≡ 0 + 0 + 0
+_ =
+  begin
+  0            ≡⟨ 0≡0+0 ⟩
+  0 + 0        ≡⟨ 0+0≡0+0+0 ⟩
+  0 + 0 + 0
+  ∎
+```
+
+* Rewriting
+
+  Revisiting the proof of `even-dub'`, using `rewrite`
+  instead of `subst`.
+
+```
+even-dub'' : (n m : ℕ) → m + m ≡ n → Even n
+even-dub'' n m eq rewrite (sym eq) = even-dub m
+```
+
+
+Isomorphism
+-----------
+
+Two types `A` and `B` are *isomorphic* if there exist a pair of
+functions that map back and forth between the two types, and doing a
+round trip starting from either `A` or `B` brings you back to where
+you started, that is, composing the two functions in either order is
+the identity function.
+
+```
+infix 0 _≃_
+record _≃_ (A B : Set) : Set where
+  field
+    to   : A → B
+    from : B → A
+    from∘to : ∀ (x : A) → from (to x) ≡ x
+    to∘from : ∀ (y : B) → to (from y) ≡ y
+```
+
+Example: products are commutative upto isomorphism.
+
+(Note that we're using implicit parameters for the first time.)
+
+```
+open import Data.Product using (_×_) renaming (_,_ to ⟨_,_⟩)
+
+×-comm : ∀{A B : Set} → A × B ≃ B × A
+×-comm =
+  record {
+    to = λ { ⟨ x , y ⟩ → ⟨ y , x ⟩ } ;
+    from = λ { ⟨ x , y ⟩ → ⟨ y , x ⟩ } ;
+    from∘to = λ { ⟨ x , y ⟩ → refl }  ;
+    to∘from = λ { ⟨ x , y ⟩ → refl } }
+```
+
+Example: ℕ is isomorphic to the even numbers.
+
+Here is another definition of the even numbers.
+
+```
+data IsEven : ℕ → Set where
+  is-even : ∀ n m → n ≡ m + m → IsEven n
+```
+
+We define the type `Evens` as a wrapper around the even numbers
+that combines the number with a proof that it is even.
+
+```
+data Evens : Set where
+  even : (n : ℕ) → (IsEven n) → Evens
+```
+
+We convert from natural numbers to evens by multiplying by 2.  Going
+the other way, it is tempting to divide by 2 using the operator
+`⌊_/2⌋`. However, that approach complicates matters
+considerably. Instead, we can recognize that a value of `Even` carries
+with it the witness `m` that is half of `n`, so we can just return
+that.
+
+```
+ℕ≃Evens : ℕ ≃ Evens
+ℕ≃Evens =
+  record {
+    to = λ n → even (n + n) (is-even (n + n) n refl) ;
+    from = λ { (even n (is-even n m refl)) → m } ;
+    from∘to = λ x → refl ;
+    to∘from = λ { (even n (is-even n m refl)) → refl } }
+```
+
+Connectives
+-----------
+
+Propositions as Types:
+
+* conjunction is product,
+* disjunction is sum,
+* true is unit type,
+* false is empty type,
+* implication is function type.
+
+```
+postulate P Q R S : Set
+```
+
+Conjunction:
+
+```
+open import Data.Product using (_×_; proj₁; proj₂) renaming (_,_ to ⟨_,_⟩)
+
+_ : P × Q → Q × P
+_ = λ pq → ⟨ proj₂ pq , proj₁ pq ⟩
+```
+
+Disjunction:
+
+```
+open import Data.Sum using (_⊎_; inj₁; inj₂)
+
+_ : P ⊎ Q → Q ⊎ P
+_ = λ { (inj₁ p) → (inj₂ p);
+        (inj₂ q) → (inj₁ q)}
+```
+
+True:
+
+```
+open import Data.Unit using (⊤; tt)
+
+_ : ⊤
+_ = tt
+
+_ : (⊤ → P) → P
+_ = λ ⊤→P → ⊤→P tt
+```
+
+False:
+
+```
+open import Data.Empty using (⊥; ⊥-elim)
+
+0≢1+n : ∀ {n} → 0 ≢ suc n
+0≢1+n ()
+
+_ : 0 ≡ 1 → P
+_ = λ 0≡1 → ⊥-elim (0≢1+n 0≡1)
+```
+
+Implication:
+
+```
+_ : (P → Q) × (R → Q) → ((P ⊎ R) → Q)
+_ = λ pq-rq → λ{ (inj₁ p) → (proj₁ pq-rq) p ;
+                 (inj₂ r) → (proj₂ pq-rq) r }
+```
+
+alternatively, using function definitions and pattern matching
+
+```
+f : (P → Q) × (R → Q) → ((P ⊎ R) → Q)
+f ⟨ pq , rq ⟩ (inj₁ p) = pq p
+f ⟨ pq , rq ⟩ (inj₂ r) = rq r
+```
+
+Negation:
+
+Negation is shorthand for "implies false".
+
+```
+open import Relation.Nullary using (¬_)
+
+_ : (¬ P) ≡ (P → ⊥)
+_ = refl
+```
+
+
+Quantifiers
+-----------
+
+As we have seen, universal quantification (for all) is represented
+using dependent function types.
+
+You use (eliminate) a dependent function simply by applying it to an
+argument.
+
+```
+postulate Human : Set
+postulate Mortal : Human → Set
+postulate Socrates : Human
+postulate all-Humans-mortal : (p : Human) → Mortal p
+postulate all-Humans-mortal' : ∀ p → Mortal p               -- equivalent
+postulate all-Humans-mortal'' : ∀ (p : Human) → Mortal p    -- equivalent
+
+_ : Mortal Socrates
+_ = all-Humans-mortal Socrates
+```
+
+You prove a universally quantifies formula by writing a function of
+the appropriate type.
+
+```
+*-0ʳ : ∀ n → n * 0 ≡ 0
+*-0ʳ n rewrite *-comm n 0 = refl
+```
+
+The following shows how universals can distribute with disjunction.
+
+```
+_ : ∀{P : Set}{Q R : P → Set}
+    → (∀ (x : P) → Q x)  ⊎  (∀ (x : P) → R x)
+    → ∀ (x : P) → Q x ⊎ R x
+_ = λ { (inj₁ ∀x:P,Qx) p → inj₁ (∀x:P,Qx p);
+        (inj₂ ∀x:P,Rx) p → inj₂ (∀x:P,Rx p) }
+```
+
+Existential quantification is represented using dependent product types.
+Recall that in a dependent product type, the type of the second part
+can refer to the first part.
+
+Normal product type:
+
+   A × B
+
+Dependent product type:
+
+  Σ[ x ∈ A ] B x
+
+The values of dependent product types are good old pairs: `⟨ v₁ , v₂ ⟩`,
+where `v₁ : A` and `v₂ : B v₁`.
+
+To express "there exists", the witness of the existential is the first
+part of the pair. The type of the second part of the pair is some
+formula involving the first part, and the value in the second part of
+the pair is a proof of that formula.
+
+```
+open import Data.Product using (Σ-syntax)
+```
+
+The following example implements a disjoint union type `A or B` using
+a dependent pair.  The first part is a tag, false or true, that says
+whether the payload (the second part) has type `A` or type `B`,
+respectively.
+
+```
+open import Data.Bool using (Bool; true; false)
+
+select : (A : Set) → (B : Set) → Bool → Set
+select A B false = A
+select A B true = B
+
+_or_ : Set → Set → Set
+A or B = Σ[ flag ∈ Bool ] select A B flag
+
+forty-two : ℕ or (ℕ → ℕ)
+forty-two = ⟨ false , 42 ⟩
+
+inc : ℕ or (ℕ → ℕ)
+inc = ⟨ true , suc ⟩
+
+inject₁ : ∀{A B : Set} → A → A or B
+inject₁ a = ⟨ false , a ⟩
+
+inject₂ : ∀{A B : Set} → B → A or B
+inject₂ b = ⟨ true , b ⟩
+
+case : ∀{A B C : Set} → A or B → (A → C) → (B → C) → C
+case ⟨ false , a ⟩ ac bc = ac a
+case ⟨ true , b ⟩ ac bc = bc b
 ```
 
 ```
-div→n≢0 : (m n : ℕ) → m div n → n ≢ 0
-div→n≢0 m .m (div-refl .m m≢0) = m≢0
-div→n≢0 m .(m + n) (div-step n .m mn) =
-  let IH = div→n≢0 m n mn in
-  λ mn0 → IH (m+n≡0⇒n≡0 m mn0)
+_ : 42 ≡ case forty-two (λ n → n) (λ f → f 0)
+_ = refl
+
+_ : 1 ≡ case inc (λ n → n) (λ f → f 0)
+_ = refl
 ```
+
+Example proofs about existentials and universals:
+
+```
+∀∃-currying1 : ∀ {A : Set} {B : A → Set} {C : Set}
+  → (∀ (x : A) → B x → C)
+  → (Σ[ x ∈ A ] B x) → C
+∀∃-currying1 f ⟨ x , y ⟩ = f x y
+
+∀∃-currying2 : ∀ {A : Set} {B : A → Set} {C : Set}
+  → ((Σ[ x ∈ A ] B x) → C)
+  → (∀ (x : A) → B x → C)
+∀∃-currying2 g x y = g ⟨ x , y ⟩
+``` 
+
+Example use of existentials for even numbers:
 
 An alternative way to state that a number evenly divides another
 number is using multiplication instead of repeated addition.  We shall
 prove that if `m div n`, then there exists some number `k` such that
-`k * m ≡ n`. In Agda, we use a **dependent product** to express
-"there exists". A dependent product is simply a pair where the
-**type** of the second part of the pair can refer to the the first
-part of the pair.  To express "there exists", the witness of the
-existential is the first part of the pair. The type of the second part
-of the pair is some formula involving the first part, and the value in
-the second part of the pair is a proof of that formula. So to
-express "there exists some number `k` such that
-`k * m ≡ n`", we use the type
+`k * m ≡ n`.  To express "there exists some number `k` such that `k *
+m ≡ n`", we use the dependent produce type
 
     Σ[ k ∈ ℕ ] k * m ≡ n
 
 where `k` is a name for the first part of the pair,
 `ℕ` is it's type, and `k * m ≡ n` is the type
 for the second part of the pair.
-(This is covered in more depth in Chapter
-[Quantifiers](https://plfa.github.io/Quantifiers/)).
-
-```
-open import Data.Product using (Σ-syntax) renaming (_,_ to ⟨_,_⟩)
-```
-
-We construct a dependent product using the notation `⟨_,_⟩`.
 For example, the following proves that there exists
 some number `k` such that `k * m ≡ 0`, for any `m`.
 
@@ -395,10 +743,10 @@ following proof by induction shows that `m div n` implies
 that there exists some `k` such that `k * m ≡ n`.
 
 ```
-div→k*m≡n : (m n : ℕ) → m div n → Σ[ k ∈ ℕ ] k * m ≡ n
-div→k*m≡n m .m (div-refl .m x) = ⟨ 1 , +-identityʳ m ⟩
-div→k*m≡n m .(m + n) (div-step n .m mn)
-    with div→k*m≡n m n mn
+mdivn→k*m≡n : (m n : ℕ) → m div n → Σ[ k ∈ ℕ ] k * m ≡ n
+mdivn→k*m≡n m .m (div-refl .m x) = ⟨ 1 , +-identityʳ m ⟩
+mdivn→k*m≡n m .(m + n) (div-step n .m mn)
+    with mdivn→k*m≡n m n mn
 ... | ⟨ q , q*m≡n ⟩
     rewrite sym q*m≡n =
       ⟨ (suc q) , refl ⟩
@@ -412,7 +760,7 @@ div→k*m≡n m .(m + n) (div-step n .m mn)
 * For the case `div-step`, we need to show that `k * m ≡ m + n` for some `k`.
   The induction hypothesis tells us that `q * m ≡ n` for some `q`.
   We can get our hands on this `q` by pattern matching on the
-  dependent pair returned by `div→k*m≡n`, using the `with` construct.
+  dependent pair returned by `mdivn→k*m≡n`, using the `with` construct.
   If we replace the `n` in the goal with `q * m`, the goal becomes
   `k * m ≡ m + q * m` which is equivalent to
   `k * m ≡ suc q * m`. We can accomplish this replacement by
@@ -433,258 +781,107 @@ m-div-k*m (suc (suc k)) m m≢0 k≢0 =
     div-step (m + k * m) m IH
 ```
 
-A common property of relations is transitivity.  Indeed, the `div`
-relation is transitive. We prove this fact directly using the facts
-that we've already proved about `div`. That is, from `m div n` and `n
-div p`, we have `k₁ * m ≡ n` and `k₂ * n ≡ p` (by `div→k*m≡n`). We can
-substitute `k₁ * m` for `n` in the later formula to obtain `k₂ * k₁ *
-m ≡ p`, which shows that `m` divides `p` (by `m-div-k*m`).  However,
-to use `m-div-k*m` we have two remaining details to prove.
-We need to show that `m ≢ 0` and `k₂ * k₁ ≢ 0`.
-We obtain `m ≢ 0` using `div→m≢0`.
-Similarly, by `div→n≢0` we know `k₂ * k₁ * m ≢ 0`.  Towards a contradiction, if
-`k₂ * k₁ ≡ 0`, then we would also have `k₂ * k₁ * m ≡ 0`, but we know
-that is false.
+
+Decidable
+---------
+
+An alternative way to represent a relation is Agda is with the
+relation's characteristic function. That is, a function that takes the
+two elements and returns true or false, depending on whether the
+elements are in the relation.
 
 ```
-div-trans : (m n p : ℕ) → m div n → n div p → m div p
-div-trans m n p mn np
-    with div→k*m≡n m n mn | div→k*m≡n n p np
-... | ⟨ k₁ , k₁*m≡n ⟩ | ⟨ k₂ , k₂*k₁*m≡p ⟩
-    rewrite sym k₁*m≡n | sym k₂*k₁*m≡p | sym (*-assoc k₂ k₁ m) =
-    m-div-k*m (k₂ * k₁) m m≢0 (k₂*k₁≢0 k₂*k₁*m≢0)
-    
-    where
-    m≢0 = div→m≢0 m (k₁ * m) mn
-    k₂*k₁*m≢0 = div→n≢0 (k₁ * m) (k₂ * k₁ * m) np
-
-    k₂*k₁≢0 : k₂ * k₁ * m ≢ 0 → k₂ * k₁ ≢ 0
-    k₂*k₁≢0 k₂*k₁*m≢0 k₂*k₁≡0
-        rewrite k₂*k₁≡0 = k₂*k₁*m≢0 refl
+less-eq : ℕ → ℕ → Bool
+less-eq zero n = true
+less-eq (suc m) zero = false
+less-eq (suc m) (suc n) = less-eq m n
 ```
 
-Isomorphism
------------
+In some sense, such a function is better than going with a data type
+because it also serves as a decision procedure. However, for some
+relations it is difficult or even impossible to come up with such a
+function.
+
+Sometimes its nice to link your decision procedure to the relation
+defined by a data type, building the correctness of your decision
+procedure into its type. The `Dec` type let's you do this by including
+both the true/false regarding whether the relation holds for the input
+but also the proof that it holds or that its negation holds.
 
 ```
-infix 0 _≃_
-record _≃_ (A B : Set) : Set where
-  field
-    to   : A → B
-    from : B → A
-    from∘to : ∀ (x : A) → from (to x) ≡ x
-    to∘from : ∀ (y : B) → to (from y) ≡ y
+open import Relation.Nullary using (Dec; yes; no)
+open import Data.Nat using (_≤_)
+
+less-eq? : (m n : ℕ) → Dec (m ≤ n)
+less-eq? zero n = yes z≤n
+less-eq? (suc m) zero = no (λ ())
+less-eq? (suc m) (suc n)
+    with less-eq? m n
+... | yes m≤n = yes (s≤s m≤n)
+... | no ¬m≤n = no λ sm≤sn → ¬m≤n (≤-pred sm≤sn)
 ```
 
-Example: ℕ is isomorphic to the even numbers.
+Lists
+-----
+
+Agda provides Lisp-style lists, with nil and cons.
 
 ```
-even-m→m≡n+n : (m : ℕ) → Even m → Σ[ n ∈ ℕ ] m ≡ n + n
-even-m→m≡n+n .0 even-0 = ⟨ 0 , refl ⟩
-even-m→m≡n+n .(suc (suc n)) (even-+2 n even-m)
-  with even-m→m≡n+n n even-m
-... | ⟨ p , refl ⟩ =   
-    ⟨ suc p , EQ p ⟩
-  where
-  EQ : (p : ℕ) → suc (suc (p + p)) ≡ suc (p + suc p)
-  EQ = solve 1 (λ p → con 1 :+ (con 1 :+ (p :+ p)) := con 1 :+ (p :+ (con 1 :+ p))) refl
+open import Data.List
+
+_ : List ℕ
+_ = 1 ∷ 2 ∷ []
 ```
 
+Agda provides lots of standard operations on lists, such as `reverse`
+and `splitAt`. Here's one way to rotate the elements of a list, by
+three reverses.
+
 ```
-dub-div2 : ∀ (n : ℕ) → ⌊ n + n /2⌋ ≡ n
-dub-div2 zero = refl
-dub-div2 (suc n) =
-  let IH = dub-div2 n in
+rotate : ∀ {A : Set} → List A → ℕ → List A
+rotate xs k
+    with splitAt k xs
+... | ⟨ ls , rs ⟩ =
+    let ls' = reverse ls in
+    let rs' = reverse rs in
+    reverse (ls' ++ rs')
+```
+
+Here's a few examples of `rotate` in action.
+
+```
+_ : rotate (1 ∷ 2 ∷ 3 ∷ []) 1 ≡ (2 ∷ 3 ∷ 1 ∷ [])
+_ = refl
+
+_ : rotate (1 ∷ 2 ∷ 3 ∷ []) 2 ≡ (3 ∷ 1 ∷ 2 ∷ [])
+_ = refl
+
+_ : rotate (1 ∷ 2 ∷ 3 ∷ []) 3 ≡ (1 ∷ 2 ∷ 3 ∷ [])
+_ = refl
+```
+
+One way to think about `rotate` is in terms of swapping a portion of
+the list at the front of the list to the back. In the following, the
+first three elements, `a , b , c`, are moved to the back, swapping
+places with the portion `d , e`.
+
+    rotate 3 ([ a , b , c ] ++ [ d , e ])
+           ≡ [ d , e ] ++ [ a , b , c ]
+
+With this view in mind, we prove that `rotate` is correct using some
+equations from the Agda standard library about reverse and append.
+
+```
+open import Data.List.Properties
+
+rotate-correct : ∀ {A : Set} {xs ys zs : List A} {k : ℕ}
+   → splitAt k xs ≡ ⟨ ys , zs ⟩
+   → rotate xs k ≡ zs ++ ys
+rotate-correct {A}{xs}{ys}{zs} sk rewrite sk =
   begin
-  ⌊ suc (n + suc n) /2⌋        ≡⟨ cong ⌊_/2⌋ (EQ n) ⟩
-  ⌊ suc (suc (n + n)) /2⌋      ≡⟨ refl ⟩
-  suc ⌊ n + n /2⌋              ≡⟨ cong suc IH ⟩
-  suc n
+     reverse (reverse ys ++ reverse zs)   ≡⟨ cong reverse (sym (reverse-++-commute zs ys)) ⟩
+     reverse (reverse (zs ++ ys))         ≡⟨ reverse-involutive (zs ++ ys) ⟩
+     zs ++ ys
   ∎
-  where
-  EQ : (n : ℕ) → suc (n + suc n) ≡ suc (suc (n + n))
-  EQ = solve 1 (λ n → con 1 :+ (n :+ (con 1 :+ n)) := con 1 :+ (con 1 :+ (n :+ n))) refl
-
-```
-
-```
-data IsEven : ℕ → Set
-data IsOdd : ℕ → Set
-
-data IsEven where
-  is-even : ∀ n m → n ≡ m + m → IsEven n
-
-data IsOdd where
-  is-odd : ∀ n m → n ≡ suc (m + m) → IsOdd n
-
-open import Data.Sum
-
-sm+sm≡ss[m+m] : ∀ m → (suc m) + (suc m) ≡ suc (suc (m + m))
-sm+sm≡ss[m+m] = solve 1 (λ m → (con 1 :+ m) :+ (con 1 :+ m) := con 1 :+ (con 1 :+ (m :+ m))) refl
-
-even+odd : ∀ (n : ℕ) → IsEven n ⊎ IsOdd n
-even+odd zero = inj₁ (is-even 0 0 refl)
-even+odd (suc n)
-    with even+odd n
-... | inj₁ (is-even n m refl) =
-      inj₂ (is-odd (suc (m + m)) m refl)
-... | inj₂ (is-odd n m refl) =
-      inj₁ (is-even (suc (suc (m + m))) (suc m) (sym (sm+sm≡ss[m+m] m)))
-
-data Evens : Set where
-  even : (n : ℕ) → .(IsEven n) → Evens
-
-to-evens : ℕ → Evens
-to-evens n = even (n + n) (is-even (n + n) n refl)
-
-from-evens : Evens → ℕ
-from-evens (even n even-n) = ⌊ n /2⌋
-
-from∘to-evens : ∀ (n : ℕ) → from-evens (to-evens n) ≡ n
-from∘to-evens zero = refl
-from∘to-evens (suc n) =
-  begin
-  from-evens (to-evens (suc n))                            ≡⟨ refl ⟩
-  from-evens (even ((suc n) + (suc n)) (is-even (suc (n + suc n)) (suc n) refl)) ≡⟨ refl ⟩
-  ⌊ (suc n) + (suc n) /2⌋                                  ≡⟨ dub-div2 (suc n) ⟩
-  suc n
-  ∎ 
-
-Evens≡ : ∀(x y : ℕ).(p : IsEven x).(q : IsEven y) → x ≡ y → (even x p) ≡ (even y q)
-Evens≡ x y p q refl = refl  
-
-open import Data.Empty using (⊥)
-
-n+n≢1 : ∀ n → n + n ≢ 1
-n+n≢1 zero = λ ()
-n+n≢1 (suc n) rewrite +-comm n (suc n) = λ ()
-
-suc[z+z]≢y+y : ∀ z y → suc (z + z) ≡ y + y → ⊥
-suc[z+z]≢y+y z y eq =
-  let eq2 : 1 + (z + z) ≡ y + y
-      eq2 = eq in
-  let eq3 : 1 ≡ (y + y) ∸ (z + z)
-      eq3 = begin
-            1                      ≡⟨ {!!} ⟩
-            1 + (z + z) ∸ (z + z)  ≡⟨ {!!} ⟩
-            (y + y) ∸ (z + z)
-            ∎ in
-  {!!}
-
-{-
-
-1 ≡ 2y - 2z ≡ 2(y - z)
-
--}
-
-odd-not-even : ∀ n → IsEven (suc (n + n)) → ⊥
-odd-not-even n (is-even .(suc (n + n)) m x) = {!!}
-
-{-
-odd-not-even zero (is-even .1 m 1≡m+m) = n+n≢1 m (sym 1≡m+m)
-odd-not-even (suc n) =
-  let IH = odd-not-even n in
-  λ even+3 → IH {!!}
--}
-
-import Data.Empty.Irrelevant
-
-⌊n/2⌋+⌊n/2⌋≡n : ∀ n → .(IsEven n) → ⌊ n /2⌋ + ⌊ n /2⌋ ≡ n
-⌊n/2⌋+⌊n/2⌋≡n n even-n
-    with even+odd n
-... | inj₁ (is-even n m refl)
-    rewrite dub-div2 m = refl
-... | inj₂ (is-odd n m refl) =
-    Data.Empty.Irrelevant.⊥-elim {!!}
-
-to∘from-evens : ∀ (e : Evens) → to-evens (from-evens e) ≡ e
-to∘from-evens (even n even-n) =
-  begin
-    to-evens ⌊ n /2⌋       ≡⟨ refl ⟩
-    even (⌊ n /2⌋ + ⌊ n /2⌋) (is-even (⌊ n /2⌋ + ⌊ n /2⌋) ⌊ n /2⌋ refl)  ≡⟨ Evens≡ (⌊ n /2⌋ + ⌊ n /2⌋) n (is-even (⌊ n /2⌋ + ⌊ n /2⌋) ⌊ n /2⌋ refl) even-n (⌊n/2⌋+⌊n/2⌋≡n n even-n) ⟩
-    even n even-n
-  ∎
-
-{-
-open import Data.Product using (proj₁)
-
-data Evens : Set where
-  even : (n : ℕ) → .(Even n) → Evens
-  
-
-to-evens : ℕ → Evens
-to-evens n = even (n + n) (even-dub n)
-
-from-evens : Evens → ℕ
-from-evens (even n even-n) = ⌊ n /2⌋
-
-from∘to-evens : ∀ (n : ℕ) → from-evens (to-evens n) ≡ n
-from∘to-evens zero = refl
-from∘to-evens (suc n) =
-  begin
-  from-evens (to-evens (suc n))                            ≡⟨ refl ⟩
-  from-evens (even ((suc n) + (suc n)) (even-dub (suc n))) ≡⟨ refl ⟩
-  ⌊ (suc n) + (suc n) /2⌋                                  ≡⟨ dub-div2 (suc n) ⟩
-  suc n
-  ∎ 
-
-⌊n/2⌋+⌈n/2⌉≡n : ∀ n → ⌊ n /2⌋ + ⌈ n /2⌉ ≡ n
-⌊n/2⌋+⌈n/2⌉≡n zero    = refl
-⌊n/2⌋+⌈n/2⌉≡n (suc n) = begin
-  ⌊ suc n /2⌋ + suc ⌊ n /2⌋   ≡⟨ +-comm ⌊ suc n /2⌋ (suc ⌊ n /2⌋) ⟩
-  suc ⌊ n /2⌋ + ⌊ suc n /2⌋   ≡⟨ refl ⟩
-  suc (⌊ n /2⌋ + ⌊ suc n /2⌋) ≡⟨ cong suc (⌊n/2⌋+⌈n/2⌉≡n n) ⟩
-  suc n                       ∎
-
-even-2+n→even-n : ∀ n → .(Even (suc (suc n))) → Even n
-even-2+n→even-n n e2n = {!!}
-
-⌊n/2⌋+⌊n/2⌋≡n : ∀ n → .(Even n) → ⌊ n /2⌋ + ⌊ n /2⌋ ≡ n
-⌊n/2⌋+⌊n/2⌋≡n zero even-n = refl
-⌊n/2⌋+⌊n/2⌋≡n (suc (suc n)) even-2+n =
-  begin
-  suc (⌊ n /2⌋ + suc ⌊ n /2⌋)      ≡⟨ cong suc (+-suc ⌊ n /2⌋ ⌊ n /2⌋) ⟩
-  suc (suc (⌊ n /2⌋ + ⌊ n /2⌋))    ≡⟨ cong (λ □ → suc (suc □)) (⌊n/2⌋+⌊n/2⌋≡n n EN) ⟩
-  suc (suc n)
-  ∎
-  where
-  EN : Even n
-  EN = even-2+n→even-n n even-2+n
-
-Evens≡ : ∀(x y : ℕ).(p : Even x).(q : Even y) → x ≡ y → (even x p) ≡ (even y q)
-Evens≡ x y p q refl = refl  
-
-to∘from-evens : ∀ (e : Evens) → to-evens (from-evens e) ≡ e
-to∘from-evens (even n even-n) =
-  begin
-  to-evens (from-evens (even n even-n))        ≡⟨ refl ⟩
-  to-evens ⌊ n /2⌋                             ≡⟨ refl ⟩
-  even (⌊ n /2⌋ + ⌊ n /2⌋) (even-dub ⌊ n /2⌋)  ≡⟨ Evens≡ ((⌊ n /2⌋ + ⌊ n /2⌋)) n ((even-dub ⌊ n /2⌋)) even-n (⌊n/2⌋+⌊n/2⌋≡n n even-n) ⟩
-  even n even-n
-  ∎
-
-ℕ≃Evens : ℕ ≃ Evens
-ℕ≃Evens =
-  record {
-    to = to-evens ; 
-    from = from-evens ;
-    from∘to = from∘to-evens ;
-    to∘from = to∘from-evens }
--}
-```
-
-
-Example: products are commutative upto isomorphism.
-
-```
-open import Data.Product renaming (_,_ to ⟨_,_⟩)
-
-×-comm : ∀{A B : Set} → A × B ≃ B × A
-×-comm =
-  record {
-    to = λ { ⟨ x , y ⟩ → ⟨ y , x ⟩ } ;
-    from = λ { ⟨ x , y ⟩ → ⟨ y , x ⟩ } ;
-    from∘to = λ { ⟨ x , y ⟩ → refl }  ;
-    to∘from = λ { ⟨ x , y ⟩ → refl } }
 ```
 

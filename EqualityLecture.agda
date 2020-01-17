@@ -1,0 +1,55 @@
+module EqualityLecture where
+
+{-
+
+  Jan. 16, 2020
+
+-}
+
+open import Data.Nat
+open import Data.Nat.Properties
+open import Relation.Binary.PropositionalEquality
+  using (_≡_; refl; sym; trans; cong; subst)
+open Relation.Binary.PropositionalEquality.≡-Reasoning
+  using (begin_; _≡⟨_⟩_; _≡⟨⟩_; _∎)
+
+0≡0+0 : 0 ≡ 0 + 0
+0≡0+0 = refl
+
+_ : 0 + 0 ≡ 0
+_ = sym 0≡0+0
+
+0+0≡0+0+0 : 0 + 0 ≡ 0 + (0 + 0)
+0+0≡0+0+0 = cong (λ □ → 0 + □) 0≡0+0
+
+0≡0+0+0 : 0 ≡ 0 + 0 + 0
+0≡0+0+0 = trans 0≡0+0 0+0≡0+0+0
+
+data Even : ℕ → Set where
+  even-0 : Even 0
+  even-+2 : (n : ℕ) → Even n → Even (2 + n)
+
+even-dub : (n : ℕ) → Even (n + n)
+even-dub zero = even-0
+even-dub (suc n) rewrite +-comm n (suc n) =
+    let IH : Even (n + n)
+        IH = even-dub n in
+    even-+2 (n + n) IH 
+
+even-dub' : (n m : ℕ) → m + m ≡ n → Even n
+even-dub' n m eq =
+  let even-m = even-dub m in
+  subst (λ □ → Even □) eq even-m
+
+even-dub'' : (n m : ℕ) → m + m ≡ n → Even n
+even-dub'' n m eq rewrite sym eq =
+  let even-m = even-dub m in
+  even-m
+
+_ : 0 ≡ 0 + 0 + 0
+_ =
+  begin
+    0            ≡⟨ 0≡0+0 ⟩
+    0 + 0        ≡⟨ 0+0≡0+0+0 ⟩    
+    0 + 0 + 0
+  ∎

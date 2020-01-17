@@ -835,8 +835,8 @@ _ = 1 ∷ 2 ∷ []
 ```
 
 Agda provides lots of standard operations on lists, such as `reverse`
-and `splitAt`. Here's one way to rotate the elements of a list, by
-three reverses.
+and `splitAt`. Here's one way to rotate the elements of a list to the
+left by `k` positions, using three reverses.
 
 ```
 rotate : ∀ {A : Set} → List A → ℕ → List A

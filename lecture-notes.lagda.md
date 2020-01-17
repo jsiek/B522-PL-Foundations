@@ -76,7 +76,7 @@ standard library.
 
 ```
 open import Data.Nat.Properties
-open Relation.Binary.PropositionalEquality.≡-Reasoning using (begin_; _≡⟨_⟩_; _∎)
+open Relation.Binary.PropositionalEquality.≡-Reasoning using (begin_; _≡⟨⟩_; _≡⟨_⟩_; _∎)
 open import Relation.Binary.PropositionalEquality using (sym; cong; cong₂)
 ```
 
@@ -856,8 +856,48 @@ _ : List ℕ
 _ = 1 ∷ 2 ∷ []
 ```
 
-Agda provides lots of standard operations on lists, such as `map`,
-`foldr`, `foldl`, `reverse`, `splitAt`, and many more. 
+Agda provides lots of standard operations on lists, such as append
+(`_++_`), `map`, `foldr`, `foldl`, `zip`, `unzip`, `reverse`,
+`splitAt`, and many more. The Agda standard library also provides many
+theorems about these operations.
+
+There are yet more operations and theorems in the works of Richard
+Bird about the interactions between lists, functions, pairs, and sums.
+Concerning functions and products, there are the "fork" and "cross"
+operations.
+
+```
+_▵_ : ∀{A B C : Set} → (A → B) → (A → C) → A → B × C
+(f ▵ g) a = ⟨ (f a) , (g a) ⟩
+
+_⊗_ : ∀{A B C D : Set} → (A → B) → (C → D) → A × C → B × D
+(f ⊗ g) ⟨ a , c ⟩ = ⟨ f a , g c ⟩
+```
+
+Recall that `unzip` converts a list of pairs into a pair of lists.
+The `unzip` operation can also be expressed in terms of `map` and
+fork, as follows.
+
+```
+unzip≡▵map : ∀{A B : Set}
+           → (xs : List (A × B))
+           → unzip xs ≡ ((map proj₁) ▵ (map proj₂)) xs
+unzip≡▵map {A} {B} [] = refl
+unzip≡▵map {A} {B} (⟨ a , b ⟩ ∷ xs) =              begin
+  unzip (⟨ a , b ⟩ ∷ xs)                           ≡⟨⟩
+  ⟨ a ∷ proj₁ (unzip xs) , b ∷ proj₂ (unzip xs) ⟩  ≡⟨ cong₂ ⟨_,_⟩ IH1 IH2 ⟩
+  ⟨ a ∷ proj₁ xs₁,xs₂ , b ∷ proj₂ xs₁,xs₂ ⟩        ≡⟨⟩
+  (map proj₁ ▵ map proj₂) (⟨ a , b ⟩ ∷ xs)
+  ∎
+  where
+  IH = unzip≡▵map xs
+  xs₁,xs₂ = (map proj₁ ▵ map proj₂) xs
+  IH1 = cong (λ □ → a ∷ (proj₁ □)) IH
+  IH2 = cong (λ □ → b ∷ (proj₂ □)) IH
+```
+
+to do: cross(map f, map g) ∘ unzip = unzip ∘ map (cross(f,g))
+
 
 One operation that is not defined in the Agda standard library is
 rotating the element of a list (to the left) by `k` positions, with
@@ -891,13 +931,13 @@ _ : rotate (1 ∷ 2 ∷ 3 ∷ []) 3 ≡ (1 ∷ 2 ∷ 3 ∷ [])
 _ = refl
 ```
 
-One way to think about `rotate` is in terms of swapping a portion of
+One way to think about `rotate` is in terms of swapping the part of
 the list at the front with the rest of the list at the back. In the
 following, the first three elements, `a , b , c`, are moved to the
 back, swapping places with the `d , e`.
 
     rotate ([ a , b , c ] ++ [ d , e ]) 3
-           ≡ [ d , e ] ++ [ a , b , c ]
+          ≡ [ d , e ] ++ [ a , b , c ]
 
 With this view in mind, we prove that `rotate` is correct using some
 equations from the Agda standard library about `reverse` and `append`.

@@ -856,9 +856,17 @@ _ : List ℕ
 _ = 1 ∷ 2 ∷ []
 ```
 
-Agda provides lots of standard operations on lists, such as `reverse`
-and `splitAt`. Here's one way to rotate the elements of a list to the
-left by `k` positions, using three reverses.
+Agda provides lots of standard operations on lists, such as `map`,
+`foldr`, `foldl`, `reverse`, `splitAt`, and many more. 
+
+One operation that is not defined in the Agda standard library is
+rotating the element of a list (to the left) by `k` positions, with
+wrap-around. For example,
+
+    rotate (1 ∷ 2 ∷ 3 ∷ []) 2 ≡ (3 ∷ 1 ∷ 2 ∷ [])
+
+One clever way to rotate a list is to split it into two parts, reverse
+each part, append them, and then reverse again.
 
 ```
 rotate : ∀ {A : Set} → List A → ℕ → List A
@@ -870,7 +878,7 @@ rotate xs k
     reverse (ls' ++ rs')
 ```
 
-Here's a few examples of `rotate` in action.
+Here are a few examples of `rotate` in action.
 
 ```
 _ : rotate (1 ∷ 2 ∷ 3 ∷ []) 1 ≡ (2 ∷ 3 ∷ 1 ∷ [])
@@ -884,15 +892,15 @@ _ = refl
 ```
 
 One way to think about `rotate` is in terms of swapping a portion of
-the list at the front of the list to the back. In the following, the
-first three elements, `a , b , c`, are moved to the back, swapping
-places with the portion `d , e`.
+the list at the front with the rest of the list at the back. In the
+following, the first three elements, `a , b , c`, are moved to the
+back, swapping places with the `d , e`.
 
-    rotate 3 ([ a , b , c ] ++ [ d , e ])
+    rotate ([ a , b , c ] ++ [ d , e ]) 3
            ≡ [ d , e ] ++ [ a , b , c ]
 
 With this view in mind, we prove that `rotate` is correct using some
-equations from the Agda standard library about reverse and append.
+equations from the Agda standard library about `reverse` and `append`.
 
 ```
 open import Data.List.Properties

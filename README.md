@@ -40,7 +40,16 @@ Monday and Wednesday at 4:30-5:45pm in Luddy Hall Room 4101.
   `⊎-weak-×` (in [Connectives](https://plfa.github.io/Connectives/)), and
   `⊎-dual-×` (in [Negation](https://plfa.github.io/Negation/)).
   
-
+* February 3: Exercises
+   `∃-distrib-⊎`,
+   `∃¬-implies-¬∀`,
+   `Bin-isomorphism` (in [Quantifiers](https://plfa.github.io/Quantifiers/)),
+   `_<?_`,
+   `iff-erasure` (in [Decidable](https://plfa.github.io/Decidable/)),
+   `foldr-++`,
+   `foldr-∷`,
+   `Any-++-⇔` (in [List](https://plfa.github.io/List/)).
+   
 
 ## Schedule
 

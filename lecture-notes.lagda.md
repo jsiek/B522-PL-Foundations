@@ -2,8 +2,7 @@
 module lecture-notes where
 ```
 
-Naturals
---------
+# Naturals
 
 Concepts: datatype definitions, constructors, `Set`.
 
@@ -62,8 +61,7 @@ gauss zero = 0
 gauss (suc n) = suc n + gauss n
 ```
 
-Proofs about all the naturals numbers
--------------------------------------
+## Proofs about all the naturals numbers
 
 To prove something about all the natural numbers,
 such as 
@@ -126,8 +124,7 @@ leftover equations that the solver couldn't prove. Usually `refl`
 works. If it doesn't, good luck to you!
 
 
-Induction
----------
+# Induction
 
 If you don't see a way to prove something about all the natural
 numbers using the laws of algebra, then your plan B should be to use
@@ -212,8 +209,7 @@ gauss-formula (suc n) =
     multiplication, which is handled by Agda's automatic solver.
 
 
-Predicates, Inductively Defined
--------------------------------
+# Predicates, Inductively Defined
 
 Recall that a predicate is a statement involving a variable that can
 be true or false. In math, a predicate `P` is often represented as a
@@ -301,8 +297,7 @@ inv-Even n .(suc (suc n')) (even-+2 n' even-m) m≢0 refl = even-m
   `n = n'` and then using `even-m`.
 
 
-Relations, Inductively Defined
-------------------------------
+# Relations, Inductively Defined
 
 Like predicates, relations can be represented in Agda with data types,
 they just have more parameters.
@@ -371,13 +366,15 @@ div-trans l m .(m + n) lm (div-step n .m mn) =
   `l div (m + n)`.
 
 
-Equality
---------
+# Equality
 
-Review:
+`≡` is just a relation defined as a data type, as in the above examples.
 
-* `≡` is an equivalence relation: `refl`, `sym`, `trans`
-* `cong`
+It has one constructor named `refl` that says anything is equal to
+itself.
+
+`≡` is an equivalence relation: `refl`, `sym`, `trans`,
+and a congruence: `cong`.
 
 ```
 open import Relation.Binary.PropositionalEquality using (refl; sym; trans)
@@ -445,8 +442,7 @@ even-dub'' n m eq rewrite (sym eq) = even-dub m
 ```
 
 
-Isomorphism
------------
+# Isomorphism
 
 Two types `A` and `B` are *isomorphic* if there exist a pair of
 functions that map back and forth between the two types, and doing a
@@ -535,22 +531,68 @@ just return `m`.
     to∘from = λ { (even n (is-even n m refl)) → refl } }
 ```
 
-Connectives
------------
+# Connectives
 
 Propositions as Types:
 
-* conjunction is product,
-* disjunction is sum,
 * true is unit type,
+* conjunction is product (i.e. pair),
+* disjunction is sum (i.e. disjoint union),
 * false is empty type,
 * implication is function type.
 
+In this setting, a proposition is true if the corresponding type is
+inhabited. So we can prove that a proposition is true by constructing
+an inhabitant of the corresponding type.
+
+For purposes of discussion, we'll use the letters `P`, `Q`, `R`, and `S`
+for arbitrary propositions.
+
 ```
-postulate P Q R S : Set
+variable P Q R S : Set
 ```
 
-Conjunction:
+## True
+
+True is the unit type, written `⊤`.
+
+It has one constructor `tt` that has no parameters,
+so it is trivial to prove `⊤`.
+
+```
+open import Data.Unit using (⊤; tt)
+
+_ : ⊤
+_ = tt
+```
+
+## Implication
+
+Implication is the function type.
+
+So its constructor is lambda abstraction
+and the eliminator is application.
+
+```
+_ : P → P
+_ = λ p → p
+
+_ : (⊤ → P) → P
+_ = λ f → f tt
+
+_ : P → (⊤ → P)
+_ = λ p → λ tt → p
+```
+
+## Conjunction
+
+Logical "and" is the pair type, written `P × Q`.
+
+It has one constructor `⟨_,_⟩` that takes two arguments,
+one for `P` and the other for `Q`.
+
+It has two eliminators (accessors) `proj₁` and `proj₂`,
+that return the proofs of `P` and of `Q`, respectively.
 
 ```
 open import Data.Product using (_×_; proj₁; proj₂) renaming (_,_ to ⟨_,_⟩)
@@ -559,7 +601,13 @@ _ : P × Q → Q × P
 _ = λ pq → ⟨ proj₂ pq , proj₁ pq ⟩
 ```
 
-Disjunction:
+## Disjunction
+
+Logical "or" is the disjoint union type, written `P ⊎ Q`.
+
+It has two constructors, `inl` and `inr` that take one parameter.
+
+Elimination is by pattern matching.
 
 ```
 open import Data.Sum using (_⊎_; inj₁; inj₂)
@@ -567,41 +615,14 @@ open import Data.Sum using (_⊎_; inj₁; inj₂)
 _ : P ⊎ Q → Q ⊎ P
 _ = λ { (inj₁ p) → (inj₂ p);
         (inj₂ q) → (inj₁ q)}
-```
 
-True:
-
-```
-open import Data.Unit using (⊤; tt)
-
-_ : ⊤
-_ = tt
-
-_ : (⊤ → P) → P
-_ = λ ⊤→P → ⊤→P tt
-```
-
-False:
-
-```
-open import Data.Empty using (⊥; ⊥-elim)
-
-0≢1+n : ∀ {n} → 0 ≢ suc n
-0≢1+n ()
-
-_ : 0 ≡ 1 → P
-_ = λ 0≡1 → ⊥-elim (0≢1+n 0≡1)
-```
-
-Implication:
-
-```
 _ : (P → Q) × (R → Q) → ((P ⊎ R) → Q)
-_ = λ pq-rq → λ{ (inj₁ p) → (proj₁ pq-rq) p ;
-                 (inj₂ r) → (proj₂ pq-rq) r }
+_ = λ pq,rq → λ{ (inj₁ p) → (proj₁ pq,rq) p ;
+                 (inj₂ r) → (proj₂ pq,rq) r }
 ```
 
-alternatively, using function definitions and pattern matching
+Alternatively, one can use top-level function definitions and pattern
+matching:
 
 ```
 f : (P → Q) × (R → Q) → ((P ⊎ R) → Q)
@@ -609,7 +630,30 @@ f ⟨ pq , rq ⟩ (inj₁ p) = pq p
 f ⟨ pq , rq ⟩ (inj₂ r) = rq r
 ```
 
-Negation:
+## False
+
+False is the empty type, written `⊥`.
+
+It has no constructors. However, it can appears as the return type of
+a function whose input is absurd, as in the following example.
+
+```
+open import Data.Empty using (⊥)
+
+0≡1→⊥ : 0 ≡ 1 → ⊥
+0≡1→⊥ = λ ()
+```
+
+False has one eliminator, `⊥-elim`, which has type `∀{P} → ⊥ → P`.
+
+```
+open import Data.Empty using (⊥-elim)
+
+_ : 0 ≡ 1 → P
+_ = λ 0≡1 → ⊥-elim (0≡1→⊥ 0≡1)
+```
+
+## Negation
 
 Negation is shorthand for "implies false".
 
@@ -621,8 +665,7 @@ _ = refl
 ```
 
 
-Quantifiers
------------
+# Quantifiers
 
 As we have seen, universal quantification (for all) is represented
 using dependent function types.

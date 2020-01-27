@@ -728,6 +728,10 @@ Dependent product type:
 The values of dependent product types are good old pairs: `⟨ v₁ , v₂ ⟩`,
 where `v₁ : A` and `v₂ : B v₁`.
 
+∃ x. P x
+
+Σ[ x ∈ ℕ ] P x
+
 To express "there exists", the witness of the existential is the first
 part of the pair. The type of the second part of the pair is some
 formula involving the first part, and the value in the second part of

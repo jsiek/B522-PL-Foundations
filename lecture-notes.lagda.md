@@ -373,8 +373,7 @@ div-trans l m .(m + n) lm (div-step n .m mn) =
 It has one constructor named `refl` that says anything is equal to
 itself.
 
-`≡` is an equivalence relation: `refl`, `sym`, `trans`,
-and a congruence: `cong`.
+## `≡` is an equivalence relation and a congruence
 
 ```
 open import Relation.Binary.PropositionalEquality using (refl; sym; trans)
@@ -408,7 +407,7 @@ Example of `trans`:
 0≡0+0+0 = trans 0≡0+0 0+0≡0+0+0
 ```
 
-* `subst`
+## `subst`
 
   Example:
 
@@ -419,7 +418,7 @@ even-dub' : (n m : ℕ) → m + m ≡ n → Even n
 even-dub' n m eq = subst (λ □ → Even □) eq (even-dub m)
 ```
 
-* Chains of equations
+## Chains of equations
 
 ```
 _ : 0 ≡ 0 + 0 + 0
@@ -431,7 +430,7 @@ _ =
   ∎
 ```
 
-* Rewriting
+## Rewriting
 
   Revisiting the proof of `even-dub'`, using `rewrite`
   instead of `subst`.
@@ -460,7 +459,7 @@ record _≃_ (A B : Set) : Set where
     to∘from : ∀ (y : B) → to (from y) ≡ y
 ```
 
-Example: products are commutative upto isomorphism.
+## Example: products are commutative upto isomorphism.
 
 (Note that we're using implicit parameters for the first time.)
 
@@ -476,7 +475,9 @@ open import Data.Product using (_×_; proj₁; proj₂) renaming (_,_ to ⟨_,_�
     to∘from = λ { ⟨ x , y ⟩ → refl } }
 ```
 
-Example: two functions can always be merged into a single function
+## Example: `((A → B) × (A → B) ≃ ((A × Bool) → B))`
+
+Two functions can always be merged into a single function
 with an extra Boolean parameter. The proof of this isomorphism
 requires the principle of extensionality.
 
@@ -498,7 +499,7 @@ _ = record {
       to∘from = λ h → extensionality λ { ⟨ a , true ⟩ → refl ; ⟨ a , false ⟩ → refl } }
 ```
 
-Example: ℕ is isomorphic to the even numbers.
+## Example: ℕ is isomorphic to the even numbers.
 
 Here is another definition of the even numbers.
 
@@ -536,10 +537,10 @@ just return `m`.
 Propositions as Types:
 
 * true is unit type,
+* implication is function type.
 * conjunction is product (i.e. pair),
 * disjunction is sum (i.e. disjoint union),
 * false is empty type,
-* implication is function type.
 
 In this setting, a proposition is true if the corresponding type is
 inhabited. So we can prove that a proposition is true by constructing
@@ -576,7 +577,11 @@ and the eliminator is application.
 ```
 _ : P → P
 _ = λ p → p
+```
 
+Any proposition `P` is isomorphic to `⊤ → P`.
+
+```
 _ : (⊤ → P) → P
 _ = λ f → f tt
 
@@ -645,6 +650,7 @@ open import Data.Empty using (⊥)
 ```
 
 False has one eliminator, `⊥-elim`, which has type `∀{P} → ⊥ → P`.
+So one can prove anything from false.
 
 ```
 open import Data.Empty using (⊥-elim)
@@ -656,12 +662,16 @@ _ = λ 0≡1 → ⊥-elim (0≡1→⊥ 0≡1)
 ## Negation
 
 Negation is shorthand for "implies false".
+Thus, one can prove false from a contradiction.
 
 ```
 open import Relation.Nullary using (¬_)
 
 _ : (¬ P) ≡ (P → ⊥)
 _ = refl
+
+_ : P → (¬ P) → ⊥
+_ = λ p ¬p → ¬p p
 ```
 
 

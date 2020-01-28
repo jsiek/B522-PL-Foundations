@@ -49,6 +49,9 @@ _ = λ pq → ⟨ (proj₂ pq) , (proj₁ pq) ⟩
 
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 
+_ : P → Q ⊎ P
+_ = λ p → inj₂ p
+
 _ : P ⊎ Q → Q ⊎ P
 _ = λ { (inj₁ p) → inj₂ p ; (inj₂ q) → inj₁ q }
 
@@ -96,15 +99,13 @@ _ = λ p ¬p → ¬p p
 _ : P → (¬ P) → Q
 _ = λ p ¬p → ⊥-elim (¬p p)
 
-_ : ¬ ¬ P → P
-_ = λ ¬¬p → ⊥-elim (¬¬p λ p → {!!})
-
 _ : P → ¬ ¬ P
 _ = λ p ¬p → ¬p p
 
 {-
 
-(P → ⊥) → ⊥
+The other direction, ¬ ¬ P → P, requires Classical logic,
+but Agda is Intuitionistic, so it can't be proved in Agda.
 
 -}
 
@@ -137,12 +138,6 @@ g2 : ∀{P : Set}{Q R : P → Set}
 g2 (inj₁ q) x = inj₁ (q x)
 g2 (inj₂ r) x = inj₂ (r x)
 
-
-_ : P → Q ⊎ P
-_ = λ p → inj₂ p
-
-_ : Q ⊎ P → P
-_ = λ { (inj₁ x) → {!!} ; (inj₂ y) → y }
 
 {- Existentials as Dependent Products -}
 

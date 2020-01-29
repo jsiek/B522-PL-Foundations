@@ -167,3 +167,19 @@ case : ∀{A B C : Set} → A or B → (A → C) → (B → C) → C
 case ⟨ false , a ⟩ ac bc = ac a
 case ⟨ true , b ⟩ ac bc = bc b
 
+{-
+
+  An example proof involving existentials.
+
+-}
+
+∀∃-currying1 : ∀{A : Set}{B : A → Set}{C : Set}
+  → (∀ (x : A) → B x → C)
+  → (Σ[ x ∈ A ] B x) → C
+∀∃-currying1 f ⟨ x , Bx ⟩ = f x Bx
+
+∀∃-currying2 : ∀{A : Set}{B : A → Set}{C : Set}
+  → ((Σ[ x ∈ A ] B x) → C)
+  → (∀ (x : A) → B x → C)
+∀∃-currying2 g x y = g ⟨ x , y ⟩
+

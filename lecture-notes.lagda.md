@@ -896,7 +896,7 @@ less-eq? (suc m) zero = no (λ ())
 less-eq? (suc m) (suc n)
     with less-eq? m n
 ... | yes m≤n = yes (s≤s m≤n)
-... | no ¬m≤n = no λ sm≤sn → ¬m≤n (≤-pred sm≤sn)
+... | no m≰n = no λ { (s≤s m≤n) →  m≰n m≤n }
 ```
 
 

@@ -150,6 +150,9 @@ where `N[x := M]` means replace `x` with `M` inside `N`.
 
 ## Hypothetical Problem: Free-Variable Capture
 
+For kicks, let's do the inner application first, of
+`(λ y. ...)` to `x`.
+
       (λ x. (λ y. (λ x. x + y)) x) 1 2
     —→
       (λ x. (λ x. x + x)) 1 2

@@ -58,3 +58,9 @@ map-compose : ∀{A B C : Set}{g : B → C}{f : A → B}
 map-compose [] = refl
 map-compose {g = g}{f} (x ∷ xs) = cong (λ □ →  g (f x) ∷ □) (map-compose xs)
 
+{-
+
+  Jan. 29, 2020
+
+-}
+

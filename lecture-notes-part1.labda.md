@@ -1,5 +1,5 @@
 ```
-module lecture-notes where
+module lecture-notes-part1 where
 ```
 
 # Naturals

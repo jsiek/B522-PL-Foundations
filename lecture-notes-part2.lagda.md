@@ -21,7 +21,7 @@ open import Data.List using (List; _∷_; [])
 The traditional on-paper syntax is
 
     L,M,N ::= x | λ x. M | L M
-            | 0 | suc 0 | case L { zero: M | suc x: N }
+            | 0 | suc M | case L { zero: M | suc x: N }
             | μ x. M
 
 We'll define terms in Agda as follows.

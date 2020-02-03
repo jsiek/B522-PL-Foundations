@@ -132,11 +132,11 @@ data Value : Term → Set where
 
 Example of two function applications:
 
-      (ƛ "s" ⇒ ƛ "z" ⇒ ` "s" · (` "s" · ` "z")) · sucᶜ · `zero
+      (λ s. λ z. s (s z)) sucᶜ zero
     —→
-      (ƛ "z" ⇒ sucᶜ · (sucᶜ · ` "z")) · `zero
+      (λ z. sucᶜ (sucᶜ z)) zero
     —→
-      sucᶜ · (sucᶜ · `zero)
+      sucᶜ (sucᶜ zero)
 
 In general, the β reduction rule explains how function application
 works via substitution.
@@ -148,9 +148,9 @@ works via substitution.
 where `N[x := M]` means replace `x` with `M` inside `N`.
 
 
-## Hypothetical Problem: Free-Variable Capture
+## Problem with Naive Substitution: Free-Variable Capture
 
-For kicks, let's do the inner application first, of
+Let's do the inner application first, of
 `(λ y. ...)` to `x`.
 
       (λ x. (λ y. (λ x. x + y)) x) 1 2
@@ -179,7 +179,7 @@ Would we get the same answer if we did the outer application first?
 
 No!
 
-Would we get the same answer if we renamed the inner x?
+Would we get the same answer if we renamed the inner x to z?
 
       (λ x. (λ y. (λ z. z + y)) x) 1 2
     —→
@@ -227,7 +227,8 @@ _[_:=_] : Term → Id → Term → Term
 
 ## Reduction
 
-On paper, we would write the reduction rules as follows:
+On paper, we would write the reduction rules for call-by-value STLC as
+follows:
 
     (λ x. N) V —→ N[x:=V]       (β)
 
@@ -286,4 +287,122 @@ data _—→_ : Term → Term → Set where
   β-μ : ∀ {x M}
       ------------------------------
     → μ x ⇒ M —→ M [ x := μ x ⇒ M ]
+```
+
+We define the following relation for taking multiple reduction steps.
+
+```
+infix  2 _—↠_
+infix  1 begin_
+infixr 2 _—→⟨_⟩_
+infix  3 _∎
+
+data _—↠_ : Term → Term → Set where
+  _∎ : ∀ M
+      ---------
+    → M —↠ M
+
+  _—→⟨_⟩_ : ∀ L {M N}
+    → L —→ M
+    → M —↠ N
+      ---------
+    → L —↠ N
+
+begin_ : ∀ {M N}
+  → M —↠ N
+    ------
+  → M —↠ N
+begin M—↠N = M—↠N
+```
+
+## Types
+
+    A, B, C  ::=  A ⇒ B | ℕ
+
+```
+infixr 7 _⇒_
+
+data Type : Set where
+  _⇒_ : Type → Type → Type
+  `ℕ : Type
+```
+
+Typing contexts map variables to types.
+
+```
+infixl 5  _,_⦂_
+
+data Context : Set where
+  ∅     : Context
+  _,_⦂_ : Context → Id → Type → Context
+```
+
+The following relation determines whether a variable and its type are
+in the typing context.
+
+```
+infix  4  _∋_⦂_
+
+data _∋_⦂_ : Context → Id → Type → Set where
+
+  Z : ∀ {Γ x A}
+      ------------------
+    → Γ , x ⦂ A ∋ x ⦂ A
+
+  S : ∀ {Γ x y A B}
+    → x ≢ y
+    → Γ ∋ x ⦂ A
+      ------------------
+    → Γ , y ⦂ B ∋ x ⦂ A
+```
+
+The term typing judgement is defined as follows.
+
+```
+infix  4  _⊢_⦂_
+
+data _⊢_⦂_ : Context → Term → Type → Set where
+
+  -- Axiom 
+  ⊢` : ∀ {Γ x A}
+    → Γ ∋ x ⦂ A
+      -----------
+    → Γ ⊢ ` x ⦂ A
+
+  -- ⇒-I 
+  ⊢ƛ : ∀ {Γ x N A B}
+    → Γ , x ⦂ A ⊢ N ⦂ B
+      -------------------
+    → Γ ⊢ ƛ x ⇒ N ⦂ A ⇒ B
+
+  -- ⇒-E
+  _·_ : ∀ {Γ L M A B}
+    → Γ ⊢ L ⦂ A ⇒ B
+    → Γ ⊢ M ⦂ A
+      -------------
+    → Γ ⊢ L · M ⦂ B
+
+  -- ℕ-I₁
+  ⊢zero : ∀ {Γ}
+      --------------
+    → Γ ⊢ `zero ⦂ `ℕ
+
+  -- ℕ-I₂
+  ⊢suc : ∀ {Γ M}
+    → Γ ⊢ M ⦂ `ℕ
+      ---------------
+    → Γ ⊢ `suc M ⦂ `ℕ
+
+  -- ℕ-E
+  ⊢case : ∀ {Γ L M x N A}
+    → Γ ⊢ L ⦂ `ℕ
+    → Γ ⊢ M ⦂ A
+    → Γ , x ⦂ `ℕ ⊢ N ⦂ A
+      -------------------------------------
+    → Γ ⊢ case L [zero⇒ M |suc x ⇒ N ] ⦂ A
+
+  ⊢μ : ∀ {Γ x M A}
+    → Γ , x ⦂ A ⊢ M ⦂ A
+      -----------------
+    → Γ ⊢ μ x ⇒ M ⦂ A
 ```

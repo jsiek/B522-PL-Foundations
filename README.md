@@ -52,6 +52,17 @@ Monday and Wednesday at 4:30-5:45pm in Luddy Hall Room 4101.
    `foldr-∷`, and
    `Any-++-⇔` (in [List](https://plfa.github.io/List/)).
 
+* February 17: Exercises
+   `mul`,
+   `—↠≲—↠′`, and
+   `⊢mul`
+   (in [Lambda](https://plfa.github.io/Lambda/)).
+   Exercises
+   `progress′` and
+   `unstuck`
+   (in [Properties](https://plfa.github.io/Properties/)).
+   
+
 ## Schedule
 
 | Month    | Day | Topic    |

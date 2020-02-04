@@ -12,6 +12,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
 open import Data.String using (String; _≟_)
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Empty using (⊥; ⊥-elim)
+open import Data.Unit using (⊤; tt)
 open import Relation.Nullary using (Dec; yes; no; ¬_)
 open import Data.List using (List; _∷_; [])
 ```
@@ -153,21 +154,21 @@ where `N[x := M]` means replace `x` with `M` inside `N`.
 Let's do the inner application first, of
 `(λ y. ...)` to `x`.
 
-      (λ x. (λ y. (λ x. x + y)) x) 1 2
+      (λ x. ((λ y. (λ x. x + y)) x)) 1 2
     —→
       (λ x. (λ x. x + x)) 1 2
-    —→    
+    —→
       (λ x. x + x) 2
-    —→    
+    —→
       2 + 2
-    —→    
+    —→
       4
 
 Is that the correct answer?
 
 Would we get the same answer if we did the outer application first?
 
-      (λ x. (λ y. (λ x. x + y)) x) 1 2
+      (λ x. ((λ y. (λ x. x + y)) x)) 1 2
     —→
       ((λ y. (λ x. x + y)) 1) 2
     —→
@@ -202,7 +203,7 @@ An alternative solution is to rename bound variables, as we did with
 `z` above.
 
 
-## Substitution
+## Naive Substitution
 
 ```
 infix 9 _[_:=_]
@@ -216,7 +217,7 @@ _[_:=_] : Term → Id → Term → Term
 ... | no  _          =  ƛ x ⇒ N [ y := V ]
 (L · M) [ y := V ]   =  L [ y := V ] · M [ y := V ]
 (`zero) [ y := V ]   =  `zero
-(`suc M) [ y := V ]  =  `suc M [ y := V ]
+(`suc M) [ y := V ]  =  `suc (M [ y := V ])
 (case L [zero⇒ M |suc x ⇒ N ]) [ y := V ] with x ≟ y
 ... | yes _          =  case L [ y := V ] [zero⇒ M [ y := V ] |suc x ⇒ N ]
 ... | no  _          =  case L [ y := V ] [zero⇒ M [ y := V ] |suc x ⇒ N [ y := V ] ]
@@ -317,7 +318,9 @@ begin M—↠N = M—↠N
 
 ## Types
 
-    A, B, C  ::=  A ⇒ B | ℕ
+    <type> ::= <type> ⇒ <type> | <nat>
+
+    A, B, C ::=  A ⇒ B | ℕ        (types)
 
 ```
 infixr 7 _⇒_
@@ -405,4 +408,288 @@ data _⊢_⦂_ : Context → Term → Type → Set where
     → Γ , x ⦂ A ⊢ M ⦂ A
       -----------------
     → Γ ⊢ μ x ⇒ M ⦂ A
+```
+
+## Values do not reduce
+
+```
+V¬—→ : ∀ {M N}
+  → Value M
+    ----------
+  → ¬ (M —→ N)
+V¬—→ V-ƛ        ()
+V¬—→ V-zero     ()
+V¬—→ (V-suc VM) (ξ-suc M—→N) = V¬—→ VM M—→N
+```
+
+## Canonical Forms
+
+
+We can characterize the forms of the well-typed values, which we call
+the canonical forms.
+
+```
+infix  4 Canonical_⦂_
+
+data Canonical_⦂_ : Term → Type → Set where
+
+  C-ƛ : ∀ {x A N B}
+    → ∅ , x ⦂ A ⊢ N ⦂ B
+      -----------------------------
+    → Canonical (ƛ x ⇒ N) ⦂ (A ⇒ B)
+
+  C-zero :
+      --------------------
+      Canonical `zero ⦂ `ℕ
+
+  C-suc : ∀ {V}
+    → Canonical V ⦂ `ℕ
+      ---------------------
+    → Canonical `suc V ⦂ `ℕ
+```
+
+The following proves that indeed, the well-typed values are in
+canonical form.
+
+```
+canonical : ∀ {V A}
+  → ∅ ⊢ V ⦂ A
+  → Value V
+    -----------
+  → Canonical V ⦂ A
+canonical (⊢` ())          ()
+canonical (⊢ƛ ⊢N)          V-ƛ         =  C-ƛ ⊢N
+canonical (⊢L · ⊢M)        ()
+canonical ⊢zero            V-zero      =  C-zero
+canonical (⊢suc ⊢V)        (V-suc VV)  =  C-suc (canonical ⊢V VV)
+canonical (⊢case ⊢L ⊢M ⊢N) ()
+canonical (⊢μ ⊢M)          ()
+```
+
+Of course, the canonical forms are values.
+
+```
+value : ∀ {M A}
+  → Canonical M ⦂ A
+    ----------------
+  → Value M
+value (C-ƛ ⊢N)    =  V-ƛ
+value C-zero      =  V-zero
+value (C-suc CM)  =  V-suc (value CM)
+```
+
+## Progress
+
+```
+data Progress (M : Term) : Set where
+
+  step : ∀ {N}
+    → M —→ N
+      ----------
+    → Progress M
+
+  done :
+      Value M
+      ----------
+    → Progress M
+```
+
+```
+progress : ∀ {M A}
+  → ∅ ⊢ M ⦂ A
+    ----------
+  → Progress M
+progress (⊢` ())
+progress (⊢ƛ ⊢N)                            =  done V-ƛ
+progress (⊢L · ⊢M) with progress ⊢L
+... | step L—→L′                            =  step (ξ-·₁ L—→L′)
+... | done VL with progress ⊢M
+...   | step M—→M′                          =  step (ξ-·₂ VL M—→M′)
+...   | done VM with canonical ⊢L VL
+...     | C-ƛ _                             =  step (β-ƛ VM)
+progress ⊢zero                              =  done V-zero
+progress (⊢suc ⊢M) with progress ⊢M
+...  | step M—→M′                           =  step (ξ-suc M—→M′)
+...  | done VM                              =  done (V-suc VM)
+progress (⊢case ⊢L ⊢M ⊢N) with progress ⊢L
+... | step L—→L′                            =  step (ξ-case L—→L′)
+... | done VL with canonical ⊢L VL
+...   | C-zero                              =  step β-zero
+...   | C-suc CL                            =  step (β-suc (value CL))
+progress (⊢μ ⊢M)                            =  step β-μ
+```
+
+## Preservation
+
+
+
+### Substitution Preserves Types
+
+
+#### Renaming
+
+```
+ext : ∀ {Γ Δ}
+  → (∀ {x A}     →         Γ ∋ x ⦂ A →         Δ ∋ x ⦂ A)
+    -----------------------------------------------------
+  → (∀ {x y A B} → Γ , y ⦂ B ∋ x ⦂ A → Δ , y ⦂ B ∋ x ⦂ A)
+ext ρ Z           =  Z
+ext ρ (S x≢y ∋x)  =  S x≢y (ρ ∋x)
+```
+
+```
+rename : ∀ {Γ Δ}
+  → (∀ {x A} → Γ ∋ x ⦂ A → Δ ∋ x ⦂ A)
+    ----------------------------------
+  → (∀ {M A} → Γ ⊢ M ⦂ A → Δ ⊢ M ⦂ A)
+rename ρ (⊢` ∋w)           =  ⊢` (ρ ∋w)
+rename ρ (⊢ƛ ⊢N)           =  ⊢ƛ (rename (ext ρ) ⊢N)
+rename ρ (⊢L · ⊢M)         =  (rename ρ ⊢L) · (rename ρ ⊢M)
+rename ρ ⊢zero             =  ⊢zero
+rename ρ (⊢suc ⊢M)         =  ⊢suc (rename ρ ⊢M)
+rename ρ (⊢case ⊢L ⊢M ⊢N)  =  ⊢case (rename ρ ⊢L) (rename ρ ⊢M) (rename (ext ρ) ⊢N)
+rename ρ (⊢μ ⊢M)           =  ⊢μ (rename (ext ρ) ⊢M)
+```
+
+### Context Lemmas
+
+These lemmas are needed in the proof of Preservation.  `weaken` is
+used for variables, `drop` and `swap` are use for lambdas, case, and
+μ.
+
+
+```
+weaken : ∀ {Γ M A}
+  → ∅ ⊢ M ⦂ A
+    ----------
+  → Γ ⊢ M ⦂ A
+weaken {Γ} ⊢M = rename ρ ⊢M
+  where
+  ρ : ∀ {z C}
+    → ∅ ∋ z ⦂ C
+      ---------
+    → Γ ∋ z ⦂ C
+  ρ ()
+```
+
+```
+drop : ∀ {Γ x M A B C}
+  → Γ , x ⦂ A , x ⦂ B ⊢ M ⦂ C
+    --------------------------
+  → Γ , x ⦂ B ⊢ M ⦂ C
+drop {Γ} {x} {M} {A} {B} {C} ⊢M = rename ρ ⊢M
+  where
+  ρ : ∀ {z C}
+    → Γ , x ⦂ A , x ⦂ B ∋ z ⦂ C
+      -------------------------
+    → Γ , x ⦂ B ∋ z ⦂ C
+  ρ Z                 =  Z
+  ρ (S x≢x Z)         =  ⊥-elim (x≢x refl)
+  ρ (S z≢x (S _ ∋z))  =  S z≢x ∋z
+```
+
+```
+swap : ∀ {Γ x y M A B C}
+  → x ≢ y
+  → Γ , y ⦂ B , x ⦂ A ⊢ M ⦂ C
+    --------------------------
+  → Γ , x ⦂ A , y ⦂ B ⊢ M ⦂ C
+swap {Γ} {x} {y} {M} {A} {B} {C} x≢y ⊢M = rename ρ ⊢M
+  where
+  ρ : ∀ {z C}
+    → Γ , y ⦂ B , x ⦂ A ∋ z ⦂ C
+      --------------------------
+    → Γ , x ⦂ A , y ⦂ B ∋ z ⦂ C
+  ρ Z                   =  S x≢y Z
+  ρ (S z≢x Z)           =  Z
+  ρ (S z≢x (S z≢y ∋z))  =  S z≢y (S z≢x ∋z)
+```
+
+### Substitution
+
+```
+subst : ∀ {Γ x N V A B}
+  → ∅ ⊢ V ⦂ A
+  → Γ , x ⦂ A ⊢ N ⦂ B
+    --------------------
+  → Γ ⊢ N [ x := V ] ⦂ B
+subst {x = y} ⊢V (⊢` {x = x} Z) with x ≟ y
+... | yes _           =  weaken ⊢V
+... | no  x≢y         =  ⊥-elim (x≢y refl)
+subst {x = y} ⊢V (⊢` {x = x} (S x≢y ∋x)) with x ≟ y
+... | yes refl        =  ⊥-elim (x≢y refl)
+... | no  _           =  ⊢` ∋x
+subst {x = y} ⊢V (⊢ƛ {x = x} ⊢N) with x ≟ y
+... | yes refl        =  ⊢ƛ (drop ⊢N)
+... | no  x≢y         = ⊢ƛ (subst ⊢V (swap x≢y ⊢N)) 
+subst ⊢V (⊢L · ⊢M)    =  (subst ⊢V ⊢L) · (subst ⊢V ⊢M)
+subst ⊢V ⊢zero        =  ⊢zero
+subst ⊢V (⊢suc ⊢M)    =  ⊢suc (subst ⊢V ⊢M)
+subst {x = y} ⊢V (⊢case {x = x} ⊢L ⊢M ⊢N) with x ≟ y
+... | yes refl        =  ⊢case (subst ⊢V ⊢L) (subst ⊢V ⊢M) (drop ⊢N)
+... | no  x≢y         =  ⊢case (subst ⊢V ⊢L) (subst ⊢V ⊢M) (subst ⊢V (swap x≢y ⊢N))
+subst {x = y} ⊢V (⊢μ {x = x} ⊢M) with x ≟ y
+... | yes refl        =  ⊢μ (drop ⊢M)
+... | no  x≢y         =  ⊢μ (subst ⊢V (swap x≢y ⊢M))
+```
+
+### Preservation
+
+```
+preserve : ∀ {M N A}
+  → ∅ ⊢ M ⦂ A
+  → M —→ N
+    ----------
+  → ∅ ⊢ N ⦂ A
+preserve (⊢` ())
+preserve (⊢ƛ ⊢N)                 ()
+preserve (⊢L · ⊢M)               (ξ-·₁ L—→L′)     =  (preserve ⊢L L—→L′) · ⊢M
+preserve (⊢L · ⊢M)               (ξ-·₂ VL M—→M′)  =  ⊢L · (preserve ⊢M M—→M′)
+preserve ((⊢ƛ ⊢N) · ⊢V)          (β-ƛ VV)         =  subst ⊢V ⊢N
+preserve ⊢zero                   ()
+preserve (⊢suc ⊢M)               (ξ-suc M—→M′)    =  ⊢suc (preserve ⊢M M—→M′)
+preserve (⊢case ⊢L ⊢M ⊢N)        (ξ-case L—→L′)   =  ⊢case (preserve ⊢L L—→L′) ⊢M ⊢N
+preserve (⊢case ⊢zero ⊢M ⊢N)     (β-zero)         =  ⊢M
+preserve (⊢case (⊢suc ⊢V) ⊢M ⊢N) (β-suc VV)       =  subst ⊢V ⊢N
+preserve (⊢μ ⊢M)                 (β-μ)            =  subst (⊢μ ⊢M) ⊢M
+```
+
+# STLC using de Bruijn representation of variables
+
+
+
+## Type Soundness via Logical Relations
+
+postpone to after de Bruijn
+
+```
+WTE : Type → Term → Set
+WTV : Type → Term → Set
+
+WTE T M = ∀{V : Term} → M —↠ V → Value V → WTV T V
+
+WTV `ℕ (` x) = ⊥
+WTV `ℕ (ƛ x ⇒ M) = ⊥
+WTV `ℕ (M · M₁) = ⊥
+WTV `ℕ `zero = ⊤
+WTV `ℕ (`suc M) = WTV `ℕ M
+WTV `ℕ case M [zero⇒ M₁ |suc x ⇒ M₂ ] = ⊥
+WTV `ℕ (μ x ⇒ M) = ⊥
+WTV (A ⇒ B) (` x) = ⊥
+WTV (A ⇒ B) (ƛ x ⇒ N) = ∀ {V : Term} → WTV A V → WTE B (N [ x := V ])
+WTV (A ⇒ B) (L · M) = ⊥
+WTV (A ⇒ B) `zero = ⊥
+WTV (A ⇒ B) (`suc M) = ⊥
+WTV (A ⇒ B) case M [zero⇒ M₁ |suc x ⇒ M₂ ] = ⊥
+WTV (A ⇒ B) (μ x ⇒ M) = ⊥
+```
+
+```
+{-
+fundamental-property : ∀ {Γ : Context}{M : Term} {A : Type}
+  → Γ ⊢ M ⦂ A
+  → ρ ∈ WTEnv Γ
+  → WTE (ρ M) A
+fundamental-property M:A 
+-}
 ```

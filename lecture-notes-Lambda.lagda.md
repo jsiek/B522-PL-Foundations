@@ -1,5 +1,5 @@
 ```
-module lecture-notes-part2 where
+module lecture-notes-Lambda where
 ```
 
 # Simply Typed Lambda Calculus
@@ -501,19 +501,25 @@ progress : ∀ {M A}
   → Progress M
 progress (⊢` ())
 progress (⊢ƛ ⊢N)                            =  done V-ƛ
-progress (⊢L · ⊢M) with progress ⊢L
+progress (⊢L · ⊢M) 
+    with progress ⊢L
 ... | step L—→L′                            =  step (ξ-·₁ L—→L′)
-... | done VL with progress ⊢M
+... | done VL
+      with progress ⊢M
 ...   | step M—→M′                          =  step (ξ-·₂ VL M—→M′)
-...   | done VM with canonical ⊢L VL
+...   | done VM
+        with canonical ⊢L VL
 ...     | C-ƛ _                             =  step (β-ƛ VM)
 progress ⊢zero                              =  done V-zero
-progress (⊢suc ⊢M) with progress ⊢M
+progress (⊢suc ⊢M)
+     with progress ⊢M
 ...  | step M—→M′                           =  step (ξ-suc M—→M′)
 ...  | done VM                              =  done (V-suc VM)
-progress (⊢case ⊢L ⊢M ⊢N) with progress ⊢L
+progress (⊢case ⊢L ⊢M ⊢N)
+    with progress ⊢L
 ... | step L—→L′                            =  step (ξ-case L—→L′)
-... | done VL with canonical ⊢L VL
+... | done VL
+      with canonical ⊢L VL
 ...   | C-zero                              =  step β-zero
 ...   | C-suc CL                            =  step (β-suc (value CL))
 progress (⊢μ ⊢M)                            =  step β-μ
@@ -522,19 +528,28 @@ progress (⊢μ ⊢M)                            =  step β-μ
 ## Preservation
 
 
-
 ### Substitution Preserves Types
 
 
 #### Renaming
+
+
+Changing the typing context to another typing context that always
+provides the same answers regarding lookup, does not change whether a
+term is well-typed or not.
+
+We'll first need to prove one technical lemma. It says that adding the
+same variable binding to both typing contexts does change whether
+lookup provides the same answers.
+
 
 ```
 ext : ∀ {Γ Δ}
   → (∀ {x A}     →         Γ ∋ x ⦂ A →         Δ ∋ x ⦂ A)
     -----------------------------------------------------
   → (∀ {x y A B} → Γ , y ⦂ B ∋ x ⦂ A → Δ , y ⦂ B ∋ x ⦂ A)
-ext ρ Z           =  Z
-ext ρ (S x≢y ∋x)  =  S x≢y (ρ ∋x)
+ext ρ Z = Z
+ext ρ (S x≢y ∋x) = S x≢y (ρ ∋x)
 ```
 
 ```
@@ -555,7 +570,7 @@ rename ρ (⊢μ ⊢M)           =  ⊢μ (rename (ext ρ) ⊢M)
 
 These lemmas are needed in the proof of Preservation.  `weaken` is
 used for variables, `drop` and `swap` are use for lambdas, case, and
-μ.
+μ. They are all corollaries of `rename`.
 
 
 ```

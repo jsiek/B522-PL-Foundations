@@ -7,8 +7,6 @@ module lecture-notes-DeBruijn where
 ## Imports
 
 ```
-open import Data.Empty using (⊥; ⊥-elim)
-open import Data.Unit using (⊤; tt)
 open import Data.Product
   using (_×_; proj₁; proj₂; Σ; Σ-syntax)
   renaming (_,_ to ⟨_,_⟩)
@@ -185,7 +183,6 @@ data Value : ∀ {Γ A} → Γ ⊢ A → Set where
 
 ## Reduction
 
-
 ```
 infix 2 _—→_
 
@@ -262,87 +259,3 @@ begin M—↠N = M—↠N
   L —→⟨ red ⟩ IH
 ```
 
-## Termination via Logical Relations
-
-```
-WTE : (A : Type) → (∅ ⊢ A) → Set
-WTV : (A : Type) → (∅ ⊢ A) → Set
-
-WTE A M = Σ[ V ∈ ∅ ⊢ A ] (M —↠ V) × (Value V) × (WTV A V)
-
-WTV `ℕ (` x) = ⊥
-WTV `ℕ (L · M) = ⊥
-WTV `ℕ `zero = ⊤
-WTV `ℕ (`suc M) = WTV `ℕ M
-WTV `ℕ (case L M N) = ⊥
-WTV (A ⇒ B) (` x) = ⊥
-WTV (A ⇒ B) (ƛ N) = ∀ {V : ∅ ⊢ A} → WTV A V → WTE B (N [ V ])
-WTV (A ⇒ B) (L · M) = ⊥
-WTV (A ⇒ B) (case L M N) = ⊥
-```
-
-```
-WTV→Value : ∀{A}{M : ∅ ⊢ A} → WTV A M → Value M
-WTV→Value {.(_ ⇒ _)} {ƛ M} wtv = V-ƛ
-WTV→Value {A ⇒ A₁} {M · M₁} ()
-WTV→Value {`ℕ} {M · M₁} ()
-WTV→Value {.`ℕ} {`zero} wtv = V-zero
-WTV→Value {.`ℕ} {`suc M} wtv =
-  let IH = WTV→Value {`ℕ} {M} wtv in 
-  V-suc IH
-WTV→Value {A ⇒ A₁} {case M M₁ M₂} ()
-WTV→Value {`ℕ} {case M M₁ M₂} ()
-
-WTV→WTE : ∀{A}{M : ∅ ⊢ A} → WTV A M → WTE A M
-WTV→WTE {M = M} wtv = ⟨ M , ⟨ M ∎ , ⟨ WTV→Value wtv , wtv ⟩ ⟩ ⟩
-```
-
-```
-suc-compat : ∀{Γ}{M M' : Γ ⊢ `ℕ} → M —↠ M' → `suc M —↠ `suc M'
-suc-compat = {!!}
-```
-
-```
-case-compat : ∀{Γ}{L L' : Γ ⊢ `ℕ}{M}{N} → L —↠ L' → (case L M N) —↠ (case L' M N)
-case-compat = {!!}
-```
-
-```
-app-compat : ∀{Γ}{A B}{L L' : Γ ⊢ A ⇒ B}{M M' : Γ ⊢ A}
-           → L —↠ L' → M —↠ M' → L · M —↠ L' · M'
-app-compat = {!!}
-```
-
-```
-fundamental-property : ∀ {Γ}{A}{M : Γ ⊢ A} {σ : ∀{A} → Γ ∋ A → ∅ ⊢ A}
-  → (∀ {A}(x : Γ ∋ A) → WTV A (σ x))
-  → WTE A (subst σ M)
-fundamental-property {M = ` x}{σ} ⊢σ = WTV→WTE (⊢σ x)
-fundamental-property {Γ}{A ⇒ B}{M = ƛ M}{σ} ⊢σ =
-  ⟨ ƛ (subst (exts σ) M) , ⟨ (ƛ subst (exts σ) M ∎) , ⟨ V-ƛ , G ⟩ ⟩ ⟩
-  where
-  G : {V : ∅ ⊢ A} → WTV A V → WTE B ((subst (exts σ) M) [ V ])
-  G {V} wtv = {!!}
-  
-fundamental-property {M = L · M}{σ} ⊢σ
-    with fundamental-property {M = L}{σ} ⊢σ
-... | ⟨ ƛ N , ⟨ L→L' , ⟨ vL' , wtvL' ⟩ ⟩ ⟩ 
-    with fundamental-property {M = M}{σ} ⊢σ
-... | ⟨ M' , ⟨ M→M' , ⟨ vM' , wtvM' ⟩ ⟩ ⟩
-    with wtvL' {M'} wtvM'
-... | ⟨ V , ⟨ →V , ⟨ vV , wtvV ⟩ ⟩ ⟩ =    
-      let r1 = app-compat L→L' M→M' in
-      ⟨ V , ⟨ (—↠-trans r1 ((ƛ N) · M' —→⟨ β-ƛ vM' ⟩ →V)) , ⟨ vV , wtvV ⟩ ⟩ ⟩
-
-fundamental-property {M = `zero} ⊢σ = ⟨ `zero , ⟨ (`zero ∎) , ⟨ V-zero , tt ⟩ ⟩ ⟩
-fundamental-property {M = `suc M}{σ} ⊢σ 
-    with fundamental-property {M = M}{σ} ⊢σ
-... | ⟨ V , ⟨ M→V , ⟨ vV , wtv ⟩ ⟩ ⟩ = 
-      ⟨ (`suc V) , ⟨ suc-compat M→V , ⟨ (V-suc vV) , wtv ⟩ ⟩ ⟩
-fundamental-property {M = case L M N}{σ} ⊢σ
-    with fundamental-property {M = L}{σ} ⊢σ
-... | ⟨ `zero , ⟨ M→V , ⟨ vV , wtv ⟩ ⟩ ⟩ =
-      ⟨ {!!} , ⟨ {!!} , {!!} ⟩ ⟩
-... | ⟨ `suc M' , ⟨ M→V , ⟨ vV , wtv ⟩ ⟩ ⟩ =  {!!}
-
-```

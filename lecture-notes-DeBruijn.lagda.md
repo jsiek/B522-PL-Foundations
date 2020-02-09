@@ -2,11 +2,12 @@
 module lecture-notes-DeBruijn where
 ```
 
-# STLC using de Bruijn representation of variables
+# STLC using de Bruijn indices and intrinsically typed terms
 
 ## Imports
 
 ```
+open import Data.Nat using (ℕ; zero; suc)
 open import Data.Product
   using (_×_; proj₁; proj₂; Σ; Σ-syntax)
   renaming (_,_ to ⟨_,_⟩)
@@ -23,6 +24,7 @@ infixl 5 _,_
 infixr 7 _⇒_
 
 infix  5 ƛ_
+infix  5 μ_
 infixl 7 _·_
 infix  8 `suc_
 infix  9 `_
@@ -96,6 +98,11 @@ data _⊢_ : Context → Type → Set where
     → Γ , `ℕ ⊢ A
       ----------
     → Γ ⊢ A
+
+  μ_ : ∀ {Γ A}
+    → Γ , A ⊢ A
+      ---------
+    → Γ ⊢ A
 ```
 
 ## Renaming
@@ -120,6 +127,7 @@ rename ρ (L · M)        =  (rename ρ L) · (rename ρ M)
 rename ρ (`zero)        =  `zero
 rename ρ (`suc M)       =  `suc (rename ρ M)
 rename ρ (case L M N)   =  case (rename ρ L) (rename ρ M) (rename (ext ρ) N)
+rename ρ (μ N)          =  μ (rename (ext ρ) N)
 ```
 
 ## Simultaneous Substitution
@@ -145,6 +153,7 @@ subst σ (L · M)        =  (subst σ L) · (subst σ M)
 subst σ (`zero)        =  `zero
 subst σ (`suc M)       =  `suc (subst σ M)
 subst σ (case L M N)   =  case (subst σ L) (subst σ M) (subst (exts σ) N)
+subst σ (μ N)          =  μ (subst (exts σ) N)
 ```
 
 ## Single substitution
@@ -222,6 +231,10 @@ data _—→_ : ∀ {Γ A} → (Γ ⊢ A) → (Γ ⊢ A) → Set where
     → Value V
       ----------------------------
     → case (`suc V) M N —→ N [ V ]
+
+  β-μ : ∀ {Γ A} {N : Γ , A ⊢ A}
+      ----------------
+    → μ N —→ N [ μ N ]
 ```
 
 ## Multi-step reduction
@@ -259,3 +272,85 @@ begin M—↠N = M—↠N
   L —→⟨ red ⟩ IH
 ```
 
+## Type Safety
+
+Preservation is already proved. Review the type signature
+of the reduction relation.
+
+
+```
+data Progress {A} (M : ∅ ⊢ A) : Set where
+
+  step : ∀ {N : ∅ ⊢ A}
+    → M —→ N
+      ----------
+    → Progress M
+
+  done :
+      Value M
+      ----------
+    → Progress M
+```
+
+```
+progress : ∀ {A} → (M : ∅ ⊢ A) → Progress M
+progress (` ())
+progress (ƛ N)                          =  done V-ƛ
+progress (L · M) with progress L
+...    | step L—→L′                     =  step (ξ-·₁ L—→L′)
+...    | done V-ƛ with progress M
+...        | step M—→M′                 =  step (ξ-·₂ V-ƛ M—→M′)
+...        | done VM                    =  step (β-ƛ VM)
+progress (`zero)                        =  done V-zero
+progress (`suc M) with progress M
+...    | step M—→M′                     =  step (ξ-suc M—→M′)
+...    | done VM                        =  done (V-suc VM)
+progress (case L M N) with progress L
+...    | step L—→L′                     =  step (ξ-case L—→L′)
+...    | done V-zero                    =  step (β-zero)
+...    | done (V-suc VL)                =  step (β-suc VL)
+progress (μ N)                          =  step (β-μ)
+```
+
+## Evaluation
+
+```
+data Gas : Set where
+  gas : ℕ → Gas
+```
+
+```
+data Finished {Γ A} (N : Γ ⊢ A) : Set where
+
+   done :
+       Value N
+       ----------
+     → Finished N
+
+   out-of-gas :
+       ----------
+       Finished N
+```
+
+```
+data Steps : ∀ {A} → ∅ ⊢ A → Set where
+
+  steps : ∀ {A} {L N : ∅ ⊢ A}
+    → L —↠ N
+    → Finished N
+      ----------
+    → Steps L
+```
+
+```
+eval : ∀ {A}
+  → Gas
+  → (L : ∅ ⊢ A)
+    -----------
+  → Steps L
+eval (gas zero)    L                     =  steps (L ∎) out-of-gas
+eval (gas (suc m)) L with progress L
+... | done VL                            =  steps (L ∎) (done VL)
+... | step {M} L—→M with eval (gas m) M
+...    | steps M—↠N fin                  =  steps (L —→⟨ L—→M ⟩ M—↠N) fin
+```

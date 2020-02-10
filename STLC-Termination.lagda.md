@@ -50,6 +50,14 @@ pattern case L M N =
     op-case ⦅ cons (ast L) (cons (ast M) (cons (bind (ast N)) nil)) ⦆
 ```
 
+Examples:
+
+```
+_ : ∀ N σ → ⟪ σ ⟫ (ƛ N) ≡ ƛ (⟪ exts σ ⟫ N)
+_ = λ N σ → refl
+```
+
+
 ## Types
 
 This language includes types for functions and natural numbers.

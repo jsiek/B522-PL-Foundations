@@ -37,7 +37,8 @@ sig op-suc = 0 ∷ []
 sig op-case = 0 ∷ 0 ∷ 1 ∷ []
 
 open Syntax Op sig
-  using (`_; _⦅_⦆; cons; nil; bind; ast; _[_]; Subst; ⟪_⟫; exts; _•_; exts-sub-cons)
+  using (`_; _⦅_⦆; cons; nil; bind; ast;
+         _[_]; Subst; ⟪_⟫; exts; _•_; id; exts-sub-cons)
   renaming (ABT to Term; ∣_∣ to ⟦_⟧)
 
 infixl 7  _·_
@@ -48,6 +49,15 @@ pattern `zero = op-zero ⦅ nil ⦆
 pattern `suc N = op-suc ⦅ cons (ast N) nil ⦆
 pattern case L M N =
     op-case ⦅ cons (ast L) (cons (ast M) (cons (bind (ast N)) nil)) ⦆
+
+_ : ∀ (L M : Term) → ⟪ M • L • id ⟫ (` 1 · ` 0) ≡ L · M
+_ = λ L M → refl
+
+_ : ∀ (L M : Term) (σ : Subst) → ⟪ σ ⟫ (L · M) ≡ (⟪ σ ⟫ L) · (⟪ σ ⟫ M)
+_ = λ L M σ → refl
+
+_ : ∀ (N : Term) (σ : Subst) → ⟪ σ ⟫ (ƛ N) ≡ ƛ (⟪ exts σ ⟫ N)
+_ = λ N σ → refl 
 ```
 
 Examples:

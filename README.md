@@ -32,27 +32,27 @@ Monday and Wednesday at 4:30-5:45pm in Luddy Hall Room 4101.
 
 ## Assignments
 
-* January 20: Exercises `Bin` (in [Naturals](https://plfa.github.io/Naturals/)) and
+1. January 20: Exercises `Bin` (in [Naturals](https://plfa.github.io/Naturals/)) and
   `Bin-laws` (in [Induction](https://plfa.github.io/Induction/)).
   
-* January 27: Exercises `Bin-predicates` (in [Relations](https://plfa.github.io/Relations/)) and
+2. January 27: Exercises `Bin-predicates` (in [Relations](https://plfa.github.io/Relations/)) and
   `Bin-embedding` (in [Isomorphism](https://plfa.github.io/Isomorphism/)).
 
-* February 3: Exercises
+3. February 3: Exercises
    `⊎-weak-×` (in [Connectives](https://plfa.github.io/Connectives/)), 
    `⊎-dual-×` (in [Negation](https://plfa.github.io/Negation/)),
    `∃-distrib-⊎`,
    `∃¬-implies-¬∀`,
    `Bin-isomorphism` (in [Quantifiers](https://plfa.github.io/Quantifiers/)).
 
-* February 10: Exercises 
+4. February 10: Exercises 
    `_<?_`, 
    `iff-erasure` (in [Decidable](https://plfa.github.io/Decidable/)),
    `foldr-++`,
    `foldr-∷`, and
    `Any-++-⇔` (in [List](https://plfa.github.io/List/)).
 
-* February 17: Exercises
+5. February 17: Exercises
    `mul`,
    `—↠≲—↠′`, and
    `⊢mul`

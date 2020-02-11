@@ -629,14 +629,14 @@ subst : ∀ {Γ x N V A B}
     --------------------
   → Γ ⊢ N [ x := V ] ⦂ B
 subst {x = y} ⊢V (⊢` {x = x} Z) with x ≟ y
-... | yes _           =  weaken ⊢V
-... | no  x≢y         =  ⊥-elim (x≢y refl)
+... | yes _           = weaken ⊢V
+... | no x≢y         = ⊥-elim (x≢y refl)
 subst {x = y} ⊢V (⊢` {x = x} (S x≢y ∋x)) with x ≟ y
 ... | yes refl        =  ⊥-elim (x≢y refl)
 ... | no  _           =  ⊢` ∋x
 subst {x = y} ⊢V (⊢ƛ {x = x} ⊢N) with x ≟ y
-... | yes refl        =  ⊢ƛ (drop ⊢N)
-... | no  x≢y         = ⊢ƛ (subst ⊢V (swap x≢y ⊢N)) 
+... | yes refl        = ⊢ƛ (drop ⊢N)
+... | no  x≢y         = ⊢ƛ (subst ⊢V (swap x≢y ⊢N))
 subst ⊢V (⊢L · ⊢M)    =  (subst ⊢V ⊢L) · (subst ⊢V ⊢M)
 subst ⊢V ⊢zero        =  ⊢zero
 subst ⊢V (⊢suc ⊢M)    =  ⊢suc (subst ⊢V ⊢M)

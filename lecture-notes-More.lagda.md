@@ -102,7 +102,8 @@ sig (op-index i) = 0 ∷ []
 sig op-error = []
 
 open Syntax Op sig
-  using (`_; _⦅_⦆; cons; nil; bind; ast; _[_]; Subst; ⟪_⟫; exts; _•_; id)
+  using (`_; _⦅_⦆; cons; nil; bind; ast; _[_]; Subst; ⟪_⟫; exts; _•_; id;
+         exts-0; exts-s; rename; ↑ᵣ; ⟦_⟧; ext; ext-0; ext-s)
   renaming (ABT to Term)
 
 pattern $ p k = (op-const p k) ⦅ nil ⦆
@@ -178,6 +179,8 @@ data _⊢_⦂_ : Context → Term → Type → Set where
       -----------------
     → Γ ⊢ `let M N ⦂ B
 
+  {- todo empty array -}
+
   ⊢insert : ∀{Γ A M Ms}
     → Γ ⊢ M ⦂ A
     → Γ ⊢ Ms ⦂ Array A
@@ -212,11 +215,11 @@ data Value : Term → Set where
 
   V-〈〉 : Value 〈〉
 
-  V-⦂⦂ : ∀ {V W : Term}
+  V-⦂⦂ : ∀ {V Vs : Term}
     → Value V
-    → Value W
+    → Value Vs
       -----------------
-    → Value (V ⦂⦂ W)
+    → Value (V ⦂⦂ Vs)
 ```
 
 ## Frames and plug
@@ -445,4 +448,59 @@ progress (⊢! {k = k} ⊢M)
         with k
 ...     | 0                                 = step (β-index-0 VMs)
 ...     | suc k'                            = step (β-index-suc VMs)
+```
+
+## Renaming
+
+```
+ext-pres : ∀ {Γ Δ ρ}
+  → (∀ {x A}     →         Γ ∋ x ⦂ A →         Δ ∋ ⟦ ρ ⟧ x ⦂ A)
+    -----------------------------------------------------
+  → (∀ {x A B} → Γ , B ∋ x ⦂ A → Δ , B ∋ ⟦ ext ρ ⟧ x ⦂ A)
+ext-pres {ρ = ρ } ⊢ρ Z     rewrite ext-0 ρ =  Z
+ext-pres {ρ = ρ } ⊢ρ (S {x = x} ∋x)  rewrite ext-s ρ x =  S (⊢ρ ∋x)
+```
+
+```
+rename-pres : ∀ {Γ Δ ρ}
+  → (∀ {x A} → Γ ∋ x ⦂ A → Δ ∋ ⟦ ρ ⟧ x ⦂ A)
+    ----------------------------------
+  → (∀ {M A} → Γ ⊢ M ⦂ A → Δ ⊢ rename ρ M ⦂ A)
+rename-pres ⊢ρ (⊢` ∋w)           =  ⊢` (⊢ρ ∋w)
+rename-pres {ρ = ρ} ⊢ρ (⊢ƛ ⊢N)   =  ⊢ƛ (rename-pres (ext-pres {ρ = ρ} ⊢ρ) ⊢N)
+rename-pres ⊢ρ (⊢· ⊢L ⊢M)        =  ⊢· (rename-pres ⊢ρ ⊢L) (rename-pres ⊢ρ ⊢M)
+rename-pres {ρ = ρ} ⊢ρ (⊢μ ⊢M)   =  ⊢μ (rename-pres (ext-pres {ρ = ρ} ⊢ρ) ⊢M)
+rename-pres ⊢ρ (⊢$ eq)           = ⊢$ eq
+rename-pres {ρ = ρ} ⊢ρ (⊢let ⊢M ⊢N) =
+    ⊢let (rename-pres ⊢ρ ⊢M) (rename-pres (ext-pres {ρ = ρ} ⊢ρ) ⊢N)
+rename-pres ⊢ρ (⊢insert ⊢M ⊢Ms) =
+    ⊢insert (rename-pres ⊢ρ ⊢M) (rename-pres ⊢ρ ⊢Ms)
+rename-pres ⊢ρ (⊢! ⊢Ms)          = ⊢! (rename-pres ⊢ρ ⊢Ms)
+```
+
+```
+exts-pres : ∀ {Γ Δ σ}
+  → (∀ {A x} → Γ ∋ x ⦂ A →     Δ ⊢ ⟪ σ ⟫ (` x) ⦂ A)
+    -----------------------------------------------------
+  → (∀ {A B x} → Γ , B ∋ x ⦂ A → Δ , B ⊢ ⟪ exts σ ⟫ (` x) ⦂ A)
+exts-pres {Γ} {Δ} {σ} Γ⊢σ {A}{B}{0} Z rewrite exts-0 σ = ⊢` Z
+exts-pres {Γ} {Δ} {σ} Γ⊢σ {A}{B} (S {x = x} ∋x) rewrite exts-s σ x =
+  {!!}
+```
+
+
+```
+subst : ∀ {Γ Δ σ N}
+  → (∀{A x} → Γ ∋ x ⦂ A → Δ ⊢ ⟪ σ ⟫ (` x) ⦂ A)
+    --------------------------------------
+  → (∀ {A} → Γ ⊢ N ⦂ A → Δ ⊢ ⟪ σ ⟫ N ⦂ A)
+subst Γ⊢σ (⊢` eq) = Γ⊢σ eq
+subst {σ = σ} Γ⊢σ (⊢ƛ ⊢N)  = ⊢ƛ (subst (exts-pres {σ = σ} Γ⊢σ) ⊢N)
+subst Γ⊢σ (⊢· ⊢L ⊢M)    =  ⊢· (subst Γ⊢σ ⊢L) (subst Γ⊢σ ⊢M)
+subst {σ = σ} Γ⊢σ (⊢μ ⊢M) = ⊢μ (subst (exts-pres {σ = σ} Γ⊢σ) ⊢M)
+subst Γ⊢σ (⊢$ e) = ⊢$ e
+subst {σ = σ} Γ⊢σ (⊢let ⊢M ⊢N) =
+    ⊢let (subst Γ⊢σ ⊢M) (subst (exts-pres {σ = σ} Γ⊢σ) ⊢N)
+subst Γ⊢σ (⊢insert ⊢M ⊢Ms) = ⊢insert (subst Γ⊢σ ⊢M) (subst Γ⊢σ ⊢Ms)
+subst Γ⊢σ (⊢! ⊢M) = ⊢! (subst Γ⊢σ ⊢M)
 ```

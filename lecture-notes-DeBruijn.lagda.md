@@ -295,21 +295,25 @@ data Progress {A} (M : ∅ ⊢ A) : Set where
 ```
 progress : ∀ {A} → (M : ∅ ⊢ A) → Progress M
 progress (` ())
-progress (ƛ N)                          =  done V-ƛ
-progress (L · M) with progress L
-...    | step L—→L′                     =  step (ξ-·₁ L—→L′)
-...    | done V-ƛ with progress M
-...        | step M—→M′                 =  step (ξ-·₂ V-ƛ M—→M′)
-...        | done VM                    =  step (β-ƛ VM)
-progress (`zero)                        =  done V-zero
-progress (`suc M) with progress M
-...    | step M—→M′                     =  step (ξ-suc M—→M′)
-...    | done VM                        =  done (V-suc VM)
-progress (case L M N) with progress L
-...    | step L—→L′                     =  step (ξ-case L—→L′)
-...    | done V-zero                    =  step (β-zero)
-...    | done (V-suc VL)                =  step (β-suc VL)
-progress (μ N)                          =  step (β-μ)
+progress (ƛ N)                   =  done V-ƛ
+progress (L · M)
+    with progress L
+... | step L—→L′                 =  step (ξ-·₁ L—→L′)
+... | done V-ƛ
+        with progress M
+...     | step M—→M′             =  step (ξ-·₂ V-ƛ M—→M′)
+...     | done VM                =  step (β-ƛ VM)
+progress (`zero)                 =  done V-zero
+progress (`suc M)
+    with progress M
+... | step M—→M′                 =  step (ξ-suc M—→M′)
+... | done VM                    =  done (V-suc VM)
+progress (case L M N)
+    with progress L
+... | step L—→L′                 =  step (ξ-case L—→L′)
+... | done V-zero                =  step (β-zero)
+... | done (V-suc VL)            =  step (β-suc VL)
+progress (μ N)                   =  step (β-μ)
 ```
 
 ## Evaluation
@@ -332,6 +336,8 @@ data Finished {Γ A} (N : Γ ⊢ A) : Set where
        Finished N
 ```
 
+The `Steps` predicate says that a term reduced until finished.
+
 ```
 data Steps : ∀ {A} → ∅ ⊢ A → Set where
 
@@ -342,15 +348,20 @@ data Steps : ∀ {A} → ∅ ⊢ A → Set where
     → Steps L
 ```
 
+The `eval` function reduces a term until the gas runs out
+or until the term becomes a value.
+
 ```
 eval : ∀ {A}
   → Gas
   → (L : ∅ ⊢ A)
     -----------
   → Steps L
-eval (gas zero)    L                     =  steps (L ∎) out-of-gas
-eval (gas (suc m)) L with progress L
-... | done VL                            =  steps (L ∎) (done VL)
-... | step {M} L—→M with eval (gas m) M
-...    | steps M—↠N fin                  =  steps (L —→⟨ L—→M ⟩ M—↠N) fin
+eval (gas zero)    L                =  steps (L ∎) out-of-gas
+eval (gas (suc m)) L
+    with progress L
+... | done VL                       =  steps (L ∎) (done VL)
+... | step {M} L—→M
+        with eval (gas m) M
+...     | steps M—↠N fin            =  steps (L —→⟨ L—→M ⟩ M—↠N) fin
 ```

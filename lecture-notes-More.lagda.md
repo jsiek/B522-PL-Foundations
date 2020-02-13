@@ -106,8 +106,7 @@ sig op-error = []
 open Syntax Op sig
   using (`_; _⦅_⦆; cons; nil; bind; ast; _[_]; Subst; ⟪_⟫; ⟦_⟧; exts; _•_; id;
          ↑; _⨟_;
-         exts-0; exts-s; sub-head; sub-suc; sub-sub; shift; sub-op;
-         rename; ↑ᵣ; ext; ⦉_⦊; ext-0; ext-s)
+         exts-0; exts-s; rename; ↑ᵣ; ext; ⦉_⦊; ext-0; ext-s)
   renaming (ABT to Term)
 
 pattern $ p k = (op-const p k) ⦅ nil ⦆
@@ -525,17 +524,17 @@ subst : ∀ {Γ Δ σ N}
   → (∀{A x} → Γ ∋ x ⦂ A → Δ ⊢ ⟪ σ ⟫ (` x) ⦂ A)
     ------------------------------------------
   → (∀ {A} → Γ ⊢ N ⦂ A → Δ ⊢ ⟪ σ ⟫ N ⦂ A)
-subst Γ⊢σ (⊢` eq) = Γ⊢σ eq
-subst {σ = σ} Γ⊢σ (⊢ƛ ⊢N)  = ⊢ƛ (subst (exts-pres {σ = σ} Γ⊢σ) ⊢N) 
-subst Γ⊢σ (⊢· ⊢L ⊢M)    = ⊢· (subst Γ⊢σ ⊢L) (subst Γ⊢σ ⊢M) 
-subst {σ = σ} Γ⊢σ (⊢μ ⊢M) = ⊢μ (subst (exts-pres {σ = σ} Γ⊢σ) ⊢M) 
+subst Γ⊢σ (⊢` eq)              = Γ⊢σ eq
+subst {σ = σ} Γ⊢σ (⊢ƛ ⊢N)      = ⊢ƛ (subst (exts-pres {σ = σ} Γ⊢σ) ⊢N) 
+subst Γ⊢σ (⊢· ⊢L ⊢M)           = ⊢· (subst Γ⊢σ ⊢L) (subst Γ⊢σ ⊢M) 
+subst {σ = σ} Γ⊢σ (⊢μ ⊢M)      = ⊢μ (subst (exts-pres {σ = σ} Γ⊢σ) ⊢M) 
 subst Γ⊢σ (⊢$ e) = ⊢$ e 
 subst {σ = σ} Γ⊢σ (⊢let ⊢M ⊢N) =
     ⊢let (subst Γ⊢σ ⊢M) (subst (exts-pres {σ = σ} Γ⊢σ) ⊢N) 
-subst Γ⊢σ ⊢empty = ⊢empty
-subst Γ⊢σ (⊢insert ⊢M ⊢Ms) = ⊢insert (subst Γ⊢σ ⊢M) (subst Γ⊢σ ⊢Ms) 
-subst Γ⊢σ (⊢! ⊢M) = ⊢! (subst Γ⊢σ ⊢M) 
-subst Γ⊢σ ⊢error = ⊢error
+subst Γ⊢σ ⊢empty               = ⊢empty
+subst Γ⊢σ (⊢insert ⊢M ⊢Ms)     = ⊢insert (subst Γ⊢σ ⊢M) (subst Γ⊢σ ⊢Ms) 
+subst Γ⊢σ (⊢! ⊢M)              = ⊢! (subst Γ⊢σ ⊢M) 
+subst Γ⊢σ ⊢error               = ⊢error
 ```
 
 ```
@@ -548,8 +547,8 @@ substitution {Γ}{A}{B}{M}{N} ⊢M ⊢N = subst G ⊢N
     where
     G : ∀ {A₁ : Type} {x : ℕ}
       → (Γ , A) ∋ x ⦂ A₁ → Γ ⊢ ⟪ M • ↑ 0 ⟫ (` x) ⦂ A₁
-    G {A₁} {zero} Z rewrite sub-head M (↑ 0) = ⊢M
-    G {A₁} {suc x} (S ∋x) rewrite sub-suc M (↑ 0) x = ⊢` ∋x
+    G {A₁} {zero} Z = ⊢M
+    G {A₁} {suc x} (S ∋x) = ⊢` ∋x
 ```
 
 ## Plug Inversion
@@ -591,5 +590,4 @@ preserve (⊢! (⊢insert ⊢M ⊢Ms)) (β-index-0 vMMs) = ⊢M
 preserve (⊢! (⊢insert ⊢M ⊢Ms)) (β-index-suc vVVs) = ⊢! ⊢Ms
 preserve ⊢M β-index-error = ⊢error
 preserve (⊢let ⊢M ⊢N) (β-let vV) = substitution ⊢M ⊢N
-
 ```

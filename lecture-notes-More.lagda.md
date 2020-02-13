@@ -39,12 +39,6 @@ rep (base b) = base-rep b
 rep (b ⇒ p) = base-rep b → rep p
 ```
 
-## Syntax
-
-```
-```
-
-
 ## Types
 
 ```
@@ -106,7 +100,8 @@ sig op-error = []
 open Syntax Op sig
   using (`_; _⦅_⦆; cons; nil; bind; ast; _[_];
          Rename; Subst; ⟪_⟫; ⟦_⟧; exts; _•_; 
-         ↑; _⨟_; exts-0; exts-suc; rename; ext; ⦉_⦊; ext-0; ext-suc)
+         ↑; _⨟_; exts-0; exts-suc; rename; ext; ⦉_⦊;
+         ext-0; ext-suc; rename-subst)
   renaming (ABT to Term)
 
 pattern $ p k = (op-const p k) ⦅ nil ⦆
@@ -527,7 +522,8 @@ exts-pres : ∀ {Γ Δ σ B}
 exts-pres {σ = σ} Γ⊢σ Z
     rewrite exts-0 σ = ⊢` Z
 exts-pres {σ = σ} Γ⊢σ (S {x = x} ∋x)
-    rewrite exts-suc σ x = rename-pres S (Γ⊢σ ∋x)
+    rewrite exts-suc σ x
+    | sym (rename-subst (↑ 1) (⟦ σ ⟧ x)) = rename-pres S (Γ⊢σ ∋x)
 ```
 
 ```

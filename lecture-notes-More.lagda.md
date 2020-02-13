@@ -104,9 +104,9 @@ sig (op-index i) = 0 ∷ []
 sig op-error = []
 
 open Syntax Op sig
-  using (`_; _⦅_⦆; cons; nil; bind; ast; _[_]; Subst; ⟪_⟫; ⟦_⟧; exts; _•_; id;
-         ↑; _⨟_;
-         exts-0; exts-s; rename; ↑ᵣ; ext; ⦉_⦊; ext-0; ext-s)
+  using (`_; _⦅_⦆; cons; nil; bind; ast; _[_];
+         Rename; Subst; ⟪_⟫; ⟦_⟧; exts; _•_; 
+         ↑; _⨟_; exts-0; exts-suc; rename; ext; ⦉_⦊; ext-0; ext-suc)
   renaming (ABT to Term)
 
 pattern $ p k = (op-const p k) ⦅ nil ⦆
@@ -479,21 +479,27 @@ progress ⊢error                             = trapped-error is-error
 ## Renaming and substitution
 
 ```
-ext-pres : ∀ {Γ Δ ρ}
-  → (∀ {x A}     →         Γ ∋ x ⦂ A →         Δ ∋ ⦉ ρ ⦊ x ⦂ A)
-    -----------------------------------------------------
-  → (∀ {x A B} → Γ , B ∋ x ⦂ A → Δ , B ∋ ⦉ ext ρ ⦊ x ⦂ A)
-ext-pres {ρ = ρ } ⊢ρ Z
-    rewrite ext-0 ρ =  Z
-ext-pres {ρ = ρ } ⊢ρ (S {x = x} ∋x)
-    rewrite ext-s ρ x =  S (⊢ρ ∋x)
+WTRename : Context → Rename → Context → Set
+WTRename Γ ρ Δ = ∀ {x A} → Γ ∋ x ⦂ A → Δ ∋ ⦉ ρ ⦊ x ⦂ A
 ```
 
 ```
-rename-pres : ∀ {Γ Δ ρ}
-  → (∀ {x A} → Γ ∋ x ⦂ A → Δ ∋ ⦉ ρ ⦊ x ⦂ A)
-    ----------------------------------
-  → (∀ {M A} → Γ ⊢ M ⦂ A → Δ ⊢ rename ρ M ⦂ A)
+ext-pres : ∀ {Γ Δ ρ B}
+  → WTRename Γ ρ Δ
+    --------------------------------
+  → WTRename (Γ , B) (ext ρ) (Δ , B)
+ext-pres {ρ = ρ } ⊢ρ Z
+    rewrite ext-0 ρ =  Z
+ext-pres {ρ = ρ } ⊢ρ (S {x = x} ∋x)
+    rewrite ext-suc ρ x =  S (⊢ρ ∋x)
+```
+
+```
+rename-pres : ∀ {Γ Δ ρ M A}
+  → WTRename Γ ρ Δ
+  → Γ ⊢ M ⦂ A
+    ------------------
+  → Δ ⊢ rename ρ M ⦂ A
 rename-pres ⊢ρ (⊢` ∋w)           =  ⊢` (⊢ρ ∋w)
 rename-pres {ρ = ρ} ⊢ρ (⊢ƛ ⊢N)   =  ⊢ƛ (rename-pres (ext-pres {ρ = ρ} ⊢ρ) ⊢N)
 rename-pres ⊢ρ (⊢· ⊢L ⊢M)        =  ⊢· (rename-pres ⊢ρ ⊢L) (rename-pres ⊢ρ ⊢M)
@@ -509,21 +515,27 @@ rename-pres ⊢ρ ⊢error = ⊢error
 ```
 
 ```
-exts-pres : ∀ {Γ Δ σ}
-  → (∀ {A x} → Γ ∋ x ⦂ A →     Δ ⊢ ⟪ σ ⟫ (` x) ⦂ A)
-    -----------------------------------------------------
-  → (∀ {A B x} → Γ , B ∋ x ⦂ A → Δ , B ⊢ ⟪ exts σ ⟫ (` x) ⦂ A)
-exts-pres {Γ} {Δ} {σ} Γ⊢σ {A}{B}{0} Z
-    rewrite exts-0 σ = ⊢` Z
-exts-pres {Γ} {Δ} {σ} Γ⊢σ {A}{B} (S {x = x} ∋x)
-    rewrite exts-s σ x = rename-pres S (Γ⊢σ ∋x)
+WTSubst : Context → Subst → Context → Set
+WTSubst Γ σ Δ = ∀ {A x} → Γ ∋ x ⦂ A → Δ ⊢ ⟪ σ ⟫ (` x) ⦂ A
 ```
 
 ```
-subst : ∀ {Γ Δ σ N}
-  → (∀{A x} → Γ ∋ x ⦂ A → Δ ⊢ ⟪ σ ⟫ (` x) ⦂ A)
-    ------------------------------------------
-  → (∀ {A} → Γ ⊢ N ⦂ A → Δ ⊢ ⟪ σ ⟫ N ⦂ A)
+exts-pres : ∀ {Γ Δ σ B}
+  → WTSubst Γ σ Δ
+    --------------------------------
+  → WTSubst (Γ , B) (exts σ) (Δ , B)
+exts-pres {σ = σ} Γ⊢σ Z
+    rewrite exts-0 σ = ⊢` Z
+exts-pres {σ = σ} Γ⊢σ (S {x = x} ∋x)
+    rewrite exts-suc σ x = rename-pres S (Γ⊢σ ∋x)
+```
+
+```
+subst : ∀ {Γ Δ σ N A}
+  → WTSubst Γ σ Δ
+  → Γ ⊢ N ⦂ A
+    ---------------
+  → Δ ⊢ ⟪ σ ⟫ N ⦂ A
 subst Γ⊢σ (⊢` eq)              = Γ⊢σ eq
 subst {σ = σ} Γ⊢σ (⊢ƛ ⊢N)      = ⊢ƛ (subst (exts-pres {σ = σ} Γ⊢σ) ⊢N) 
 subst Γ⊢σ (⊢· ⊢L ⊢M)           = ⊢· (subst Γ⊢σ ⊢L) (subst Γ⊢σ ⊢M) 
@@ -556,6 +568,7 @@ substitution {Γ}{A}{B}{M}{N} ⊢M ⊢N = subst G ⊢N
 ```
 plug-inversion : ∀{M F A}
    → ∅ ⊢ plug M F ⦂ A
+     ----------------------------------------------------------------
    → Σ[ B ∈ Type ] ∅ ⊢ M ⦂ B × (∀ M' → ∅ ⊢ M' ⦂ B → ∅ ⊢ plug M' F ⦂ A)
 plug-inversion {M} {□· N} {A} (⊢· {A = A'} ⊢M ⊢N) =
     ⟨ A' ⇒ A , ⟨ ⊢M , (λ M' z → ⊢· z ⊢N) ⟩ ⟩

@@ -12,6 +12,8 @@ import Syntax
 open import Data.Bool renaming (Bool to 𝔹)
 open import Data.List using (List; []; _∷_)
 open import Data.Nat using (ℕ; zero; suc)
+open import Data.Product using (_×_; Σ; Σ-syntax; ∃; ∃-syntax; proj₁; proj₂)
+   renaming (_,_ to ⟨_,_⟩)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; sym; cong; cong₂)
 
@@ -102,8 +104,10 @@ sig (op-index i) = 0 ∷ []
 sig op-error = []
 
 open Syntax Op sig
-  using (`_; _⦅_⦆; cons; nil; bind; ast; _[_]; Subst; ⟪_⟫; exts; _•_; id;
-         exts-0; exts-s; rename; ↑ᵣ; ⟦_⟧; ext; ext-0; ext-s)
+  using (`_; _⦅_⦆; cons; nil; bind; ast; _[_]; Subst; ⟪_⟫; ⟦_⟧; exts; _•_; id;
+         ↑; _⨟_;
+         exts-0; exts-s; sub-head; sub-suc; sub-sub; shift; sub-op;
+         rename; ↑ᵣ; ext; ⦉_⦊; ext-0; ext-s)
   renaming (ABT to Term)
 
 pattern $ p k = (op-const p k) ⦅ nil ⦆
@@ -122,6 +126,15 @@ pattern 〈〉 = op-empty ⦅ nil ⦆
 pattern _!_ M k = (op-index k) ⦅ cons (ast M) nil ⦆
 
 pattern error = op-error ⦅ nil ⦆
+
+```
+
+```
+sub-lam : ∀ (N : Term) (σ : Subst) → ⟪ σ ⟫ (ƛ N) ≡ ƛ (⟪ exts σ ⟫ N)
+sub-lam N σ = refl 
+
+sub-app : ∀ (L M : Term) (σ : Subst) → ⟪ σ ⟫ (L · M) ≡ (⟪ σ ⟫ L) · (⟪ σ ⟫ M)
+sub-app L M σ = refl
 ```
 
 ## Type of a primitive
@@ -179,18 +192,24 @@ data _⊢_⦂_ : Context → Term → Type → Set where
       -----------------
     → Γ ⊢ `let M N ⦂ B
 
-  {- todo empty array -}
+  ⊢empty : ∀{Γ A}
+      ------------------
+    → Γ ⊢ 〈〉 ⦂ Array A
 
   ⊢insert : ∀{Γ A M Ms}
     → Γ ⊢ M ⦂ A
     → Γ ⊢ Ms ⦂ Array A
       ----------------------
-   → Γ ⊢ (M ⦂⦂ Ms) ⦂ Array A
+    → Γ ⊢ (M ⦂⦂ Ms) ⦂ Array A
 
   ⊢! : ∀{Γ A Ms k}
     → Γ ⊢ Ms ⦂ Array A
       ----------------
     → Γ ⊢ Ms ! k ⦂ A
+
+  ⊢error : ∀ {Γ A}
+      -------------
+    → Γ ⊢ error ⦂ A
 ```
 
 
@@ -220,6 +239,12 @@ data Value : Term → Set where
     → Value Vs
       -----------------
     → Value (V ⦂⦂ Vs)
+
+{-
+  -- errors
+
+  V-error : Value error
+-}
 ```
 
 ## Frames and plug
@@ -326,6 +351,7 @@ begin M—↠N = M—↠N
 data Function : Term → Set where
   Fun-ƛ : ∀ {N} → Function (ƛ N)
   Fun-prim : ∀{b p k} → Function ($ (b ⇒ p) k)
+  Fun-error : Function error
 
 canonical-fun : ∀{V A B}
   → ∅ ⊢ V ⦂ A ⇒ B
@@ -365,6 +391,7 @@ canonical-array : ∀ {Ms A}
   → IsArray Ms
 canonical-array (⊢$ {p = base B-Nat} ()) V-const
 canonical-array (⊢$ {p = base B-Bool} ()) V-const
+canonical-array ⊢empty V-〈〉 = array-empty
 canonical-array (⊢insert ⊢M ⊢Ms) (V-⦂⦂ VM VMs) =
     array-insert (canonical-array ⊢Ms VMs)
 ```
@@ -396,15 +423,13 @@ data Progress (M : Term) : Set where
     → Progress M
 ```
 
-
-
 ```
 progress : ∀ {M A}
   → ∅ ⊢ M ⦂ A
     ----------
   → Progress M
 progress (⊢` ())
-progress (⊢$ _)                               = done V-const
+progress (⊢$ _)                             = done V-const
 progress (⊢ƛ ⊢N)                            =  done V-ƛ
 progress (⊢· {L = L}{M}{A}{B} ⊢L ⊢M)
     with progress ⊢L
@@ -428,6 +453,7 @@ progress (⊢let {N = N} ⊢L ⊢N)
 ... | step L—→L′                            = step (ξ (let□ N) L—→L′)
 ... | trapped-error is-error                = step (lift-error (let□ N))
 ... | done VL                               = step (β-let VL)
+progress ⊢empty                             = done V-〈〉
 progress (⊢insert {M = M}{Ms} ⊢M ⊢Ms)
     with progress ⊢M
 ... | step M—→M′                            = step (ξ (□⦂⦂ Ms) M—→M′)
@@ -448,22 +474,25 @@ progress (⊢! {k = k} ⊢M)
         with k
 ...     | 0                                 = step (β-index-0 VMs)
 ...     | suc k'                            = step (β-index-suc VMs)
+progress ⊢error                             = trapped-error is-error
 ```
 
-## Renaming
+## Renaming and substitution
 
 ```
 ext-pres : ∀ {Γ Δ ρ}
-  → (∀ {x A}     →         Γ ∋ x ⦂ A →         Δ ∋ ⟦ ρ ⟧ x ⦂ A)
+  → (∀ {x A}     →         Γ ∋ x ⦂ A →         Δ ∋ ⦉ ρ ⦊ x ⦂ A)
     -----------------------------------------------------
-  → (∀ {x A B} → Γ , B ∋ x ⦂ A → Δ , B ∋ ⟦ ext ρ ⟧ x ⦂ A)
-ext-pres {ρ = ρ } ⊢ρ Z     rewrite ext-0 ρ =  Z
-ext-pres {ρ = ρ } ⊢ρ (S {x = x} ∋x)  rewrite ext-s ρ x =  S (⊢ρ ∋x)
+  → (∀ {x A B} → Γ , B ∋ x ⦂ A → Δ , B ∋ ⦉ ext ρ ⦊ x ⦂ A)
+ext-pres {ρ = ρ } ⊢ρ Z
+    rewrite ext-0 ρ =  Z
+ext-pres {ρ = ρ } ⊢ρ (S {x = x} ∋x)
+    rewrite ext-s ρ x =  S (⊢ρ ∋x)
 ```
 
 ```
 rename-pres : ∀ {Γ Δ ρ}
-  → (∀ {x A} → Γ ∋ x ⦂ A → Δ ∋ ⟦ ρ ⟧ x ⦂ A)
+  → (∀ {x A} → Γ ∋ x ⦂ A → Δ ∋ ⦉ ρ ⦊ x ⦂ A)
     ----------------------------------
   → (∀ {M A} → Γ ⊢ M ⦂ A → Δ ⊢ rename ρ M ⦂ A)
 rename-pres ⊢ρ (⊢` ∋w)           =  ⊢` (⊢ρ ∋w)
@@ -473,9 +502,11 @@ rename-pres {ρ = ρ} ⊢ρ (⊢μ ⊢M)   =  ⊢μ (rename-pres (ext-pres {ρ =
 rename-pres ⊢ρ (⊢$ eq)           = ⊢$ eq
 rename-pres {ρ = ρ} ⊢ρ (⊢let ⊢M ⊢N) =
     ⊢let (rename-pres ⊢ρ ⊢M) (rename-pres (ext-pres {ρ = ρ} ⊢ρ) ⊢N)
+rename-pres ⊢ρ ⊢empty = ⊢empty
 rename-pres ⊢ρ (⊢insert ⊢M ⊢Ms) =
     ⊢insert (rename-pres ⊢ρ ⊢M) (rename-pres ⊢ρ ⊢Ms)
 rename-pres ⊢ρ (⊢! ⊢Ms)          = ⊢! (rename-pres ⊢ρ ⊢Ms)
+rename-pres ⊢ρ ⊢error = ⊢error
 ```
 
 ```
@@ -483,24 +514,82 @@ exts-pres : ∀ {Γ Δ σ}
   → (∀ {A x} → Γ ∋ x ⦂ A →     Δ ⊢ ⟪ σ ⟫ (` x) ⦂ A)
     -----------------------------------------------------
   → (∀ {A B x} → Γ , B ∋ x ⦂ A → Δ , B ⊢ ⟪ exts σ ⟫ (` x) ⦂ A)
-exts-pres {Γ} {Δ} {σ} Γ⊢σ {A}{B}{0} Z rewrite exts-0 σ = ⊢` Z
-exts-pres {Γ} {Δ} {σ} Γ⊢σ {A}{B} (S {x = x} ∋x) rewrite exts-s σ x =
-  {!!}
+exts-pres {Γ} {Δ} {σ} Γ⊢σ {A}{B}{0} Z
+    rewrite exts-0 σ = ⊢` Z
+exts-pres {Γ} {Δ} {σ} Γ⊢σ {A}{B} (S {x = x} ∋x)
+    rewrite exts-s σ x = rename-pres S (Γ⊢σ ∋x)
 ```
-
 
 ```
 subst : ∀ {Γ Δ σ N}
   → (∀{A x} → Γ ∋ x ⦂ A → Δ ⊢ ⟪ σ ⟫ (` x) ⦂ A)
-    --------------------------------------
+    ------------------------------------------
   → (∀ {A} → Γ ⊢ N ⦂ A → Δ ⊢ ⟪ σ ⟫ N ⦂ A)
 subst Γ⊢σ (⊢` eq) = Γ⊢σ eq
-subst {σ = σ} Γ⊢σ (⊢ƛ ⊢N)  = ⊢ƛ (subst (exts-pres {σ = σ} Γ⊢σ) ⊢N)
-subst Γ⊢σ (⊢· ⊢L ⊢M)    =  ⊢· (subst Γ⊢σ ⊢L) (subst Γ⊢σ ⊢M)
-subst {σ = σ} Γ⊢σ (⊢μ ⊢M) = ⊢μ (subst (exts-pres {σ = σ} Γ⊢σ) ⊢M)
-subst Γ⊢σ (⊢$ e) = ⊢$ e
+subst {σ = σ} Γ⊢σ (⊢ƛ ⊢N)  = ⊢ƛ (subst (exts-pres {σ = σ} Γ⊢σ) ⊢N) 
+subst Γ⊢σ (⊢· ⊢L ⊢M)    = ⊢· (subst Γ⊢σ ⊢L) (subst Γ⊢σ ⊢M) 
+subst {σ = σ} Γ⊢σ (⊢μ ⊢M) = ⊢μ (subst (exts-pres {σ = σ} Γ⊢σ) ⊢M) 
+subst Γ⊢σ (⊢$ e) = ⊢$ e 
 subst {σ = σ} Γ⊢σ (⊢let ⊢M ⊢N) =
-    ⊢let (subst Γ⊢σ ⊢M) (subst (exts-pres {σ = σ} Γ⊢σ) ⊢N)
-subst Γ⊢σ (⊢insert ⊢M ⊢Ms) = ⊢insert (subst Γ⊢σ ⊢M) (subst Γ⊢σ ⊢Ms)
-subst Γ⊢σ (⊢! ⊢M) = ⊢! (subst Γ⊢σ ⊢M)
+    ⊢let (subst Γ⊢σ ⊢M) (subst (exts-pres {σ = σ} Γ⊢σ) ⊢N) 
+subst Γ⊢σ ⊢empty = ⊢empty
+subst Γ⊢σ (⊢insert ⊢M ⊢Ms) = ⊢insert (subst Γ⊢σ ⊢M) (subst Γ⊢σ ⊢Ms) 
+subst Γ⊢σ (⊢! ⊢M) = ⊢! (subst Γ⊢σ ⊢M) 
+subst Γ⊢σ ⊢error = ⊢error
+```
+
+```
+substitution : ∀{Γ A B M N}
+   → Γ ⊢ M ⦂ A
+   → (Γ , A) ⊢ N ⦂ B
+     ---------------
+   → Γ ⊢ N [ M ] ⦂ B
+substitution {Γ}{A}{B}{M}{N} ⊢M ⊢N = subst G ⊢N
+    where
+    G : ∀ {A₁ : Type} {x : ℕ}
+      → (Γ , A) ∋ x ⦂ A₁ → Γ ⊢ ⟪ M • ↑ 0 ⟫ (` x) ⦂ A₁
+    G {A₁} {zero} Z rewrite sub-head M (↑ 0) = ⊢M
+    G {A₁} {suc x} (S ∋x) rewrite sub-suc M (↑ 0) x = ⊢` ∋x
+```
+
+## Plug Inversion
+
+```
+plug-inversion : ∀{M F A}
+   → ∅ ⊢ plug M F ⦂ A
+   → Σ[ B ∈ Type ] ∅ ⊢ M ⦂ B × (∀ M' → ∅ ⊢ M' ⦂ B → ∅ ⊢ plug M' F ⦂ A)
+plug-inversion {M} {□· N} {A} (⊢· {A = A'} ⊢M ⊢N) =
+    ⟨ A' ⇒ A , ⟨ ⊢M , (λ M' z → ⊢· z ⊢N) ⟩ ⟩
+plug-inversion {M} {(L ·□) v} {A} (⊢· {A = A'} ⊢L ⊢M) =
+    ⟨ A' , ⟨ ⊢M , (λ M' → ⊢· ⊢L) ⟩ ⟩
+plug-inversion {M} {□⦂⦂ Ms} {.(Array _)} (⊢insert {A = A} ⊢M ⊢Ms) =
+    ⟨ A , ⟨ ⊢M , (λ M' z → ⊢insert z ⊢Ms) ⟩ ⟩
+plug-inversion {M} {(N ⦂⦂□) v} {.(Array _)} (⊢insert {A = A} ⊢N ⊢M) =
+    ⟨ Array A , ⟨ ⊢M , (λ M' → ⊢insert ⊢N) ⟩ ⟩
+plug-inversion {M} {□! i} {A} (⊢! ⊢M) =
+    ⟨ (Array A) , ⟨ ⊢M , (λ M' → ⊢!) ⟩ ⟩
+plug-inversion {M} {let□ N} {A} (⊢let {A = A'} ⊢M ⊢N) =
+    ⟨ A' , ⟨ ⊢M , (λ M' z → ⊢let z ⊢N) ⟩ ⟩
+```
+
+## Preservation
+
+```
+preserve : ∀ {M N A}
+  → ∅ ⊢ M ⦂ A
+  → M —→ N
+    ----------
+  → ∅ ⊢ N ⦂ A
+preserve ⊢M (ξ {M}{M′} F M—→M′)
+    with plug-inversion ⊢M
+... | ⟨ B , ⟨ ⊢M' , plug-wt ⟩ ⟩ = plug-wt M′ (preserve ⊢M' M—→M′)
+preserve ⊢M (lift-error F) = ⊢error
+preserve (⊢· (⊢ƛ ⊢N) ⊢M) (β-ƛ vV) = substitution ⊢M ⊢N
+preserve (⊢μ ⊢M) β-μ = substitution (⊢μ ⊢M) ⊢M
+preserve (⊢· (⊢$ refl) (⊢$ refl)) δ = ⊢$ refl
+preserve (⊢! (⊢insert ⊢M ⊢Ms)) (β-index-0 vMMs) = ⊢M
+preserve (⊢! (⊢insert ⊢M ⊢Ms)) (β-index-suc vVVs) = ⊢! ⊢Ms
+preserve ⊢M β-index-error = ⊢error
+preserve (⊢let ⊢M ⊢N) (β-let vV) = substitution ⊢M ⊢N
+
 ```

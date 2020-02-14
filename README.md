@@ -77,26 +77,26 @@ Monday and Wednesday at 4:30-5:45pm in Luddy Hall Room 4101.
 |          | 5   | [Properties](https://plfa.github.io/Properties/) such as type safety |
 |          | 10  | [DeBruijn](https://plfa.github.io/DeBruijn/) representation of variables |
 |          | 12  | [More](https://plfa.github.io/More/) constructs: numbers, let, products (pairs), sums, unit, empty, lists |
-|          | 17  | [Inference](https://plfa.github.io/Inference/) bidirectional type inference |
-|          | 19  | [Untyped](https://plfa.github.io/Untyped/) Lambda Calculus |
-|          | 24  | [Confluence](https://plfa.github.io/Confluence/) of the Lambda Calculus |
-|          | 26  | [BigStep](https://plfa.github.io/BigStep/) Call-by-name Evaluation of the Lambda Calculus |
-| March    | 2   | [Denotational](https://plfa.github.io/Denotational/) semantics of the Lambda Calculus |
-|          | 4   | [Compositional](https://plfa.github.io/Compositional/) |
-|          | 9   | [Soundness](https://plfa.github.io/Soundness/) |
-|          | 11  | [Adequacy](https://plfa.github.io/Adequacy/) |
-|          | 16  | [ContextualEquivalence](https://plfa.github.io/ContextualEquivalence/) |
-|          | 18  | References and the Heap |
-|          | 23  | Subtyping and Records |
-|          | 25  | Classes and Objects (Featherweight Java) |
-|          | 30  | Gradual Typing |
-| April    | 1   | Universal and Existential Types (Parametric Polymorphism) |
-|          | 6   | Hindley-Milner Inference |
-|          | 8   | Recursive Types |
-|          | 13  | Intersection and Union Types |
-|          | 15  | Higher-Order Polymorphism |
-|          | 20  | Dependent Types |
-|          | 22  | TBD |
+|          | 17  | [STLC Termination via Logical Relations](./STLC-Termination.lagda.md) |
+|          | 19  | [Inference](https://plfa.github.io/Inference/) bidirectional type inference |
+|          | 24  | [Untyped](https://plfa.github.io/Untyped/) Lambda Calculus |
+|          | 26  | [Confluence](https://plfa.github.io/Confluence/) of the Lambda Calculus |
+| March    | 2  | [BigStep](https://plfa.github.io/BigStep/) Call-by-name Evaluation of the Lambda Calculus |
+|          | 4   | [Denotational](https://plfa.github.io/Denotational/) semantics of the Lambda Calculus |
+|          | 9   | [Compositional](https://plfa.github.io/Compositional/) |
+|          | 11   | [Soundness](https://plfa.github.io/Soundness/) |
+|          | 16  | [Adequacy](https://plfa.github.io/Adequacy/) |
+|          | 18  | [ContextualEquivalence](https://plfa.github.io/ContextualEquivalence/) |
+|          | 23  | References and the Heap |
+|          | 25  | Subtyping and Records |
+|          | 30  | Classes and Objects (Featherweight Java) |
+| April    | 1   | Gradual Typing |
+|          | 6   | Universal and Existential Types (Parametric Polymorphism) |
+|          | 8   | Hindley-Milner Inference |
+|          | 13  | Recursive Types |
+|          | 15  | Intersection and Union Types |
+|          | 20  | Higher-Order Polymorphism |
+|          | 22  | Dependent Types |
 |          | 27  | TBD |
 |          | 29  | TBD |
 

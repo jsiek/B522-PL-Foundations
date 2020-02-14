@@ -83,7 +83,7 @@ data Op : Set where
   op-let : Op
   op-insert : Op
   op-empty  : Op
-  op-index : ℕ → Op
+  op-index : Op
   op-error : Op
 
 sig : Op → List ℕ
@@ -94,7 +94,7 @@ sig (op-const p k) = []
 sig op-let = 0 ∷ 1 ∷ []
 sig op-insert = 0 ∷ 0 ∷ []
 sig op-empty = []
-sig (op-index i) = 0 ∷ []
+sig op-index = 0 ∷ 0 ∷ []
 sig op-error = []
 
 open Syntax Op sig
@@ -117,7 +117,7 @@ pattern `let L M = op-let ⦅ cons (ast L) (cons (bind (ast M)) nil) ⦆
 
 pattern _⦂⦂_ L M = op-insert ⦅ cons (ast L) (cons (ast M) nil) ⦆
 pattern 〈〉 = op-empty ⦅ nil ⦆
-pattern _!_ M k = (op-index k) ⦅ cons (ast M) nil ⦆
+pattern _!_ L M = op-index ⦅ cons (ast L) (cons (ast M) nil) ⦆
 
 pattern error = op-error ⦅ nil ⦆
 
@@ -196,10 +196,11 @@ data _⊢_⦂_ : Context → Term → Type → Set where
       ----------------------
     → Γ ⊢ (M ⦂⦂ Ms) ⦂ Array A
 
-  ⊢! : ∀{Γ A Ms k}
+  ⊢! : ∀{Γ A Ms N}
     → Γ ⊢ Ms ⦂ Array A
+    → Γ ⊢ N ⦂ Nat
       ----------------
-    → Γ ⊢ Ms ! k ⦂ A
+    → Γ ⊢ Ms ! N ⦂ A
 
   ⊢error : ∀ {Γ A}
       -------------
@@ -249,7 +250,8 @@ data Frame : Set where
   _·□ : (M : Term) → (v : Value M) → Frame
   □⦂⦂_ : Term → Frame
   _⦂⦂□ : (M : Term) → (v : Value M) → Frame
-  □! : ℕ → Frame
+  □!_ : Term → Frame
+  _!□ : Term → Frame
   let□ : Term → Frame
 ```
 
@@ -259,7 +261,8 @@ plug L (□· M)        = L · M
 plug M ((L ·□) v)    = L · M
 plug M (□⦂⦂ N)       = M ⦂⦂ N
 plug N ((M ⦂⦂□) v)   = M ⦂⦂ N
-plug M (□! k)        = M ! k
+plug M (□! N)        = M ! N
+plug N (M !□)        = M ! N
 plug M (let□ N)      = `let M N
 ```
 
@@ -295,17 +298,17 @@ data _—→_ : Term → Term → Set where
 
   β-index-0 : ∀ {V Vs}
     → Value (V ⦂⦂ Vs)
-      -------------------
-    → (V ⦂⦂ Vs) ! 0 —→  V
+      ------------------------------------
+    → (V ⦂⦂ Vs) ! ($ (base B-Nat) 0) —→  V
 
   β-index-suc : ∀ {V Vs i}
     → Value (V ⦂⦂ Vs)
-      ----------------------------
-    → (V ⦂⦂ Vs) ! (suc i) —→  Vs ! i
+      ---------------------------------------------------------------
+    → (V ⦂⦂ Vs) ! ($ (base B-Nat) (suc i)) —→  Vs ! ($ (base B-Nat) i)
 
-  β-index-error : ∀ {i}
+  β-index-error : ∀ {N}
       -----------------
-    → 〈〉 ! i —→ error
+    → 〈〉 ! N —→ error
 
   β-let : ∀{V N}
     → Value V
@@ -457,17 +460,25 @@ progress (⊢insert {M = M}{Ms} ⊢M ⊢Ms)
 ...     | step Ms—→Ms′                      = step (ξ ((M ⦂⦂□) VM) Ms—→Ms′)
 ...     | trapped-error is-error            = step (lift-error ((M ⦂⦂□) VM))
 ...     | done VMs                          = done (V-⦂⦂ VM VMs)
-progress (⊢! {k = k} ⊢M)
+progress (⊢! {Ms = M}{N} ⊢M ⊢N)
     with progress ⊢M
-... | step M—→M′                            = step (ξ (□! k) M—→M′)
-... | trapped-error is-error                = step (lift-error (□! k))
+... | step M—→M′                            = step (ξ (□! N) M—→M′)
+... | trapped-error is-error                = step (lift-error (□! N))
 ... | done VMs
-        with canonical-array ⊢M VMs
-...     | array-empty                       = step β-index-error
-...     | array-insert aVs
+        with progress ⊢N
+...     | step N—→N′                            = step (ξ (M !□) N—→N′)
+...     | trapped-error is-error                = step (lift-error (M !□))
+...     | done VN
+            with canonical-array ⊢M VMs
+...         | array-empty                       = step β-index-error
+...         | array-insert aVs
+              = {!!}
+
+{-
         with k
 ...     | 0                                 = step (β-index-0 VMs)
 ...     | suc k'                            = step (β-index-suc VMs)
+-}
 progress ⊢error                             = trapped-error is-error
 ```
 
@@ -505,8 +516,8 @@ rename-pres {ρ = ρ} ⊢ρ (⊢let ⊢M ⊢N) =
 rename-pres ⊢ρ ⊢empty = ⊢empty
 rename-pres ⊢ρ (⊢insert ⊢M ⊢Ms) =
     ⊢insert (rename-pres ⊢ρ ⊢M) (rename-pres ⊢ρ ⊢Ms)
-rename-pres ⊢ρ (⊢! ⊢Ms)          = ⊢! (rename-pres ⊢ρ ⊢Ms)
-rename-pres ⊢ρ ⊢error = ⊢error
+rename-pres ⊢ρ (⊢! ⊢Ms ⊢N)       = ⊢! (rename-pres ⊢ρ ⊢Ms) (rename-pres ⊢ρ ⊢N)
+rename-pres ⊢ρ ⊢error            = ⊢error
 ```
 
 ```
@@ -540,7 +551,7 @@ subst {σ = σ} Γ⊢σ (⊢let ⊢M ⊢N) =
     ⊢let (subst Γ⊢σ ⊢M) (subst (exts-pres {σ = σ} Γ⊢σ) ⊢N) 
 subst Γ⊢σ ⊢empty               = ⊢empty
 subst Γ⊢σ (⊢insert ⊢M ⊢Ms)     = ⊢insert (subst Γ⊢σ ⊢M) (subst Γ⊢σ ⊢Ms) 
-subst Γ⊢σ (⊢! ⊢M)              = ⊢! (subst Γ⊢σ ⊢M) 
+subst Γ⊢σ (⊢! ⊢M ⊢N)           = ⊢! (subst Γ⊢σ ⊢M) (subst Γ⊢σ ⊢N) 
 subst Γ⊢σ ⊢error               = ⊢error
 ```
 
@@ -573,8 +584,10 @@ plug-inversion {M} {□⦂⦂ Ms} {.(Array _)} (⊢insert {A = A} ⊢M ⊢Ms) =
     ⟨ A , ⟨ ⊢M , (λ M' z → ⊢insert z ⊢Ms) ⟩ ⟩
 plug-inversion {M} {(N ⦂⦂□) v} {.(Array _)} (⊢insert {A = A} ⊢N ⊢M) =
     ⟨ Array A , ⟨ ⊢M , (λ M' → ⊢insert ⊢N) ⟩ ⟩
-plug-inversion {M} {□! i} {A} (⊢! ⊢M) =
-    ⟨ (Array A) , ⟨ ⊢M , (λ M' → ⊢!) ⟩ ⟩
+plug-inversion {M} {□! i} {A} (⊢! ⊢M ⊢N) =
+    ⟨ (Array A) , ⟨ ⊢M , (λ M' z → ⊢! z ⊢N) ⟩ ⟩
+plug-inversion {M} {Ms !□} {A} (⊢! ⊢M ⊢N) =
+    ⟨ Nat , ⟨ ⊢N , (λ M' → ⊢! ⊢M) ⟩ ⟩
 plug-inversion {M} {let□ N} {A} (⊢let {A = A'} ⊢M ⊢N) =
     ⟨ A' , ⟨ ⊢M , (λ M' z → ⊢let z ⊢N) ⟩ ⟩
 ```
@@ -594,8 +607,8 @@ preserve ⊢M (lift-error F) = ⊢error
 preserve (⊢· (⊢ƛ ⊢N) ⊢M) (β-ƛ vV) = substitution ⊢M ⊢N
 preserve (⊢μ ⊢M) β-μ = substitution (⊢μ ⊢M) ⊢M
 preserve (⊢· (⊢$ refl) (⊢$ refl)) δ = ⊢$ refl
-preserve (⊢! (⊢insert ⊢M ⊢Ms)) (β-index-0 vMMs) = ⊢M
-preserve (⊢! (⊢insert ⊢M ⊢Ms)) (β-index-suc vVVs) = ⊢! ⊢Ms
+preserve (⊢! (⊢insert ⊢M ⊢Ms) ⊢N) (β-index-0 vMMs) = ⊢M
+preserve (⊢! (⊢insert ⊢M ⊢Ms) ⊢N) (β-index-suc vVVs) = ⊢! ⊢Ms (⊢$ refl)
 preserve ⊢M β-index-error = ⊢error
 preserve (⊢let ⊢M ⊢N) (β-let vV) = substitution ⊢M ⊢N
 ```

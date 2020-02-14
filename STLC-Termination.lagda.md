@@ -38,7 +38,7 @@ sig op-case = 0 ∷ 0 ∷ 1 ∷ []
 
 open Syntax Op sig
   using (`_; _⦅_⦆; cons; nil; bind; ast;
-         _[_]; Subst; ⟪_⟫; ⟦_⟧; exts; _•_; id; exts-sub-cons)
+         _[_]; Subst; ⟪_⟫; ⟦_⟧; exts; _•_; id; exts-sub-cons; sub-id)
   renaming (ABT to Term)
 
 infixl 7  _·_
@@ -243,11 +243,11 @@ L —↠⟨ LM ⟩ MN = —↠-trans LM MN
 
 ## Termination via Logical Relations
 
-We give a meaning to types by interpreting them, via function `ℰ`, as
+We give a meaning to types by interpreting them, via function ℰ, as
 sets of terms that behave in a particular way. In particular, they are
 terms that halt and produce a value, and furthermore the value must
-behave according to its type.  So the definition of `ℰ` is mutually
-recursive with another function `𝒱` that maps each type to a set of
+behave according to its type.  So the definition of ℰ is mutually
+recursive with another function 𝒱 that maps each type to a set of
 values.
 
 ```
@@ -257,11 +257,11 @@ values.
 ℰ A M = Σ[ V ∈ Term ] (M —↠ V) × (Value V) × (𝒱 A V)
 ```
 
-`𝒱 ℕ` is simply the set of natural numbers, but `𝒱 (A ⇒ B)` is more
-interesting. It is the set of all lambda abstractions `ƛ N`
-where `N[ V ]` is a term that behaves according to type `B`, that is,
-`ℰ B (N [ V ])` for any value `V` that behaves according
-to type `A`, i.e., `𝒱 A V`.
+The function 𝒱 simply maps the type ℕ to the set of natural numbers, but
+`𝒱 (A ⇒ B)` is more interesting. It is the set of all lambda abstractions
+`ƛ N` where `N[ V ]` is a term that behaves according to type `B`,
+that is, `ℰ B (N [ V ])` for any value `V` provided that it behaves
+according to type `A`, that is, `𝒱 A V`.
 
 ```
 𝒱 `ℕ `zero = ⊤
@@ -269,6 +269,22 @@ to type `A`, i.e., `𝒱 A V`.
 𝒱 `ℕ _ = ⊥
 𝒱 (A ⇒ B) (ƛ N) = ∀ {V : Term} → 𝒱 A V → ℰ B (N [ V ])
 𝒱 (A ⇒ B) _ = ⊥
+```
+
+The terms in 𝒱 are indeed values.
+
+```
+𝒱→Value : ∀{A}{M : Term} → 𝒱 A M → Value M
+𝒱→Value {`ℕ} {`zero} wtv = V-zero
+𝒱→Value {`ℕ} {`suc M} wtv = V-suc (𝒱→Value {`ℕ} wtv)
+𝒱→Value {A ⇒ B} {ƛ N} wtv = V-ƛ
+```
+
+The 𝒱 function implies the ℰ function.
+
+```
+𝒱→ℰ : ∀{A}{M : Term} → 𝒱 A M → ℰ A M
+𝒱→ℰ {A}{M = M} wtv = ⟨ M , ⟨ M ∎ , ⟨ 𝒱→Value {A} wtv , wtv ⟩ ⟩ ⟩
 ```
 
 ### Canonical forms
@@ -285,21 +301,6 @@ data Natural : Term → Set where
 𝒱ℕ→Nat {`zero} wtv = Nat-Z
 𝒱ℕ→Nat {`suc M} wtv = Nat-S (𝒱ℕ→Nat wtv)
 ```
-
-```
-𝒱→Value : ∀{A}{M : Term} → 𝒱 A M → Value M
-𝒱→Value {`ℕ} {`zero} wtv = V-zero
-𝒱→Value {`ℕ} {`suc M} wtv = V-suc (𝒱→Value {`ℕ} wtv)
-𝒱→Value {A ⇒ B} {ƛ N} wtv = V-ƛ
-```
-
-The 𝒱 function implies the ℰ function.
-
-```
-𝒱→ℰ : ∀{A}{M : Term} → 𝒱 A M → ℰ A M
-𝒱→ℰ {A}{M = M} wtv = ⟨ M , ⟨ M ∎ , ⟨ 𝒱→Value {A} wtv , wtv ⟩ ⟩ ⟩
-```
-
 
 ### Compatibility lemmas about reduction
 
@@ -425,3 +426,14 @@ fundamental-property {M = case L M N}{σ} (⊢case {Γ}{A = A} ⊢L ⊢M ⊢N) �
         N'                                         ∎
 ```
 
+All STLC programs terminate.
+
+```
+terminate : ∀ {M A}
+  → [] ⊢ M ⦂ A
+  → Σ[ V ∈ Term ] (M —↠ V) × Value V
+terminate {M} ⊢M
+    with fundamental-property {σ = id} ⊢M (λ _ ())
+... | ⟨ V , ⟨ M—↠V , ⟨ vV , 𝒱V ⟩ ⟩ ⟩ rewrite sub-id {M} =
+      ⟨ V , ⟨ M—↠V , vV ⟩ ⟩
+```

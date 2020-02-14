@@ -52,6 +52,10 @@ rep (b ⇒ p) = base-rep b → rep p
 
 ## Terms
 
+We use the
+[abstract-binding-trees](https://github.com/jsiek/abstract-binding-trees)
+library to represent terms.
+
 ```
 data Op : Set where
   op-lam : Op

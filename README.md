@@ -66,11 +66,11 @@ Monday and Wednesday at 4:30-5:45pm in Luddy Hall Room 4101.
    `unstuck`
    (in [Properties](https://plfa.github.io/Properties/)).
 
-6. February 24: Exercises X in [DeBruijn](https://plfa.github.io/DeBruijn/)),
-   and X in [More](https://plfa.github.io/More/)).
+6. February 24: Exercises X in [DeBruijn](https://plfa.github.io/DeBruijn/),
+   and X in [More](https://plfa.github.io/More/).
 
 
-## Project, Due May 1
+## Project, due May 1
 
 Choose a language feature that is not spelled out in PLFA to formalize
 in Agda. Your formalization should include both a static semantics
@@ -80,7 +80,9 @@ the approach used in PLFA, that is, do not use a reduction
 semantics. Examples of other styles you can use are contextual
 dynamics (i.e., using evaluation contexts), abstract machines,
 definitional interpreters (i.e., a recursive function), and
-denotational semantics.
+denotational semantics. The book _Types and Programming Langauges_ by
+Benjamin Pierce has many examples of language features that would be
+an appropriate choice for your project.
 
 
 ## Schedule

@@ -2,7 +2,7 @@
 module lecture-notes-More where
 ```
 
-# Primitives, Let, Arrays, and Errors
+# STLC + Primitives, Let, Arrays, and Errors
 
 
 ## Imports
@@ -21,6 +21,12 @@ open import Relation.Binary.PropositionalEquality
 
 ## Primitives
 
+The idea here is to use Agda values as primitive constants. We include
+natural numbers, Booleans, and Agda functions over naturals and
+Booleans.
+
+The `Base` and `Prim` data types describe the types of constants.
+
 ```
 data Base : Set where
   B-Nat : Base
@@ -29,7 +35,12 @@ data Base : Set where
 data Prim : Set where
   base : Base → Prim
   _⇒_ : Base → Prim → Prim
+```
 
+The `base-rep` and `rep` functions map from the type descriptors to
+the Agda types that we will use to represent the constants.
+
+```
 base-rep : Base → Set 
 base-rep B-Nat = ℕ
 base-rep B-Bool = 𝔹
@@ -37,39 +48,6 @@ base-rep B-Bool = 𝔹
 rep : Prim → Set
 rep (base b) = base-rep b
 rep (b ⇒ p) = base-rep b → rep p
-```
-
-## Types
-
-```
-data Type : Set where
-  Nat   : Type
-  Bool   : Type
-  _⇒_   : Type → Type → Type
-  Array _  : Type → Type
-```
-
-### Contexts
-
-```
-data Context : Set where
-  ∅   : Context
-  _,_ : Context → Type → Context
-```
-
-```
-infix  4  _∋_⦂_
-
-data _∋_⦂_ : Context → ℕ → Type → Set where
-
-  Z : ∀ {Γ A}
-      ------------------
-    → Γ , A ∋ 0 ⦂ A
-
-  S : ∀ {Γ x A B}
-    → Γ ∋ x ⦂ A
-      ------------------
-    → Γ , B ∋ (suc x) ⦂ A
 ```
 
 ## Terms
@@ -120,7 +98,6 @@ pattern 〈〉 = op-empty ⦅ nil ⦆
 pattern _!_ L M = op-index ⦅ cons (ast L) (cons (ast M) nil) ⦆
 
 pattern error = op-error ⦅ nil ⦆
-
 ```
 
 ```
@@ -129,6 +106,16 @@ sub-lam N σ = refl
 
 sub-app : ∀ (L M : Term) (σ : Subst) → ⟪ σ ⟫ (L · M) ≡ (⟪ σ ⟫ L) · (⟪ σ ⟫ M)
 sub-app L M σ = refl
+```
+
+## Types
+
+```
+data Type : Set where
+  Nat   : Type
+  Bool   : Type
+  _⇒_   : Type → Type → Type
+  Array _  : Type → Type
 ```
 
 ## Type of a primitive
@@ -141,6 +128,29 @@ typeof-base B-Bool = Bool
 typeof : Prim → Type
 typeof (base b) = typeof-base b 
 typeof (b ⇒ p) = typeof-base b ⇒ typeof p
+```
+
+## Contexts
+
+```
+data Context : Set where
+  ∅   : Context
+  _,_ : Context → Type → Context
+```
+
+```
+infix  4  _∋_⦂_
+
+data _∋_⦂_ : Context → ℕ → Type → Set where
+
+  Z : ∀ {Γ A}
+      ------------------
+    → Γ , A ∋ 0 ⦂ A
+
+  S : ∀ {Γ x A B}
+    → Γ ∋ x ⦂ A
+      ------------------
+    → Γ , B ∋ (suc x) ⦂ A
 ```
 
 ## Typing judgement
@@ -213,19 +223,13 @@ data _⊢_⦂_ : Context → Term → Type → Set where
 ```
 data Value : Term → Set where
 
-  -- functions
-
   V-ƛ : ∀ {N : Term}
       ---------------------------
     → Value (ƛ N)
 
-  -- primitives
-
   V-const : ∀ {p k}
       -----------------
     → Value ($ p k)
-
-  -- arrays
 
   V-〈〉 : Value 〈〉
 
@@ -234,15 +238,15 @@ data Value : Term → Set where
     → Value Vs
       -----------------
     → Value (V ⦂⦂ Vs)
-
-{-
-  -- errors
-
-  V-error : Value error
--}
 ```
 
 ## Frames and plug
+
+With the addition of errors, one would need to add many more rules for
+propagating an error to the top of the program. We instead collapse
+these rules, and the ξ rules, into just two rules by abstracting over
+the notion of a _frame_, which controls how reduction can occur inside
+of each term constructor. Think of the `□` symbol is a hole in the term.
 
 ```
 data Frame : Set where
@@ -254,6 +258,8 @@ data Frame : Set where
   _!□ : Term → Frame
   let□ : Term → Frame
 ```
+
+The `plug` function fills a frame's hole with a term.
 
 ```
 plug : Term → Frame → Term

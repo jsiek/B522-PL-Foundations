@@ -8,7 +8,7 @@ reason about those languages and programs written in them.  The course
 will use the online textbook
 
 [Programming Language Foundations in Agda](https://plfa.github.io/beta/)
-(the beta version)
+(PLFA) (the beta version)
 
 [Agda](https://agda.readthedocs.io/en/v2.6.0.1/index.html) is a proof
 assistant and a dependently typed language.  No prior knowledge of
@@ -16,19 +16,23 @@ Agda is assumed; it will be taught from scratch.  Prior knowledge of
 another proof assistant or dependently typed language is helpful but
 not necessary.
 
+
 ## Instructor
 
 Prof. Jeremy Siek, Luddy 3016, [jsiek@indiana.edu](mailto:jsiek@indiana.edu)
 
+
 ## Lectures
 
 Monday and Wednesday at 4:30-5:45pm in Luddy Hall Room 4101.
+
 
 ## Office Hours (in Luddy Hall 3016 or the neighboring 3014)
 
 * Monday 3:00-4:30pm
 * Tuesday 11:00-12:30pm
 * Friday 1:30-3:00pm
+
 
 ## Assignments
 
@@ -61,7 +65,23 @@ Monday and Wednesday at 4:30-5:45pm in Luddy Hall Room 4101.
    `progress′` and
    `unstuck`
    (in [Properties](https://plfa.github.io/Properties/)).
-   
+
+6. February 24: Exercises X in [DeBruijn](https://plfa.github.io/DeBruijn/)),
+   and X in [More](https://plfa.github.io/More/)).
+
+
+## Project, Due May 1
+
+Choose a language feature that is not spelled out in PLFA to formalize
+in Agda. Your formalization should include both a static semantics
+(aka. type system), a dynamic semantics, and a proof of type
+safety. For the dynamic semantics you must use a different style than
+the approach used in PLFA, that is, do not use a reduction
+semantics. Examples of other styles you can use are contextual
+dynamics (i.e., using evaluation contexts), abstract machines,
+definitional interpreters (i.e., a recursive function), and
+denotational semantics.
+
 
 ## Schedule
 

@@ -66,8 +66,16 @@ Monday and Wednesday at 4:30-5:45pm in Luddy Hall Room 4101.
    `unstuck`
    (in [Properties](https://plfa.github.io/Properties/)).
 
-6. February 24: Exercises X in [DeBruijn](https://plfa.github.io/DeBruijn/),
-   and X in [More](https://plfa.github.io/More/).
+6. February 24: Formalize the STLC using the extrinsic
+   style, as in [Lambda](https://plfa.github.io/Lambda/),
+   but using de Bruijn indices to represent variables,
+   as in [DeBruijn](https://plfa.github.io/DeBruijn/).
+   Prove the analogous theorem to `preserve`
+   in [Properties](https://plfa.github.io/Properties/).
+   You may omit natural numbers (0, suc, and case)
+   from your formalization of the STLC, instead
+   including a bottom (empty) type or a Boolean type.
+
 
 
 ## Project, due May 1

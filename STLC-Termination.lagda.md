@@ -38,8 +38,8 @@ sig op-case = 0 ∷ 0 ∷ 1 ∷ []
 
 open Syntax Op sig
   using (`_; _⦅_⦆; cons; nil; bind; ast;
-         _[_]; Subst; ⟪_⟫; exts; _•_; id; exts-sub-cons)
-  renaming (ABT to Term; ∣_∣ to ⟦_⟧)
+         _[_]; Subst; ⟪_⟫; ⟦_⟧; exts; _•_; id; exts-sub-cons)
+  renaming (ABT to Term)
 
 infixl 7  _·_
 
@@ -243,69 +243,61 @@ L —↠⟨ LM ⟩ MN = —↠-trans LM MN
 
 ## Termination via Logical Relations
 
+We give a meaning to types by interpreting them, via function `ℰ`, as
+sets of terms that behave in a particular way. In particular, they are
+terms that halt and produce a value, and furthermore the value must
+behave according to its type.  So the definition of `ℰ` is mutually
+recursive with another function `𝒱` that maps each type to a set of
+values.
+
 ```
-WTE : (A : Type) → Term → Set
-WTV : (A : Type) → Term → Set
+ℰ : (A : Type) → Term → Set
+𝒱 : (A : Type) → Term → Set
 
-WTE A M = Σ[ V ∈ Term ] (M —↠ V) × (Value V) × (WTV A V)
+ℰ A M = Σ[ V ∈ Term ] (M —↠ V) × (Value V) × (𝒱 A V)
+```
 
-WTV `ℕ (` x) = ⊥
-WTV `ℕ (ƛ N) = ⊥
-WTV `ℕ (L · M) = ⊥
-WTV `ℕ `zero = ⊤
-WTV `ℕ (`suc M) = WTV `ℕ M
-WTV `ℕ (case L M N) = ⊥
-WTV (A ⇒ B) (` x) = ⊥
-WTV (A ⇒ B) (ƛ N) = ∀ {V : Term} → WTV A V → WTE B (N [ V ])
-WTV (A ⇒ B) (L · M) = ⊥
-WTV (A ⇒ B) `zero = ⊥
-WTV (A ⇒ B) (`suc M) = ⊥
-WTV (A ⇒ B) (case L M N) = ⊥
+`𝒱 ℕ` is simply the set of natural numbers, but `𝒱 (A ⇒ B)` is more
+interesting. It is the set of all lambda abstractions `ƛ N`
+where `N[ V ]` is a term that behaves according to type `B`, that is,
+`ℰ B (N [ V ])` for any value `V` that behaves according
+to type `A`, i.e., `𝒱 A V`.
+
+```
+𝒱 `ℕ `zero = ⊤
+𝒱 `ℕ (`suc M) = 𝒱 `ℕ M
+𝒱 `ℕ _ = ⊥
+𝒱 (A ⇒ B) (ƛ N) = ∀ {V : Term} → 𝒱 A V → ℰ B (N [ V ])
+𝒱 (A ⇒ B) _ = ⊥
 ```
 
 ### Canonical forms
 
 ```
-WTV⇒→ƛ : ∀{M : Term}{A B} → WTV (A ⇒ B) M → Σ[ N ∈ Term ] M ≡ ƛ N
-WTV⇒→ƛ {ƛ N} {A} {B} wtv = ⟨ N , refl ⟩
-WTV⇒→ƛ {L · M} {A} {B} ()
-WTV⇒→ƛ {`zero} {A} {B} ()
-WTV⇒→ƛ {`suc M} {A} {B} ()
-WTV⇒→ƛ {case L M N} {A} {B} ()
+𝒱⇒→ƛ : ∀{M : Term}{A B} → 𝒱 (A ⇒ B) M → Σ[ N ∈ Term ] M ≡ ƛ N
+𝒱⇒→ƛ {ƛ N} {A} {B} wtv = ⟨ N , refl ⟩
 
 data Natural : Term → Set where
    Nat-Z : Natural (`zero)
    Nat-S : ∀ {V} → Natural V → Natural (`suc V)
 
-WTVℕ→Nat : ∀{M : Term} → WTV `ℕ M → Natural M
-WTVℕ→Nat {ƛ N} ()
-WTVℕ→Nat {L · M} ()
-WTVℕ→Nat {`zero} wtv = Nat-Z
-WTVℕ→Nat {`suc M} wtv = Nat-S (WTVℕ→Nat wtv)
-WTVℕ→Nat {case L M N} ()
+𝒱ℕ→Nat : ∀{M : Term} → 𝒱 `ℕ M → Natural M
+𝒱ℕ→Nat {`zero} wtv = Nat-Z
+𝒱ℕ→Nat {`suc M} wtv = Nat-S (𝒱ℕ→Nat wtv)
 ```
 
 ```
-WTV→Value : ∀{A}{M : Term} → WTV A M → Value M
-WTV→Value {`ℕ} {` x} ()
-WTV→Value {`ℕ} {ƛ N} ()
-WTV→Value {`ℕ} {L · M} ()
-WTV→Value {`ℕ} {`zero} wtv = V-zero
-WTV→Value {`ℕ} {`suc M} wtv = V-suc (WTV→Value {`ℕ} wtv)
-WTV→Value {`ℕ} {case L M N} ()
-WTV→Value {A ⇒ B} {` x} ()
-WTV→Value {A ⇒ B} {ƛ N} wtv = V-ƛ
-WTV→Value {A ⇒ B} {L · M} ()
-WTV→Value {A ⇒ B} {`zero} ()
-WTV→Value {A ⇒ B} {`suc M} ()
-WTV→Value {A ⇒ B} {case L M N} ()
+𝒱→Value : ∀{A}{M : Term} → 𝒱 A M → Value M
+𝒱→Value {`ℕ} {`zero} wtv = V-zero
+𝒱→Value {`ℕ} {`suc M} wtv = V-suc (𝒱→Value {`ℕ} wtv)
+𝒱→Value {A ⇒ B} {ƛ N} wtv = V-ƛ
 ```
 
-The WTV function implies the WTE relation.
+The 𝒱 function implies the ℰ function.
 
 ```
-WTV→WTE : ∀{A}{M : Term} → WTV A M → WTE A M
-WTV→WTE {A}{M = M} wtv = ⟨ M , ⟨ M ∎ , ⟨ WTV→Value {A} wtv , wtv ⟩ ⟩ ⟩
+𝒱→ℰ : ∀{A}{M : Term} → 𝒱 A M → ℰ A M
+𝒱→ℰ {A}{M = M} wtv = ⟨ M , ⟨ M ∎ , ⟨ 𝒱→Value {A} wtv , wtv ⟩ ⟩ ⟩
 ```
 
 
@@ -356,10 +348,10 @@ app-compat {L}{L''}{M}{M'}(_—→⟨_⟩_ L {L'}{L''} L→L' L'→L'') vL' M→
 
 ```
 nth-cons : ∀{V : Term}{A}{Γ}{σ}
-         → WTV A V
-         → (∀ {C : Type} (x : ℕ) → nth Γ x ≡ just C → WTV C (⟦ σ ⟧ x))
+         → 𝒱 A V
+         → (∀ {C : Type} (x : ℕ) → nth Γ x ≡ just C → 𝒱 C (⟦ σ ⟧ x))
          → ∀ {C : Type} (x : ℕ) →
-            nth (A ∷ Γ) x ≡ just C → WTV C (⟦ V • σ ⟧ x)
+            nth (A ∷ Γ) x ≡ just C → 𝒱 C (⟦ V • σ ⟧ x)
 nth-cons {V} wtv ⊢σ {C} zero refl = wtv
 nth-cons {V} wtv ⊢σ {C} (suc x) eq rewrite eq = ⊢σ x eq
 ```
@@ -369,14 +361,14 @@ nth-cons {V} wtv ⊢σ {C} (suc x) eq rewrite eq = ⊢σ x eq
 ```
 fundamental-property : ∀ {A}{Γ}{M : Term} {σ : Subst}
   → Γ ⊢ M ⦂ A
-  → (∀ {A}(x : ℕ) → nth Γ x ≡ just A → WTV A (⟦ σ ⟧ x))
-  → WTE A (⟪ σ ⟫ M)
-fundamental-property {A}(⊢` {x = x} x∈Γ) ⊢σ = WTV→WTE {A} ( ⊢σ x x∈Γ)
+  → (∀ {A}(x : ℕ) → nth Γ x ≡ just A → 𝒱 A (⟦ σ ⟧ x))
+  → ℰ A (⟪ σ ⟫ M)
+fundamental-property {A}(⊢` {x = x} x∈Γ) ⊢σ = 𝒱→ℰ {A} ( ⊢σ x x∈Γ)
 fundamental-property {A ⇒ B}{Γ}{ƛ M}{σ}(⊢ƛ ⊢M) ⊢σ =
   ⟨ ƛ ( ⟪ exts σ ⟫ M) , ⟨ (ƛ (⟪ exts σ ⟫ M) ∎) , ⟨ V-ƛ , G ⟩ ⟩ ⟩
   where
 
-  G : {V : Term} → WTV A V → WTE B (( ⟪ exts σ ⟫ M) [ V ])
+  G : {V : Term} → 𝒱 A V → ℰ B (( ⟪ exts σ ⟫ M) [ V ])
   G {V} wtv
       with fundamental-property {B}{A ∷ Γ}{M}{V • σ} ⊢M (nth-cons wtv ⊢σ)
   ... | ⟨ N' , ⟨ N→N' , ⟨ vN' , wtvN' ⟩ ⟩ ⟩
@@ -386,7 +378,7 @@ fundamental-property {A ⇒ B}{Γ}{ƛ M}{σ}(⊢ƛ ⊢M) ⊢σ =
 fundamental-property {B}{Γ}{L · M}{σ} (⊢· {A = A} ⊢L ⊢M) ⊢σ
     with fundamental-property {A ⇒ B}{M = L}{σ} ⊢L ⊢σ
 ... | ⟨ L' , ⟨ L→L' , ⟨ vL' , wtvL' ⟩ ⟩ ⟩
-    with WTV⇒→ƛ {L'} wtvL'
+    with 𝒱⇒→ƛ {L'} wtvL'
 ... | ⟨ N , eq ⟩ rewrite eq
     with fundamental-property {M = M}{σ} ⊢M ⊢σ
 ... | ⟨ M' , ⟨ M→M' , ⟨ vM' , wtvM' ⟩ ⟩ ⟩
@@ -394,7 +386,7 @@ fundamental-property {B}{Γ}{L · M}{σ} (⊢· {A = A} ⊢L ⊢M) ⊢σ
 ... | ⟨ V , ⟨ →V , ⟨ vV , wtvV ⟩ ⟩ ⟩ =    
       let r1 = app-compat L→L' vL' M→M' in
       ⟨ V , ⟨ (—↠-trans r1 ((ƛ N) · M' —→⟨ β-ƛ vM' ⟩ →V)) , ⟨ vV , wtvV ⟩ ⟩ ⟩
-fundamental-property ⊢zero ⊢σ = WTV→WTE {`ℕ} tt
+fundamental-property ⊢zero ⊢σ = 𝒱→ℰ {`ℕ} tt
 fundamental-property (⊢suc ⊢M) ⊢σ 
     with fundamental-property ⊢M ⊢σ
 ... | ⟨ V , ⟨ M→V , ⟨ vV , wtv ⟩ ⟩ ⟩ = 
@@ -402,7 +394,7 @@ fundamental-property (⊢suc ⊢M) ⊢σ
 fundamental-property {M = case L M N}{σ = σ} (⊢case ⊢L ⊢M ⊢N) ⊢σ
     with fundamental-property {`ℕ}{σ = σ} ⊢L ⊢σ
 ... | ⟨ L' , ⟨ L→L' , ⟨ vL , wtvL' ⟩ ⟩ ⟩
-    with WTVℕ→Nat {L'} wtvL'
+    with 𝒱ℕ→Nat {L'} wtvL'
 ... | Nat-Z
     with fundamental-property {σ = σ} ⊢M ⊢σ
 ... | ⟨ M' , ⟨ M→M' , ⟨ vM , wtvM ⟩ ⟩ ⟩ =
@@ -427,7 +419,7 @@ fundamental-property {M = case L M N}{σ} (⊢case {Γ}{A = A} ⊢L ⊢M ⊢N) �
     R : case (⟪ σ ⟫ L) (⟪ σ ⟫ M) (⟪ exts σ ⟫ N) —↠ N'
     R = begin
         (case (⟪ σ ⟫ L) (⟪ σ ⟫ M) (⟪ exts σ ⟫ N))  —↠⟨ case-compat L→L' ⟩
-        (case (`suc V) (⟪ σ ⟫ M) (⟪ exts σ ⟫ N))   —→⟨ β-suc (WTV→Value {`ℕ} wtvL') ⟩
+        (case (`suc V) (⟪ σ ⟫ M) (⟪ exts σ ⟫ N))   —→⟨ β-suc (𝒱→Value {`ℕ} wtvL') ⟩
         ⟪ exts σ ⟫ N [ V ]                         —↠⟨ S ⟩
         ⟪ V • σ ⟫ N                                —↠⟨ N→N' ⟩
         N'                                         ∎

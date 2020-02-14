@@ -427,24 +427,24 @@ progress : ∀ {M A}
   → Progress M
 progress (⊢` ())
 progress (⊢$ _)                             = done V-const
-progress (⊢ƛ ⊢N)                            =  done V-ƛ
+progress (⊢ƛ ⊢N)                            = done V-ƛ
 progress (⊢· {L = L}{M}{A}{B} ⊢L ⊢M)
     with progress ⊢L
-... | step L—→L′                            =  step (ξ (□· M) L—→L′)
+... | step L—→L′                            = step (ξ (□· M) L—→L′)
 ... | trapped-error is-error                = step (lift-error (□· M))
 ... | done VL
         with progress ⊢M
-...     | step M—→M′                        =  step (ξ ((L ·□) VL) M—→M′)
+...     | step M—→M′                        = step (ξ ((L ·□) VL) M—→M′)
 ...     | trapped-error is-error            = step (lift-error ((L ·□) VL))
 ...     | done VM
             with canonical-fun ⊢L VL
-...         | Fun-ƛ                         =  step (β-ƛ VM)
+...         | Fun-ƛ                         = step (β-ƛ VM)
 ...         | Fun-prim {b}{p}{k}
                 with ⊢L
 ...             | ⊢$ refl
                 with canonical-base refl ⊢M VM
 ...             | base-const                = step δ
-progress (⊢μ ⊢M)                            =  step β-μ
+progress (⊢μ ⊢M)                            = step β-μ
 progress (⊢let {N = N} ⊢L ⊢N)
     with progress ⊢L
 ... | step L—→L′                            = step (ξ (let□ N) L—→L′)
@@ -466,19 +466,15 @@ progress (⊢! {Ms = M}{N} ⊢M ⊢N)
 ... | trapped-error is-error                = step (lift-error (□! N))
 ... | done VMs
         with progress ⊢N
-...     | step N—→N′                            = step (ξ (M !□) N—→N′)
-...     | trapped-error is-error                = step (lift-error (M !□))
+...     | step N—→N′                        = step (ξ (M !□) N—→N′)
+...     | trapped-error is-error            = step (lift-error (M !□))
 ...     | done VN
             with canonical-array ⊢M VMs
-...         | array-empty                       = step β-index-error
+...         | array-empty                   = step β-index-error
 ...         | array-insert aVs
-              = {!!}
-
-{-
-        with k
-...     | 0                                 = step (β-index-0 VMs)
-...     | suc k'                            = step (β-index-suc VMs)
--}
+            with canonical-base refl ⊢N VN
+...         | base-const {b}{0}             = step (β-index-0 VMs)
+...         | base-const {b}{suc i}         = step (β-index-suc VMs)
 progress ⊢error                             = trapped-error is-error
 ```
 

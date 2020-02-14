@@ -88,7 +88,7 @@ the approach used in PLFA, that is, do not use a reduction
 semantics. Examples of other styles you can use are contextual
 dynamics (i.e., using evaluation contexts), abstract machines,
 definitional interpreters (i.e., a recursive function), and
-denotational semantics. The book _Types and Programming Langauges_ by
+denotational semantics. The book _Types and Programming Languages_ by
 Benjamin Pierce has many examples of language features that would be
 an appropriate choice for your project.
 
@@ -138,3 +138,4 @@ an appropriate choice for your project.
   and ask questions!
 
 * [Crash Course on Notation in Programming Language Theory](http://siek.blogspot.com/2012/07/crash-course-on-notation-in-programming.html)
+

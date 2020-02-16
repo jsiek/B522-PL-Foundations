@@ -57,6 +57,8 @@ data _∈_ : (Id × Type) → List (Id × Type) → Set
 data _<::_ : List (Id × Type) → List (Id × Type) → Set
 
 data _<:_ where
+  <:bool : `𝔹 <: `𝔹
+  
   <:nat : `ℕ <: `ℕ
   
   <:fun : ∀ {A B C D}
@@ -71,8 +73,9 @@ data _<:_ where
 
 data _<::_ where
   <::nil : ∀{ρ} → ρ <:: []
+  
   <::cons : ∀{ρ₁ ρ₂ y B}
-          → Any (λ { ⟨ x , A ⟩ → x ≡ y × A <: B} ) ρ₁
+          → ⟨ y , B ⟩ ∈ ρ₁
           → ρ₁ <:: ρ₂
             -----------------------------------------
           → ρ₁ <:: (⟨ y , B ⟩ ∷ ρ₂)
@@ -87,6 +90,21 @@ data _∈_ where
        → ⟨ x , B ⟩ ∈ ρ   → x ≢ y
          ---------------------------
        → ⟨ x , B ⟩ ∈ (⟨ y , A ⟩ ∷ ρ)
+```
+
+## Properties of Subtyping
+
+```
+<::-refl : ∀ ρ → ρ <:: ρ
+
+<:-refl : ∀ A → A <: A
+<:-refl `𝔹 = <:bool
+<:-refl `ℕ = <:nat
+<:-refl (A ⇒ B) = <:fun (<:-refl A) (<:-refl B)
+<:-refl (Record ρ) = <:rec (<::-refl ρ)
+
+<::-refl [] = <::nil
+<::-refl (⟨ f , A ⟩ ∷ ρ) = <::cons (∈-eq (<:-refl A)) {!!}
 ```
 
 ## Primitives
@@ -146,7 +164,6 @@ sig op-let = 0 ∷ 1 ∷ []
 sig (op-insert f) = 0 ∷ 0 ∷ []
 sig op-empty = []
 sig (op-member f) = 0 ∷ []
-
 
 open Syntax Op sig
   using (`_; _⦅_⦆; cons; nil; bind; ast; _[_];

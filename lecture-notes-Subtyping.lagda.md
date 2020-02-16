@@ -46,7 +46,7 @@ data Type : Set where
   `𝔹    : Type
   `ℕ    : Type
   _⇒_   : Type → Type → Type
-  Record _ : List (Id × Type) → Type 
+  Record : List (Id × Type) → Type 
 ```
 
 ### Subtyping
@@ -74,11 +74,16 @@ data _<:_ where
 data _<::_ where
   <::nil : ∀{ρ} → ρ <:: []
   
-  <::cons : ∀{ρ₁ ρ₂ y B}
+  <::cons-R : ∀{ρ₁ ρ₂ y B}
           → ⟨ y , B ⟩ ∈ ρ₁
           → ρ₁ <:: ρ₂
             -----------------------------------------
           → ρ₁ <:: (⟨ y , B ⟩ ∷ ρ₂)
+
+  <::cons-L : ∀{ρ₁ ρ₂ x A}
+          → ρ₁ <:: ρ₂
+            -----------------------------------------
+          → (⟨ x , A ⟩ ∷ ρ₁) <:: ρ₂
 
 data _∈_ where
   ∈-eq : ∀ {ρ x A B}
@@ -104,7 +109,7 @@ data _∈_ where
 <:-refl (Record ρ) = <:rec (<::-refl ρ)
 
 <::-refl [] = <::nil
-<::-refl (⟨ f , A ⟩ ∷ ρ) = <::cons (∈-eq (<:-refl A)) {!!}
+<::-refl (⟨ f , A ⟩ ∷ ρ) = <::cons-R (∈-eq (<:-refl A)) (<::cons-L (<::-refl ρ))
 ```
 
 ## Primitives
@@ -390,8 +395,16 @@ sub-inv-fun : ∀{A B C : Type}
   → A <: B ⇒ C
   → Σ[ A₁ ∈ Type ] Σ[ A₂ ∈ Type ] A ≡ A₁ ⇒ A₂
 sub-inv-fun (<:fun {A = A}{B = B} A<:BC A<:BC₁) = ⟨ A , ⟨ B , refl ⟩ ⟩
+```
 
 ```
+sub-inv-base : ∀ {b A}
+  → A <: typeof-base b
+  → A ≡ typeof-base b
+sub-inv-base {B-Nat} <:nat = refl
+sub-inv-base {B-Bool} <:bool = refl
+```
+
 
 ## Canonical Forms
 
@@ -406,7 +419,7 @@ canonical-fun : ∀{V A B C}
   → A <: (B ⇒ C)
     ----------
   → Function V
-canonical-fun ⊢V V-λ A<:⇒ = Fun-λ
+canonical-fun (⊢λ ⊢V) V-λ A<:⇒ = Fun-λ
 canonical-fun (⊢$ {p = base B-Nat} refl) (V-const {_} {k}) A<:⇒
     with sub-inv-fun A<:⇒
 ... | ⟨ A₁ , ⟨ A₂ , () ⟩ ⟩
@@ -414,35 +427,29 @@ canonical-fun (⊢$ {p = base B-Bool} refl) (V-const {_} {k}) A<:⇒
     with sub-inv-fun A<:⇒
 ... | ⟨ A₁ , ⟨ A₂ , () ⟩ ⟩
 canonical-fun (⊢$ {p = b ⇒ p} eq) (V-const {_} {k}) A<:⇒ = Fun-prim
-canonical-fun (⊢<: ⊢k A<:) V-const A<:⇒  = {!!}
-canonical-fun (⊢<: x x₁) V-〈〉 A<:⇒ = {!!}
-{-
+canonical-fun (⊢<: ⊢M A<:) V A<:⇒
     with sub-inv-fun A<:⇒
-... | ⟨ A₁ , ⟨ A₂ , refl ⟩ ⟩ = {!!}
--}
-canonical-fun (⊢<: x x₃) (V-:= x₁ x₂) A<:⇒ = {!!}
+... | ⟨ A₁ , ⟨ A₂ , refl ⟩ ⟩ =
+    canonical-fun ⊢M V A<: 
 
 data Constant : Base → Term → Set where
   base-const : ∀{b k} → Constant b ($ (base b) k)
 
 canonical-base : ∀{b V A}
-  → A ≡ typeof-base b
   → ∅ ⊢ V ⦂ A
   → Value V
+  → A <: typeof-base b
     ------------
   → Constant b V
-canonical-base {B-Nat} eq (⊢$ {p = base B-Nat} refl) V-const = base-const
-canonical-base {B-Bool} eq (⊢$ {p = base B-Bool} refl) V-const = base-const
-canonical-base {B-Nat} refl (⊢$ {p = b' ⇒ p} ()) V-const
-canonical-base {B-Bool} refl (⊢$ {p = b' ⇒ p} ()) V-const
-canonical-base {B-Nat} x x₁ V-λ = {!!}
-canonical-base {B-Nat} x (⊢<: x₁ x₂) V-const = {!!}
-canonical-base {B-Nat} x x₁ V-〈〉 = {!!}
-canonical-base {B-Nat} x x₁ (V-:= x₂ x₃) = {!!}
-canonical-base {B-Bool} x x₁ V-λ = {!!}
-canonical-base {B-Bool} x (⊢<: x₁ x₂) V-const = {!!}
-canonical-base {B-Bool} x x₁ V-〈〉 = {!!}
-canonical-base {B-Bool} x x₁ (V-:= x₂ x₃) = {!!}
+canonical-base {B-Nat} (⊢λ ⊢V) vV ()
+canonical-base {B-Bool} (⊢λ ⊢V) vV ()
+canonical-base {B-Nat} (⊢$ {p = base B-Nat} refl) V-const <:nat = base-const
+canonical-base {B-Bool} (⊢$ {p = base B-Bool} refl) V-const <:bool = base-const
+canonical-base {B-Nat} ⊢empty V-〈〉 ()
+canonical-base {B-Bool} ⊢empty V-〈〉 ()
+canonical-base {B-Nat} (⊢insert ⊢V ⊢V₁) (V-:= vV vV₁) ()
+canonical-base {B-Bool} (⊢insert ⊢V ⊢V₁) (V-:= vV vV₁) ()
+canonical-base {b} (⊢<: ⊢V x) vV A<: = canonical-base ⊢V vV {!!}
 ```
 
 ## Progress
@@ -475,7 +482,9 @@ progress (⊢· {L = L}{M}{A}{B} ⊢L ⊢M)
 ... | done VL
         with progress ⊢M
 ...     | step M—→M′                        = step (ξ ((L ·□) VL) M—→M′)
-...     | done VM
+...     | done VM = {!!}
+
+{-
             with canonical-fun ⊢L VL {!!}
 ...         | Fun-λ                         = step (β-λ VM)
 ...         | Fun-prim {b}{p}{k}
@@ -483,6 +492,7 @@ progress (⊢· {L = L}{M}{A}{B} ⊢L ⊢M)
 ...             | ⊢$ refl
                 with canonical-base refl ⊢M VM
 ...             | base-const                = step δ
+-}
 progress (⊢μ ⊢M)                            = step β-μ
 progress (⊢let {N = N} ⊢L ⊢N)
     with progress ⊢L

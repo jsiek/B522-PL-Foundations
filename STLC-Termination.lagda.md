@@ -329,7 +329,8 @@ case-compat {L}{L''}{M}{N}(_—→⟨_⟩_ L {L'} L→L' L'→L'') =
 ```
 app-compat : ∀{L L' M M' : Term}
            → L —↠ L' → Value L'
-           → M —↠ M' → L · M —↠ L' · M'
+           → M —↠ M'
+           → L · M —↠ L' · M'
 app-compat {L}{L}{M}{M} (L ∎) vL (M ∎) = L · M ∎
 app-compat {L}{L}{M}{M''} (L ∎) vL (_—→⟨_⟩_ M {M'} M→M' M'→M'') =
   begin
@@ -348,11 +349,15 @@ app-compat {L}{L''}{M}{M'}(_—→⟨_⟩_ L {L'}{L''} L→L' L'→L'') vL' M→
 ### A technical lemma about extending substitutions
 
 ```
+_⊢_ : Context → Subst → Set
+Γ ⊢ σ = (∀ {C : Type} (x : ℕ) → nth Γ x ≡ just C → 𝒱 C (⟦ σ ⟧ x))
+```
+
+```
 nth-cons : ∀{V : Term}{A}{Γ}{σ}
          → 𝒱 A V
-         → (∀ {C : Type} (x : ℕ) → nth Γ x ≡ just C → 𝒱 C (⟦ σ ⟧ x))
-         → ∀ {C : Type} (x : ℕ) →
-            nth (A ∷ Γ) x ≡ just C → 𝒱 C (⟦ V • σ ⟧ x)
+         → Γ ⊢ σ
+         → (A ∷ Γ) ⊢ (V • σ)
 nth-cons {V} wtv ⊢σ {C} zero refl = wtv
 nth-cons {V} wtv ⊢σ {C} (suc x) eq rewrite eq = ⊢σ x eq
 ```
@@ -362,11 +367,11 @@ nth-cons {V} wtv ⊢σ {C} (suc x) eq rewrite eq = ⊢σ x eq
 ```
 fundamental-property : ∀ {A}{Γ}{M : Term} {σ : Subst}
   → Γ ⊢ M ⦂ A
-  → (∀ {A}(x : ℕ) → nth Γ x ≡ just A → 𝒱 A (⟦ σ ⟧ x))
+  → Γ ⊢ σ
   → ℰ A (⟪ σ ⟫ M)
 fundamental-property {A}(⊢` {x = x} x∈Γ) ⊢σ = 𝒱→ℰ {A} ( ⊢σ x x∈Γ)
 fundamental-property {A ⇒ B}{Γ}{ƛ M}{σ}(⊢ƛ ⊢M) ⊢σ =
-  ⟨ ƛ ( ⟪ exts σ ⟫ M) , ⟨ (ƛ (⟪ exts σ ⟫ M) ∎) , ⟨ V-ƛ , G ⟩ ⟩ ⟩
+  ⟨ ⟪ σ ⟫ (ƛ M) , ⟨ ƛ (⟪ exts σ ⟫ M) ∎ , ⟨ V-ƛ , G ⟩ ⟩ ⟩
   where
 
   G : {V : Term} → 𝒱 A V → ℰ B (( ⟪ exts σ ⟫ M) [ V ])
@@ -375,7 +380,6 @@ fundamental-property {A ⇒ B}{Γ}{ƛ M}{σ}(⊢ƛ ⊢M) ⊢σ =
   ... | ⟨ N' , ⟨ N→N' , ⟨ vN' , wtvN' ⟩ ⟩ ⟩
       rewrite exts-sub-cons σ M V =
       ⟨ N' , ⟨ N→N' , ⟨ vN' , wtvN' ⟩ ⟩ ⟩
-
 fundamental-property {B}{Γ}{L · M}{σ} (⊢· {A = A} ⊢L ⊢M) ⊢σ
     with fundamental-property {A ⇒ B}{M = L}{σ} ⊢L ⊢σ
 ... | ⟨ L' , ⟨ L→L' , ⟨ vL' , wtvL' ⟩ ⟩ ⟩
@@ -384,9 +388,9 @@ fundamental-property {B}{Γ}{L · M}{σ} (⊢· {A = A} ⊢L ⊢M) ⊢σ
     with fundamental-property {M = M}{σ} ⊢M ⊢σ
 ... | ⟨ M' , ⟨ M→M' , ⟨ vM' , wtvM' ⟩ ⟩ ⟩
     with wtvL' {M'} wtvM'
-... | ⟨ V , ⟨ →V , ⟨ vV , wtvV ⟩ ⟩ ⟩ =    
-      let r1 = app-compat L→L' vL' M→M' in
-      ⟨ V , ⟨ (—↠-trans r1 ((ƛ N) · M' —→⟨ β-ƛ vM' ⟩ →V)) , ⟨ vV , wtvV ⟩ ⟩ ⟩
+... | ⟨ V , ⟨ →V , ⟨ vV , wtvV ⟩ ⟩ ⟩ =
+      let L·M→L'·M' = app-compat L→L' vL' M→M' in
+      ⟨ V , ⟨ (—↠-trans L·M→L'·M' ((ƛ N) · M' —→⟨ β-ƛ vM' ⟩ →V)) , ⟨ vV , wtvV ⟩ ⟩ ⟩
 fundamental-property ⊢zero ⊢σ = 𝒱→ℰ {`ℕ} tt
 fundamental-property (⊢suc ⊢M) ⊢σ 
     with fundamental-property ⊢M ⊢σ

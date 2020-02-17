@@ -8,7 +8,8 @@ module lecture-notes-Subtyping where
 open import Data.Unit using (⊤)
 open import Data.List using (List; []; _∷_)
 open import Data.List.Any using (Any; here; there)
-open import Data.Nat using (ℕ; zero; suc; _<_)
+open import Data.Nat using (ℕ; zero; suc; _<_; _+_; _≤_)
+open import Data.Nat.Properties using (≤-refl)
 open import Data.Bool using () renaming (Bool to 𝔹)
 open import Data.Product using (_×_; Σ; Σ-syntax; ∃; ∃-syntax; proj₁; proj₂)
    renaming (_,_ to ⟨_,_⟩)
@@ -51,12 +52,50 @@ data Type : Set where
   Record : List (Id × Type) → Type 
 ```
 
+```
+row-size : List (Id × Type) → ℕ
+
+size : Type → ℕ
+size `𝔹 = 1
+size `ℕ = 1
+size (A ⇒ B) = suc (size A + size B)
+size (Record ρ) = suc (row-size ρ)
+
+row-size [] = 0
+row-size (⟨ x , A ⟩ ∷ ρ) = suc (size A + row-size ρ)
+```
+
 ### Subtyping
 
 ```
-_∈_ : (Id × Type) → List (Id × Type) → Set
+row-mem : Id → (A : Type) → (ρ : List (Id × Type))
+   (n : ℕ) → size A + row-size ρ ≤ n → Set
+
+sub : (A : Type) → (B : Type) → (n : ℕ) → (size A + size B ≤ n) → Set
+sub `𝔹 `𝔹 (suc n) m = ⊤
+sub `ℕ `ℕ (suc n) m = ⊤
+sub (A ⇒ B) (C ⇒ D) (suc n) m =
+  let CA = sub C A n {!!} in
+  let BD = sub B D n {!!} in
+  CA × BD
+sub (Record ρ₁) (Record ρ₂) (suc n) m =
+        (∀ x A → row-mem x A ρ₂ n {!!} → row-mem x A ρ₁ n {!!})
+sub _ _ n m = ⊥
+
+row-mem x A [] n m = ⊥
+row-mem x A (⟨ y , B ⟩ ∷ ρ) 0 m = {!!}
+row-mem x A (⟨ y , B ⟩ ∷ ρ) (suc n) m
+    with x ≟ y
+... | yes x≡y = sub A B n {!!}
+... | no x≢y = row-mem x A ρ n {!!}
 
 _<:_ : Type → Type → Set
+A <: B = sub A B (size A + size B) ≤-refl
+
+_∈_ : (Id × Type) → List (Id × Type) → Set
+⟨ x , A ⟩ ∈ ρ = row-mem x A ρ (size A + row-size ρ) ≤-refl
+
+{-
 `𝔹 <: `𝔹 = ⊤
 `ℕ <: `ℕ = ⊤
 (A ⇒ B) <: (C ⇒ D) = C <: A  ×  B <: D
@@ -69,6 +108,7 @@ _ <: _ = ⊥
     with x ≟ y
 ... | yes x≡y = A <: B
 ... | no x≢y = ⟨ x , B ⟩ ∈ ρ
+-}
 ```
 
 ## Primitives
@@ -423,6 +463,7 @@ canonical-base : ∀{b V A}
   → A <: typeof-base b
     ------------
   → Constant b V
+{-
 canonical-base {B-Nat} (⊢λ ⊢V) vV ()
 canonical-base {B-Bool} (⊢λ ⊢V) vV ()
 canonical-base {B-Nat} (⊢$ {p = base B-Nat} refl) V-const <:nat = base-const
@@ -432,6 +473,7 @@ canonical-base {B-Bool} ⊢empty V-〈〉 ()
 canonical-base {B-Nat} (⊢insert ⊢V ⊢V₁) (V-:= vV vV₁) ()
 canonical-base {B-Bool} (⊢insert ⊢V ⊢V₁) (V-:= vV vV₁) ()
 canonical-base {b} (⊢<: ⊢V x) vV A<: = canonical-base ⊢V vV {!!}
+-}
 ```
 
 ## Progress

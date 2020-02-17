@@ -396,6 +396,8 @@ plug M (□# f)          = M # f
 plug M (let□ N)        = `let M N
 ```
 
+## Reduction
+
 ```
 data _—→_ : Term → Term → Set where
 
@@ -526,6 +528,120 @@ canonical-base {b} (⊢<: ⊢V x) vV A<: =
   canonical-base ⊢V vV (<:-trans x A<:)
 ```
 
+```
+data Rcd : Term → Type → Set where
+  Rcd-⟨⟩ : ∀{B} → Record [] <: B → Rcd 〈〉 B
+  Rcd-:= : ∀ {f A B M R ρ w}
+         → Rcd R (Record ρ {w})
+         → (d : ¬ f ∈ map proj₁ ρ)
+         → Record (⟨ f , A ⟩ ∷ ρ) {⟨ d , w ⟩} <: B
+         → Rcd (f := M , R) B
+
+Rcd-<: : ∀{R A B}
+  → Rcd R A
+  → A <: B
+  → Rcd R B
+Rcd-<: (Rcd-⟨⟩ s) A<:B = Rcd-⟨⟩ (<:-trans s A<:B)
+Rcd-<: (Rcd-:= {w = w} RA d x) A<:B =
+    Rcd-:= {w = w} RA d (<:-trans x A<:B)
+
+
+rem : Id → List (Id × Type) → List (Id × Type)
+rem f [] = []
+rem f (⟨ x , A ⟩ ∷ ρ)
+    with f ≟ x
+... | yes refl = ρ
+... | no f≢x = rem f ρ
+
+distinct-rem : ∀{ρ f}
+  → distinct (map proj₁ ρ)
+  → distinct (map proj₁ (rem f ρ))
+distinct-rem {[]} d = tt
+distinct-rem {⟨ x , A ⟩ ∷ ρ}{f} ⟨ fst , snd ⟩ 
+    with f ≟ x
+... | yes refl = snd
+... | no f≢x = distinct-rem snd
+
+wf-rem : ∀{ρ f} → wf-rcd ρ
+   → wf-rcd (rem f ρ)
+wf-rem {[]} wf = tt
+wf-rem {⟨ g , A ⟩ ∷ ρ} {f} ⟨ d , w ⟩
+    with f ≟ g
+... | yes refl = w
+... | no f≢g = distinct-rem w
+
+rem-mem : ∀{ρ ρ' f}
+   → (∀ {x A} → ⟨ x , A ⟩ ∈ ρ' → ⟨ x , A ⟩ ∈ ρ)
+   → ∀ {x A} → ⟨ x , A ⟩ ∈ rem f ρ' → ⟨ x , A ⟩ ∈ rem f ρ
+rem-mem {ρ} {⟨ y , B ⟩ ∷ ρ'}{f} mem x∈rem
+    with f ≟ y
+... | yes refl
+    with x∈rem
+... | here refl = {!!}
+... | there z = {!!}
+rem-mem {ρ} {⟨ y , B ⟩ ∷ ρ'}{f} mem x∈rem | no f≢y = {!!}
+
+rem-<: : ∀{f ρ w ρ' w'}
+   → Record ρ {w} <: Record ρ' {w'}
+   → Record (rem f ρ) {wf-rem w} <: Record (rem f ρ') {wf-rem w'}
+rem-<: {f} {ρ} {w} {.ρ} {w'} <:-refl = <:-refl
+rem-<: {f} {ρ} {w} {ρ'} {w'} (<:-trans ρ<:B B<:ρ')
+    with inversion-<:-rcd {wf = w'} B<:ρ' 
+... | ⟨ ρ₂ , ⟨ w₂ , refl ⟩ ⟩ =
+  let IH1 = rem-<: {w = w} {w' = w₂} ρ<:B in
+  let IH2 = rem-<: {w = w₂} {w' = w'} B<:ρ' in
+  <:-trans IH1 IH2
+rem-<: {f} {ρ} {w} {ρ'} {w'} (<:-rcd-width x) = <:-rcd-width {wf1 = {!!}}{wf2 = {!!}} (rem-mem x)
+rem-<: {f} {.[]} {w} {.[]} {w'} <:-rcd-nil = <:-refl
+rem-<: {f} {.(⟨ _ , _ ⟩ ∷ _)} {w} {.(⟨ _ , _ ⟩ ∷ _)} {w'} (<:-rcd-depth R<: R<:₁) = {!!}
+
+rcd-insert<: : ∀{f A ρ ρ' w d' w'}
+   → Record (⟨ f , A ⟩ ∷ ρ') {⟨ d' , w' ⟩} <: Record ρ {w}
+   → Record ρ' {w'} <: Record (rem f ρ) {wf-rem w}
+rcd-insert<: {f} <:-refl
+    with f ≟ f
+... | yes refl = <:-refl
+... | no x = ⊥-elim (x refl)
+rcd-insert<: {w = w}{d'}{w'} (<:-trans ρ'<:B B<:ρ)
+    with inversion-<:-rcd {wf = w} B<:ρ
+... | ⟨ ρ₂ , ⟨ w'' , refl ⟩ ⟩ =
+    let IH = rcd-insert<: {w = w''}{d'}{w'} ρ'<:B in
+    <:-trans IH {!!}
+rcd-insert<: (<:-rcd-width x) = {!!}
+rcd-insert<: (<:-rcd-depth R<: R<:₁) = {!!}
+
+
+canonical-rcd : ∀{R A ρ w}
+  → ∅ ⊢ R ⦂ A
+  → Value R
+  → A <: Record ρ {w}
+  → Rcd R A
+canonical-rcd {w = w} (⊢λ ⊢R) vR A<:
+    with inversion-<:-rcd {wf = w} A<:
+... | ⟨ ρ , ⟨ wf , () ⟩ ⟩
+canonical-rcd {w = w} (⊢$ {p = base B-Nat} refl) vR A<:
+    with inversion-<:-rcd {wf = w} A<:
+... | ⟨ ρ , ⟨ wf , () ⟩ ⟩
+canonical-rcd {w = w} (⊢$ {p = base B-Bool} refl) vR A<:
+    with inversion-<:-rcd {wf = w} A<:
+... | ⟨ ρ , ⟨ wf , () ⟩ ⟩
+canonical-rcd {w = w} (⊢$ {p = b ⇒ p} refl) vR A<:
+    with inversion-<:-rcd {wf = w} A<:
+... | ⟨ ρ , ⟨ wf , () ⟩ ⟩
+canonical-rcd ⊢empty vR A<: = Rcd-⟨⟩ <:-refl
+canonical-rcd {A = A}{ρ}{w}(⊢insert {A = A'} {ρ = ρ'} {f} {w'} ⊢M ⊢R d) (V-:= vM vR) A<: =
+    let IH = canonical-rcd {ρ = ρ}{w} ⊢R vR {!!} in
+    Rcd-:= {w = w'} IH d <:-refl
+canonical-rcd {ρ = ρ}{w} (⊢<: {A = B} ⊢R B<:A) vR A<: = {!!}
+{-
+    with inversion-<:-rcd {wf = w} A<:
+... | ⟨ ρ' , ⟨ wf , refl ⟩ ⟩
+    with canonical-rcd {ρ = ρ}{w} ⊢R vR (<:-trans B<:A A<:)
+... | ⟨ ρ'' , ⟨ wf' , refl ⟩ ⟩ = ⟨ ρ' , ⟨ wf , refl ⟩ ⟩
+-}
+```
+
+
 ## Progress
 
 ```
@@ -582,7 +698,10 @@ progress (⊢insert {M = M}{R}{f = f} ⊢M ⊢R ¬∈)
 progress (⊢# {R = R} {f} ⊢R f∈ρ)
     with progress ⊢R
 ... | step R—→R′                          = step (ξ (□# f) R—→R′)
-... | done VR = {!!}
+... | done VR
+    with f∈ρ
+... | here refl = {!!}
+... | there x = {!!}
 {-
     with f∈ρ
 ... | ∈-eq {A = A}{B} A<:B = {!!}

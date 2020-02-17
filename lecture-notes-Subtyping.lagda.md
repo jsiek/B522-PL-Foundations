@@ -8,13 +8,14 @@ module lecture-notes-Subtyping where
 open import Data.List using (List; []; _∷_)
 open import Data.List.Any using (Any; here; there)
 open import Data.Nat using (ℕ; zero; suc; _<_)
-open import Data.Bool renaming (Bool to 𝔹)
+open import Data.Bool using () renaming (Bool to 𝔹)
 open import Data.Product using (_×_; Σ; Σ-syntax; ∃; ∃-syntax; proj₁; proj₂)
    renaming (_,_ to ⟨_,_⟩)
 open import Data.String using (String; _≟_)
 open import Data.Empty using (⊥; ⊥-elim)
 import Relation.Binary.PropositionalEquality as Eq
 open Eq using (_≡_; _≢_; refl)
+open import Relation.Nullary using (Dec; yes; no)
 import Syntax
 ```
 
@@ -49,6 +50,21 @@ data Type : Set where
   Record : List (Id × Type) → Type 
 ```
 
+```
+data WFRow : List (Id × Type) → Set
+
+data WF : Type → Set where
+   WF-Bool : WF (`𝔹)
+   WF-Nat : WF (`ℕ)
+   WF-Fun : ∀{A B} → WF A → WF B → WF (A ⇒ B)
+   WF-Record : ∀{ρ} → WFRow ρ → WF (Record ρ)
+
+data WFRow where
+  WFR-nil : WFRow []
+  WFR-cons : → WFRow (⟨ x , A ⟩ ∷ ρ)
+  
+```
+
 ### Subtyping
 
 ```
@@ -77,13 +93,8 @@ data _<::_ where
   <::cons-R : ∀{ρ₁ ρ₂ y B}
           → ⟨ y , B ⟩ ∈ ρ₁
           → ρ₁ <:: ρ₂
-            -----------------------------------------
+            -----------------------
           → ρ₁ <:: (⟨ y , B ⟩ ∷ ρ₂)
-
-  <::cons-L : ∀{ρ₁ ρ₂ x A}
-          → ρ₁ <:: ρ₂
-            -----------------------------------------
-          → (⟨ x , A ⟩ ∷ ρ₁) <:: ρ₂
 
 data _∈_ where
   ∈-eq : ∀ {ρ x A B}
@@ -95,21 +106,6 @@ data _∈_ where
        → ⟨ x , B ⟩ ∈ ρ   → x ≢ y
          ---------------------------
        → ⟨ x , B ⟩ ∈ (⟨ y , A ⟩ ∷ ρ)
-```
-
-## Properties of Subtyping
-
-```
-<::-refl : ∀ ρ → ρ <:: ρ
-
-<:-refl : ∀ A → A <: A
-<:-refl `𝔹 = <:bool
-<:-refl `ℕ = <:nat
-<:-refl (A ⇒ B) = <:fun (<:-refl A) (<:-refl B)
-<:-refl (Record ρ) = <:rec (<::-refl ρ)
-
-<::-refl [] = <::nil
-<::-refl (⟨ f , A ⟩ ∷ ρ) = <::cons-R (∈-eq (<:-refl A)) (<::cons-L (<::-refl ρ))
 ```
 
 ## Primitives
@@ -142,6 +138,109 @@ rep : Prim → Set
 rep (base b) = base-rep b
 rep (b ⇒ p) = base-rep b → rep p
 ```
+
+## Type of a primitive
+
+```
+typeof-base : Base → Type
+typeof-base B-Nat = `ℕ
+typeof-base B-Bool = `𝔹
+
+typeof : Prim → Type
+typeof (base b) = typeof-base b 
+typeof (b ⇒ p) = typeof-base b ⇒ typeof p
+```
+
+## Properties of Subtyping
+
+
+```
+sub-inv-fun : ∀{A B C : Type}
+  → A <: B ⇒ C
+  → Σ[ A₁ ∈ Type ] Σ[ A₂ ∈ Type ] A ≡ A₁ ⇒ A₂
+sub-inv-fun (<:fun {A = A}{B = B} A<:BC A<:BC₁) = ⟨ A , ⟨ B , refl ⟩ ⟩
+```
+
+```
+sub-inv-base : ∀ {b A}
+  → A <: typeof-base b
+  → A ≡ typeof-base b
+sub-inv-base {B-Nat} <:nat = refl
+sub-inv-base {B-Bool} <:bool = refl
+```
+
+
+```
+{-
+<:-∈ : ∀{A B y ρ}
+     → A <: B
+     → ⟨ y , A ⟩ ∈ ρ
+     → ⟨ y , B ⟩ ∈ ρ
+<:-∈ A<:B (∈-eq x) = {!!}
+<:-∈ A<:B (∈-neq y∈ρ x) = {!!}
+
+
+∈-<:: : ∀{y B ρ₁ ρ₂}
+      → ⟨ y , B ⟩ ∈ ρ₁
+      → ρ₂ <:: ρ₁
+      → ⟨ y , B ⟩ ∈ ρ₂
+∈-<:: (∈-eq A<:B) (<::cons-R x ρ₂<:ρ₁) =
+  {!!}
+∈-<:: (∈-neq y∈ρ₁ x) ρ₂<:ρ₁ = {!!}
+-}
+
+<::cons-L : ∀{ρ₁ ρ₂ x A}
+          → ρ₁ <:: ρ₂
+            -----------------------
+          → (⟨ x , A ⟩ ∷ ρ₁) <:: ρ₂
+<::cons-L {ρ₁} {[]} ρ₁<:ρ₂ = <::nil
+<::cons-L {ρ₁} {(⟨ y , B ⟩) ∷ ρ₂} {x}{A} (<::cons-R y∈ρ₁ ρ₁<:ρ₂)
+    with x ≟ y
+... | yes refl = {!!}
+... | no x≢y = {!!}
+
+{-
+    with x ≟ y
+... | yes xy = ?
+... | no x≢y = 
+   let IH = <::cons-L {x = x}{A} ρ₁<:ρ₂ in
+   {!!}
+-}
+
+```
+
+```
+<::-refl : ∀ ρ → ρ <:: ρ
+
+<:-refl : ∀ A → A <: A
+<:-refl `𝔹 = <:bool
+<:-refl `ℕ = <:nat
+<:-refl (A ⇒ B) = <:fun (<:-refl A) (<:-refl B)
+<:-refl (Record ρ) = <:rec (<::-refl ρ)
+
+<::-refl [] = <::nil
+<::-refl (⟨ f , A ⟩ ∷ ρ) = <::cons-R (∈-eq (<:-refl A)) (<::cons-L (<::-refl ρ))
+```
+
+```
+<::-trans : ∀{A B C} → A <:: B → B <:: C → A <:: C
+
+<:-trans : ∀{A B C} → A <: B → B <: C → A <: C
+<:-trans <:bool <:bool = <:bool
+<:-trans <:nat <:nat = <:nat
+<:-trans (<:fun C1A BD1) (<:fun CC1 D1D) =
+    <:fun (<:-trans CC1 C1A) (<:-trans BD1 D1D)
+<:-trans (<:rec R1R2) (<:rec R2R3) = <:rec (<::-trans R1R2 R2R3)
+
+<::-trans AB <::nil = <::nil
+<::-trans A<:B₁ (<::cons-R y∈B₁ B₁ρ₂) =
+  let IH = <::-trans A<:B₁ B₁ρ₂ in
+  <::cons-R {!!} IH
+{-
+<::-trans AB (<::cons-L BC) = {!!}
+-}
+```
+
 
 ## Terms
 
@@ -198,18 +297,6 @@ sub-lam N σ = refl
 
 sub-app : ∀ (L M : Term) (σ : Subst) → ⟪ σ ⟫ (L · M) ≡ (⟪ σ ⟫ L) · (⟪ σ ⟫ M)
 sub-app L M σ = refl
-```
-
-## Type of a primitive
-
-```
-typeof-base : Base → Type
-typeof-base B-Nat = `ℕ
-typeof-base B-Bool = `𝔹
-
-typeof : Prim → Type
-typeof (base b) = typeof-base b 
-typeof (b ⇒ p) = typeof-base b ⇒ typeof p
 ```
 
 ## Contexts
@@ -388,22 +475,6 @@ data _—→_ : Term → Term → Set where
     → (f := V , RV) # f' —→  RV # f'
 ```
 
-## Subtyping Inversion
-
-```
-sub-inv-fun : ∀{A B C : Type}
-  → A <: B ⇒ C
-  → Σ[ A₁ ∈ Type ] Σ[ A₂ ∈ Type ] A ≡ A₁ ⇒ A₂
-sub-inv-fun (<:fun {A = A}{B = B} A<:BC A<:BC₁) = ⟨ A , ⟨ B , refl ⟩ ⟩
-```
-
-```
-sub-inv-base : ∀ {b A}
-  → A <: typeof-base b
-  → A ≡ typeof-base b
-sub-inv-base {B-Nat} <:nat = refl
-sub-inv-base {B-Bool} <:bool = refl
-```
 
 
 ## Canonical Forms

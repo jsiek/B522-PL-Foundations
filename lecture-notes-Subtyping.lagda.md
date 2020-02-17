@@ -5,6 +5,7 @@ module lecture-notes-Subtyping where
 ## Imports
 
 ```
+open import Data.Unit using (⊤)
 open import Data.List using (List; []; _∷_)
 open import Data.List.Any using (Any; here; there)
 open import Data.Nat using (ℕ; zero; suc; _<_)
@@ -50,62 +51,24 @@ data Type : Set where
   Record : List (Id × Type) → Type 
 ```
 
-```
-data WFRow : List (Id × Type) → Set
-
-data WF : Type → Set where
-   WF-Bool : WF (`𝔹)
-   WF-Nat : WF (`ℕ)
-   WF-Fun : ∀{A B} → WF A → WF B → WF (A ⇒ B)
-   WF-Record : ∀{ρ} → WFRow ρ → WF (Record ρ)
-
-data WFRow where
-  WFR-nil : WFRow []
-  WFR-cons : → WFRow (⟨ x , A ⟩ ∷ ρ)
-  
-```
-
 ### Subtyping
 
 ```
-data _<:_ : Type → Type → Set
-data _∈_ : (Id × Type) → List (Id × Type) → Set
-data _<::_ : List (Id × Type) → List (Id × Type) → Set
+_∈_ : (Id × Type) → List (Id × Type) → Set
 
-data _<:_ where
-  <:bool : `𝔹 <: `𝔹
-  
-  <:nat : `ℕ <: `ℕ
-  
-  <:fun : ∀ {A B C D}
-        → C <: A  →  B <: D
-          ------------------
-        → (A ⇒ B) <: (C ⇒ D)
-        
-  <:rec : ∀{ρ₁ ρ₂}
-        → ρ₁ <:: ρ₂
-          ----------------------
-        → Record ρ₁ <: Record ρ₂ 
+_<:_ : Type → Type → Set
+`𝔹 <: `𝔹 = ⊤
+`ℕ <: `ℕ = ⊤
+(A ⇒ B) <: (C ⇒ D) = C <: A  ×  B <: D
+Record ρ₁ <: Record ρ₂ = 
+        (∀ x A → ⟨ x , A ⟩ ∈ ρ₂ → ⟨ x , A ⟩ ∈ ρ₁)
+_ <: _ = ⊥        
 
-data _<::_ where
-  <::nil : ∀{ρ} → ρ <:: []
-  
-  <::cons-R : ∀{ρ₁ ρ₂ y B}
-          → ⟨ y , B ⟩ ∈ ρ₁
-          → ρ₁ <:: ρ₂
-            -----------------------
-          → ρ₁ <:: (⟨ y , B ⟩ ∷ ρ₂)
-
-data _∈_ where
-  ∈-eq : ∀ {ρ x A B}
-       → A <: B
-         ---------------------------
-       → ⟨ x , B ⟩ ∈ (⟨ x , A ⟩ ∷ ρ)
-
-  ∈-neq : ∀ {ρ x y A B}
-       → ⟨ x , B ⟩ ∈ ρ   → x ≢ y
-         ---------------------------
-       → ⟨ x , B ⟩ ∈ (⟨ y , A ⟩ ∷ ρ)
+⟨ x , B ⟩ ∈ [] = ⊥
+⟨ x , B ⟩ ∈ (⟨ y , A ⟩ ∷ ρ)
+    with x ≟ y
+... | yes x≡y = A <: B
+... | no x≢y = ⟨ x , B ⟩ ∈ ρ
 ```
 
 ## Primitives
@@ -158,86 +121,34 @@ typeof (b ⇒ p) = typeof-base b ⇒ typeof p
 sub-inv-fun : ∀{A B C : Type}
   → A <: B ⇒ C
   → Σ[ A₁ ∈ Type ] Σ[ A₂ ∈ Type ] A ≡ A₁ ⇒ A₂
-sub-inv-fun (<:fun {A = A}{B = B} A<:BC A<:BC₁) = ⟨ A , ⟨ B , refl ⟩ ⟩
+sub-inv-fun ABC = {!!}
 ```
 
 ```
 sub-inv-base : ∀ {b A}
   → A <: typeof-base b
   → A ≡ typeof-base b
-sub-inv-base {B-Nat} <:nat = refl
-sub-inv-base {B-Bool} <:bool = refl
-```
-
-
-```
-{-
-<:-∈ : ∀{A B y ρ}
-     → A <: B
-     → ⟨ y , A ⟩ ∈ ρ
-     → ⟨ y , B ⟩ ∈ ρ
-<:-∈ A<:B (∈-eq x) = {!!}
-<:-∈ A<:B (∈-neq y∈ρ x) = {!!}
-
-
-∈-<:: : ∀{y B ρ₁ ρ₂}
-      → ⟨ y , B ⟩ ∈ ρ₁
-      → ρ₂ <:: ρ₁
-      → ⟨ y , B ⟩ ∈ ρ₂
-∈-<:: (∈-eq A<:B) (<::cons-R x ρ₂<:ρ₁) =
-  {!!}
-∈-<:: (∈-neq y∈ρ₁ x) ρ₂<:ρ₁ = {!!}
--}
-
-<::cons-L : ∀{ρ₁ ρ₂ x A}
-          → ρ₁ <:: ρ₂
-            -----------------------
-          → (⟨ x , A ⟩ ∷ ρ₁) <:: ρ₂
-<::cons-L {ρ₁} {[]} ρ₁<:ρ₂ = <::nil
-<::cons-L {ρ₁} {(⟨ y , B ⟩) ∷ ρ₂} {x}{A} (<::cons-R y∈ρ₁ ρ₁<:ρ₂)
-    with x ≟ y
-... | yes refl = {!!}
-... | no x≢y = {!!}
-
-{-
-    with x ≟ y
-... | yes xy = ?
-... | no x≢y = 
-   let IH = <::cons-L {x = x}{A} ρ₁<:ρ₂ in
-   {!!}
--}
-
+sub-inv-base {B-Nat} A<: = {!!}
+sub-inv-base {B-Bool} A<: = {!!}
 ```
 
 ```
-<::-refl : ∀ ρ → ρ <:: ρ
-
 <:-refl : ∀ A → A <: A
-<:-refl `𝔹 = <:bool
-<:-refl `ℕ = <:nat
-<:-refl (A ⇒ B) = <:fun (<:-refl A) (<:-refl B)
-<:-refl (Record ρ) = <:rec (<::-refl ρ)
-
-<::-refl [] = <::nil
-<::-refl (⟨ f , A ⟩ ∷ ρ) = <::cons-R (∈-eq (<:-refl A)) (<::cons-L (<::-refl ρ))
+<:-refl `𝔹 = {!!}
+<:-refl `ℕ = {!!}
+<:-refl (A ⇒ B) = {!!}
+<:-refl (Record ρ) = {!!}
 ```
 
 ```
-<::-trans : ∀{A B C} → A <:: B → B <:: C → A <:: C
-
 <:-trans : ∀{A B C} → A <: B → B <: C → A <: C
+<:-trans AB BC = {!!}
+{-
 <:-trans <:bool <:bool = <:bool
 <:-trans <:nat <:nat = <:nat
 <:-trans (<:fun C1A BD1) (<:fun CC1 D1D) =
     <:fun (<:-trans CC1 C1A) (<:-trans BD1 D1D)
-<:-trans (<:rec R1R2) (<:rec R2R3) = <:rec (<::-trans R1R2 R2R3)
-
-<::-trans AB <::nil = <::nil
-<::-trans A<:B₁ (<::cons-R y∈B₁ B₁ρ₂) =
-  let IH = <::-trans A<:B₁ B₁ρ₂ in
-  <::cons-R {!!} IH
-{-
-<::-trans AB (<::cons-L BC) = {!!}
+<:-trans (<:rec R1R2) (<:rec R2R3) = <:rec {!!}
 -}
 ```
 
@@ -580,9 +491,11 @@ progress (⊢insert {M = M}{R}{f = f} ⊢M ⊢R)
 progress (⊢# {R = R} {f} ⊢R f∈ρ)
     with progress ⊢R
 ... | step R—→R′                            = step (ξ (□# f) R—→R′)
-... | done VR
+... | done VR = {!!}
+{-
     with f∈ρ
 ... | ∈-eq {A = A}{B} A<:B = {!!}
 ... | ∈-neq f∈ρ' x = {!!}
+-}
 progress (⊢<: {A = A}{B} ⊢M A<:B) = progress ⊢M
 ```

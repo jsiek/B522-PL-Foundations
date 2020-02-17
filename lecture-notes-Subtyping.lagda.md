@@ -5,9 +5,10 @@ module lecture-notes-Subtyping where
 ## Imports
 
 ```
-open import Data.Unit using (⊤)
-open import Data.List using (List; []; _∷_)
+open import Data.Unit using (⊤; tt)
+open import Data.List using (List; []; _∷_; map)
 open import Data.List.Any using (Any; here; there)
+open import Data.List.Membership.Propositional using (_∈_)
 open import Data.Nat using (ℕ; zero; suc; _<_; _+_; _≤_)
 open import Data.Nat.Properties using (≤-refl)
 open import Data.Bool using () renaming (Bool to 𝔹)
@@ -17,7 +18,7 @@ open import Data.String using (String; _≟_)
 open import Data.Empty using (⊥; ⊥-elim)
 import Relation.Binary.PropositionalEquality as Eq
 open Eq using (_≡_; _≢_; refl)
-open import Relation.Nullary using (Dec; yes; no)
+open import Relation.Nullary using (Dec; yes; no; ¬_)
 import Syntax
 ```
 
@@ -25,7 +26,6 @@ import Syntax
 
 ```
 infix  4 _⊢_⦂_
-infix  4 _∈_
 infixl 5 _,_
 
 infixr 7 _⇒_
@@ -44,72 +44,57 @@ infix 4 _—→_
 ```
 Id : Set
 Id = String
+```
 
+The field names in records must be distinct.
+
+```
+distinct : ∀{A : Set} → List A → Set
+distinct [] = ⊤
+distinct (x ∷ xs) = ¬ (x ∈ xs) × distinct xs
+
+wf-rcd : ∀{A : Set} → List (Id × A) → Set
+wf-rcd ρ = distinct (map proj₁ ρ)
+```
+
+```
 data Type : Set where
   `𝔹    : Type
   `ℕ    : Type
   _⇒_   : Type → Type → Type
-  Record : List (Id × Type) → Type 
+  Record : (ρ : List (Id × Type)) → .{ w : wf-rcd ρ } → Type 
 ```
 
-```
-row-size : List (Id × Type) → ℕ
-
-size : Type → ℕ
-size `𝔹 = 1
-size `ℕ = 1
-size (A ⇒ B) = suc (size A + size B)
-size (Record ρ) = suc (row-size ρ)
-
-row-size [] = 0
-row-size (⟨ x , A ⟩ ∷ ρ) = suc (size A + row-size ρ)
-```
 
 ### Subtyping
 
 ```
-row-mem : Id → (A : Type) → (ρ : List (Id × Type))
-   (n : ℕ) → size A + row-size ρ ≤ n → Set
+data _<:_ : Type → Type → Set where
+  <:-refl : ∀{A} → A <: A
 
-sub : (A : Type) → (B : Type) → (n : ℕ) → (size A + size B ≤ n) → Set
-sub `𝔹 `𝔹 (suc n) m = ⊤
-sub `ℕ `ℕ (suc n) m = ⊤
-sub (A ⇒ B) (C ⇒ D) (suc n) m =
-  let CA = sub C A n {!!} in
-  let BD = sub B D n {!!} in
-  CA × BD
-sub (Record ρ₁) (Record ρ₂) (suc n) m =
-        (∀ x A → row-mem x A ρ₂ n {!!} → row-mem x A ρ₁ n {!!})
-sub _ _ n m = ⊥
+  <:-trans : ∀{A B C}
+    → A <: B   →   B <: C
+      -------------------
+    → A <: C
 
-row-mem x A [] n m = ⊥
-row-mem x A (⟨ y , B ⟩ ∷ ρ) 0 m = {!!}
-row-mem x A (⟨ y , B ⟩ ∷ ρ) (suc n) m
-    with x ≟ y
-... | yes x≡y = sub A B n {!!}
-... | no x≢y = row-mem x A ρ n {!!}
+  <:-fun : ∀{A B C D}
+    → C <: A  → B <: D
+      ----------------
+    → A ⇒ B <: C ⇒ D
 
-_<:_ : Type → Type → Set
-A <: B = sub A B (size A + size B) ≤-refl
+  <:-rcd-width : ∀{ρ₁ ρ₂ wf1 wf2}
+    → (∀ {x A} → ⟨ x , A ⟩ ∈ ρ₂ → ⟨ x , A ⟩ ∈ ρ₁)
+      -------------------------------------------
+    → Record ρ₁ {wf1} <: Record ρ₂ {wf2}
 
-_∈_ : (Id × Type) → List (Id × Type) → Set
-⟨ x , A ⟩ ∈ ρ = row-mem x A ρ (size A + row-size ρ) ≤-refl
+  <:-rcd-nil : ∀{wf1 wf2} → Record [] {wf1} <: Record [] {wf2}
 
-{-
-`𝔹 <: `𝔹 = ⊤
-`ℕ <: `ℕ = ⊤
-(A ⇒ B) <: (C ⇒ D) = C <: A  ×  B <: D
-Record ρ₁ <: Record ρ₂ = 
-        (∀ x A → ⟨ x , A ⟩ ∈ ρ₂ → ⟨ x , A ⟩ ∈ ρ₁)
-_ <: _ = ⊥        
-
-⟨ x , B ⟩ ∈ [] = ⊥
-⟨ x , B ⟩ ∈ (⟨ y , A ⟩ ∷ ρ)
-    with x ≟ y
-... | yes x≡y = A <: B
-... | no x≢y = ⟨ x , B ⟩ ∈ ρ
--}
+  <:-rcd-depth : ∀{ρ₁ ρ₂}{ x : Id}{A B : Type}{wf1 wf2 wf1' wf2'}
+    → A <: B    →   Record ρ₁ {wf1} <: Record ρ₂ {wf2}
+      ----------------------------------------------------------------
+    → Record (⟨ x , A ⟩ ∷ ρ₁) {wf1'} <: Record (⟨ x , B ⟩ ∷ ρ₂) {wf2'}
 ```
+
 
 ## Primitives
 
@@ -154,42 +139,64 @@ typeof (base b) = typeof-base b
 typeof (b ⇒ p) = typeof-base b ⇒ typeof p
 ```
 
-## Properties of Subtyping
-
+## Inversion of Subtyping
 
 ```
-sub-inv-fun : ∀{A B C : Type}
+inversion-<:-fun : ∀{A B C : Type}
   → A <: B ⇒ C
   → Σ[ A₁ ∈ Type ] Σ[ A₂ ∈ Type ] A ≡ A₁ ⇒ A₂
-sub-inv-fun ABC = {!!}
+inversion-<:-fun {.(B ⇒ C)}{B}{C} <:-refl = ⟨ B , ⟨ C , refl ⟩ ⟩
+inversion-<:-fun (<:-trans AB BB₁C)
+    with inversion-<:-fun BB₁C
+... | ⟨ D , ⟨ E , refl ⟩ ⟩ = inversion-<:-fun AB
+inversion-<:-fun (<:-fun {A}{B} ABC ABC₁) = ⟨ A , ⟨ B , refl ⟩ ⟩
 ```
 
 ```
-sub-inv-base : ∀ {b A}
+inversion-<:-fun2 : ∀{A B C : Type}
+  → A <: B ⇒ C
+  → Σ[ A₁ ∈ Type ] Σ[ A₂ ∈ Type ] (A ≡ A₁ ⇒ A₂ × B <: A₁ × A₂ <: C)
+inversion-<:-fun2 {A}{B}{C} <:-refl =
+    ⟨ B , ⟨ C , ⟨ refl , ⟨ <:-refl , <:-refl ⟩ ⟩ ⟩ ⟩
+inversion-<:-fun2 (<:-trans a<:bc a<:bc₁)
+    with inversion-<:-fun2 a<:bc₁
+... | ⟨ D , ⟨ E , ⟨ refl , ⟨ s1 , s2 ⟩ ⟩ ⟩ ⟩ 
+    with inversion-<:-fun2 a<:bc
+... | ⟨ D' , ⟨ E' , ⟨ refl , ⟨ s3 , s4 ⟩ ⟩ ⟩ ⟩ =
+    ⟨ D' , ⟨ E' , ⟨ refl , ⟨ (<:-trans s1 s3) , (<:-trans s4 s2) ⟩ ⟩ ⟩ ⟩
+inversion-<:-fun2 (<:-fun {A}{B} a<:bc a<:bc₁) =
+    ⟨ A , ⟨ B , ⟨ refl , ⟨ a<:bc , a<:bc₁ ⟩ ⟩ ⟩ ⟩
+```
+
+
+```
+inversion-<:-base : ∀ {b A}
   → A <: typeof-base b
   → A ≡ typeof-base b
-sub-inv-base {B-Nat} A<: = {!!}
-sub-inv-base {B-Bool} A<: = {!!}
+inversion-<:-base {B-Nat} <:-refl = refl
+inversion-<:-base {B-Nat} (<:-trans A<: A<:₁) 
+    rewrite inversion-<:-base A<:₁
+    | inversion-<:-base A<: = refl
+inversion-<:-base {B-Bool} <:-refl = refl
+inversion-<:-base {B-Bool} (<:-trans A<: A<:₁)
+    rewrite inversion-<:-base A<:₁
+    | inversion-<:-base A<: = refl
 ```
 
 ```
-<:-refl : ∀ A → A <: A
-<:-refl `𝔹 = {!!}
-<:-refl `ℕ = {!!}
-<:-refl (A ⇒ B) = {!!}
-<:-refl (Record ρ) = {!!}
-```
-
-```
-<:-trans : ∀{A B C} → A <: B → B <: C → A <: C
-<:-trans AB BC = {!!}
-{-
-<:-trans <:bool <:bool = <:bool
-<:-trans <:nat <:nat = <:nat
-<:-trans (<:fun C1A BD1) (<:fun CC1 D1D) =
-    <:fun (<:-trans CC1 C1A) (<:-trans BD1 D1D)
-<:-trans (<:rec R1R2) (<:rec R2R3) = <:rec {!!}
--}
+inversion-<:-rcd : ∀{A ρ₂ wf}
+  → A <: Record ρ₂ {wf}
+  → Σ[ ρ₁ ∈ List (Id × Type) ] Σ[ wf1 ∈ wf-rcd ρ₁ ]
+       A ≡ Record ρ₁ {wf1}
+inversion-<:-rcd {A}{ρ₂}{wf} <:-refl = ⟨ ρ₂ , ⟨ wf , refl ⟩ ⟩
+inversion-<:-rcd {wf = wf} (<:-trans A<: A<:₁)
+    with inversion-<:-rcd {wf = wf} A<:₁
+... | ⟨ ρ₁ , ⟨ wf1 , refl ⟩ ⟩ =
+    inversion-<:-rcd {wf = wf1} A<:
+inversion-<:-rcd (<:-rcd-width {ρ₁ = ρ₁}{wf1 = wf1} ρ₁⊆ρ₂) =
+    ⟨ ρ₁ , ⟨ wf1 , refl ⟩ ⟩
+inversion-<:-rcd <:-rcd-nil = ⟨ [] , ⟨ tt , refl ⟩ ⟩
+inversion-<:-rcd (<:-rcd-depth {ρ₁}{x = x}{A = A}{wf1' = wf1'} A<: A<:₁) = ⟨ ⟨ x , A ⟩ ∷ ρ₁ , ⟨ wf1' , refl ⟩ ⟩
 ```
 
 
@@ -243,11 +250,11 @@ pattern _#_ M f = (op-member f) ⦅ cons (ast M) nil ⦆
 ```
 
 ```
-sub-lam : ∀{A} (N : Term) (σ : Subst) → ⟪ σ ⟫ (λ: A ⇒ N) ≡ λ: A ⇒ (⟪ exts σ ⟫ N)
-sub-lam N σ = refl 
+subst-lam : ∀{A} (N : Term) (σ : Subst) → ⟪ σ ⟫ (λ: A ⇒ N) ≡ λ: A ⇒ (⟪ exts σ ⟫ N)
+subst-lam N σ = refl 
 
-sub-app : ∀ (L M : Term) (σ : Subst) → ⟪ σ ⟫ (L · M) ≡ (⟪ σ ⟫ L) · (⟪ σ ⟫ M)
-sub-app L M σ = refl
+subst-app : ∀ (L M : Term) (σ : Subst) → ⟪ σ ⟫ (L · M) ≡ (⟪ σ ⟫ L) · (⟪ σ ⟫ M)
+subst-app L M σ = refl
 ```
 
 ## Contexts
@@ -318,14 +325,15 @@ data _⊢_⦂_ : Context → Term → Type → Set where
       -------------------
     → Γ ⊢ 〈〉 ⦂ Record []
 
-  ⊢insert : ∀{Γ A M R ρ f}
+  ⊢insert : ∀{Γ A M R ρ f w}
     → Γ ⊢ M ⦂ A
-    → Γ ⊢ R ⦂ Record ρ
-      -----------------------------------------
-    → Γ ⊢ (f := M , R) ⦂ Record (⟨ f , A ⟩ ∷ ρ)
+    → Γ ⊢ R ⦂ Record ρ {w}
+    → (d : ¬ f ∈ (map proj₁ ρ))
+      ----------------------------------------------------
+    → Γ ⊢ (f := M , R) ⦂ Record (⟨ f , A ⟩ ∷ ρ) {⟨ d , w ⟩}
 
-  ⊢# : ∀{Γ A R f ρ}
-    → Γ ⊢ R ⦂ Record ρ
+  ⊢# : ∀{Γ A R f ρ w}
+    → Γ ⊢ R ⦂ Record ρ {w}
     → ⟨ f , A ⟩ ∈ ρ
       ----------------
     → Γ ⊢ R # f ⦂ A
@@ -426,34 +434,51 @@ data _—→_ : Term → Term → Set where
     → (f := V , RV) # f' —→  RV # f'
 ```
 
-
-
 ## Canonical Forms
 
 ```
-data Function : Term → Set where
-  Fun-λ : ∀ {A}{N} → Function (λ: A ⇒ N)
-  Fun-prim : ∀{b p k} → Function ($ (b ⇒ p) k)
+data Function : Term → Type → Set where
+  Fun-λ : ∀ {A B}{N} → Function (λ: A ⇒ N) B
+  Fun-prim : ∀{b p k A}
+    → typeof (b ⇒ p) <: A
+    → Function ($ (b ⇒ p) k) A
+
+Function-<: : ∀{V A B}
+   → Function V A
+   → A <: B
+   → Function V B
+Function-<: Fun-λ a<:b = Fun-λ
+Function-<: (Fun-prim x) a<:b = Fun-prim (<:-trans x a<:b)
 
 canonical-fun : ∀{V A B C}
   → ∅ ⊢ V ⦂ A
   → Value V
   → A <: (B ⇒ C)
-    ----------
-  → Function V
+    ------------
+  → Function V A
 canonical-fun (⊢λ ⊢V) V-λ A<:⇒ = Fun-λ
 canonical-fun (⊢$ {p = base B-Nat} refl) (V-const {_} {k}) A<:⇒
-    with sub-inv-fun A<:⇒
+    with inversion-<:-fun A<:⇒
 ... | ⟨ A₁ , ⟨ A₂ , () ⟩ ⟩
 canonical-fun (⊢$ {p = base B-Bool} refl) (V-const {_} {k}) A<:⇒
-    with sub-inv-fun A<:⇒
+    with inversion-<:-fun A<:⇒
 ... | ⟨ A₁ , ⟨ A₂ , () ⟩ ⟩
-canonical-fun (⊢$ {p = b ⇒ p} eq) (V-const {_} {k}) A<:⇒ = Fun-prim
-canonical-fun (⊢<: ⊢M A<:) V A<:⇒
-    with sub-inv-fun A<:⇒
+canonical-fun (⊢$ {p = b ⇒ p} refl) (V-const {_} {k}) A<:⇒ =
+    Fun-prim <:-refl
+canonical-fun {V}{A}{B}{C}(⊢<: {A = A'} ⊢M A<:) vV A<:⇒
+    with inversion-<:-fun A<:⇒
 ... | ⟨ A₁ , ⟨ A₂ , refl ⟩ ⟩ =
-    canonical-fun ⊢M V A<: 
+    let IH = canonical-fun ⊢M vV A<: in
+    Function-<: IH A<:
+canonical-fun ⊢empty V-〈〉 <:⇒
+    with inversion-<:-fun <:⇒
+... | ⟨ A₁ , ⟨ A₂ , () ⟩ ⟩
+canonical-fun (⊢insert x₁ x₂ d) (V-:= x₃ x₄) <:⇒
+    with inversion-<:-fun <:⇒
+... | ⟨ A₁ , ⟨ A₂ , () ⟩ ⟩
+```
 
+```
 data Constant : Base → Term → Set where
   base-const : ∀{b k} → Constant b ($ (base b) k)
 
@@ -463,17 +488,42 @@ canonical-base : ∀{b V A}
   → A <: typeof-base b
     ------------
   → Constant b V
-{-
-canonical-base {B-Nat} (⊢λ ⊢V) vV ()
-canonical-base {B-Bool} (⊢λ ⊢V) vV ()
-canonical-base {B-Nat} (⊢$ {p = base B-Nat} refl) V-const <:nat = base-const
-canonical-base {B-Bool} (⊢$ {p = base B-Bool} refl) V-const <:bool = base-const
-canonical-base {B-Nat} ⊢empty V-〈〉 ()
-canonical-base {B-Bool} ⊢empty V-〈〉 ()
-canonical-base {B-Nat} (⊢insert ⊢V ⊢V₁) (V-:= vV vV₁) ()
-canonical-base {B-Bool} (⊢insert ⊢V ⊢V₁) (V-:= vV vV₁) ()
-canonical-base {b} (⊢<: ⊢V x) vV A<: = canonical-base ⊢V vV {!!}
--}
+canonical-base {B-Nat} (⊢λ ⊢V) vV A<:
+    with inversion-<:-base A<:
+... | ()
+canonical-base {B-Bool} (⊢λ ⊢V) vV A<:
+    with inversion-<:-base A<:
+... | ()
+canonical-base {B-Nat} (⊢$ {p = base B-Nat} refl) vV A<: =
+    base-const
+canonical-base {B-Nat} (⊢$ {p = base B-Bool} refl) vV A<:
+    with inversion-<:-base A<:
+... | ()
+canonical-base {B-Nat} (⊢$ {p = x ⇒ p} refl) vV A<:
+    with inversion-<:-base A<:
+... | ()
+canonical-base {B-Bool} (⊢$ {p = base B-Nat} refl) vV A<:
+    with inversion-<:-base A<:
+... | ()
+canonical-base {B-Bool} (⊢$ {p = base B-Bool} refl) vV A<: =
+    base-const
+canonical-base {B-Bool} (⊢$ {p = x ⇒ p} refl) vV A<:
+    with inversion-<:-base A<:
+... | ()
+canonical-base {B-Nat} ⊢empty vV A<:
+    with inversion-<:-base A<:
+... | ()
+canonical-base {B-Bool} ⊢empty vV A<:
+    with inversion-<:-base A<:
+... | ()
+canonical-base {B-Nat} (⊢insert ⊢V ⊢V₁ d) vV A<:
+    with inversion-<:-base A<:
+... | ()
+canonical-base {B-Bool} (⊢insert ⊢V ⊢V₁ d) vV A<:
+    with inversion-<:-base A<:
+... | ()
+canonical-base {b} (⊢<: ⊢V x) vV A<: =
+  canonical-base ⊢V vV (<:-trans x A<:)
 ```
 
 ## Progress
@@ -498,41 +548,40 @@ progress : ∀ {M A}
     ----------
   → Progress M
 progress (⊢` ())
-progress (⊢$ _)                             = done V-const
-progress (⊢λ ⊢N)                            = done V-λ
+progress (⊢$ _)                           = done V-const
+progress (⊢λ ⊢N)                          = done V-λ
 progress (⊢· {L = L}{M}{A}{B} ⊢L ⊢M)
     with progress ⊢L
-... | step L—→L′                            = step (ξ (□· M) L—→L′)
+... | step L—→L′                          = step (ξ (□· M) L—→L′)
 ... | done VL
         with progress ⊢M
-...     | step M—→M′                        = step (ξ ((L ·□) VL) M—→M′)
-...     | done VM = {!!}
-
-{-
-            with canonical-fun ⊢L VL {!!}
-...         | Fun-λ                         = step (β-λ VM)
-...         | Fun-prim {b}{p}{k}
-                with ⊢L
-...             | ⊢$ refl
-                with canonical-base refl ⊢M VM
-...             | base-const                = step δ
--}
-progress (⊢μ ⊢M)                            = step β-μ
+...     | step M—→M′                      = step (ξ ((L ·□) VL) M—→M′)
+...     | done VM 
+        with canonical-fun ⊢L VL <:-refl
+...     | Fun-λ                           = step (β-λ VM)
+...     | Fun-prim {b}{p}{k} p⇒b<:A⇒B
+        with inversion-<:-fun2 p⇒b<:A⇒B
+...     | ⟨ A₁ , ⟨ A₂ , ⟨ refl , ⟨ A<:p , b<:B ⟩ ⟩ ⟩ ⟩
+        with inversion-<:-base A<:p
+...     | refl
+        with canonical-base ⊢M VM A<:p
+...     | base-const                      = step δ
+progress (⊢μ ⊢M)                          = step β-μ
 progress (⊢let {N = N} ⊢L ⊢N)
     with progress ⊢L
-... | step L—→L′                            = step (ξ (let□ N) L—→L′)
-... | done VL                               = step (β-let VL)
-progress ⊢empty                             = done V-〈〉
-progress (⊢insert {M = M}{R}{f = f} ⊢M ⊢R)
+... | step L—→L′                          = step (ξ (let□ N) L—→L′)
+... | done VL                             = step (β-let VL)
+progress ⊢empty                           = done V-〈〉
+progress (⊢insert {M = M}{R}{f = f} ⊢M ⊢R ¬∈)
     with progress ⊢M
-... | step M—→M′                            = step (ξ (f :=□, R) M—→M′)
+... | step M—→M′                          = step (ξ (f :=□, R) M—→M′)
 ... | done VM
         with progress ⊢R
-...     | step R—→R′                        = step (ξ ((f := M ,□) VM) R—→R′)
-...     | done VR                           = done (V-:= VM VR)
+...     | step R—→R′                      = step (ξ ((f := M ,□) VM) R—→R′)
+...     | done VR                         = done (V-:= VM VR)
 progress (⊢# {R = R} {f} ⊢R f∈ρ)
     with progress ⊢R
-... | step R—→R′                            = step (ξ (□# f) R—→R′)
+... | step R—→R′                          = step (ξ (□# f) R—→R′)
 ... | done VR = {!!}
 {-
     with f∈ρ

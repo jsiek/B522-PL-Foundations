@@ -12,21 +12,22 @@ open import Data.Maybe using (Maybe; just; nothing)
 -}
 open import Data.Vec
   using (Vec; toList; []; _∷_; lookup)
-open import Data.Fin using (Fin)
+open import Data.Fin using (Fin; reduce≥)
 open import Data.Vec.Membership.Propositional using (_∈_)
 open import Data.Vec.Any using (Any; here; there)
 {-
 open import Data.List.Membership.Propositional using (_∈_)
 -}
 open import Data.Nat using (ℕ; zero; suc; _<_; _+_; _≤_)
-open import Data.Nat.Properties using (≤-refl)
+open import Data.Nat.Properties using (≤-refl; ≤-pred; m+n≤o⇒m≤o; m+n≤o⇒n≤o)
 open import Data.Bool using () renaming (Bool to 𝔹)
 open import Data.Product using (_×_; Σ; Σ-syntax; ∃; ∃-syntax; proj₁; proj₂)
    renaming (_,_ to ⟨_,_⟩)
 open import Data.String using (String; _≟_)
 open import Data.Empty using (⊥; ⊥-elim)
+open import Data.Empty.Irrelevant renaming (⊥-elim to ⊥-elimi)
 import Relation.Binary.PropositionalEquality as Eq
-open Eq using (_≡_; _≢_; refl)
+open Eq using (_≡_; _≢_; refl; cong)
 open import Relation.Nullary using (Dec; yes; no; ¬_)
 import Syntax
 ```
@@ -61,7 +62,56 @@ The field names in records must be distinct.
 distinct : ∀{A : Set}{n} → Vec A n → Set
 distinct [] = ⊤
 distinct (x ∷ xs) = ¬ (x ∈ xs) × distinct xs
+
+_∈?_ : ∀{n} (x : Id) → (xs : Vec Id n) → Dec (x ∈ xs)
+x ∈? [] = no λ ()
+x ∈? (y ∷ xs)
+    with x ≟ y
+... | yes xy = yes (here xy)
+... | no xy
+    with x ∈? xs
+... | yes x∈xs = yes (there x∈xs)
+... | no x∉xs = no λ { (here a) → xy a ; (there a) → x∉xs a } 
+
+distinct? : ∀{n} → (xs : Vec Id n) → Dec (distinct xs)
+distinct? [] = yes tt
+distinct? (x ∷ xs)
+    with x ∈? xs
+... | yes x∈xs = no λ z → proj₁ z x∈xs
+... | no x∉xs
+    with distinct? xs
+... | yes dxs = yes ⟨ x∉xs , dxs ⟩
+... | no ¬dxs = no λ x₁ → ¬dxs (proj₂ x₁)
+
+distinct-rel : ∀ {n}{fs : Vec Id n} .(d : distinct fs) → distinct fs
+distinct-rel {n}{fs} d
+    with distinct? fs
+... | yes dfs = dfs
+... | no ¬dfs = ⊥-elimi (¬dfs d)
 ```
+
+```
+lookup-mem : ∀{n}{fs : Vec Id n}{j : Fin n} 
+           → lookup fs j ∈ fs
+lookup-mem {.(suc _)} {x ∷ fs} {Data.Fin.0F} = here refl
+lookup-mem {.(suc _)} {x ∷ fs} {Fin.suc j} = there lookup-mem
+```
+
+```
+distinct-lookup-eq : ∀ {n}{fs : Vec Id n}{i j : Fin n}
+   → distinct fs
+   → lookup fs j ≡ lookup fs i
+   → i ≡ j
+distinct-lookup-eq {.(suc _)} {x ∷ fs} {Data.Fin.0F} {Data.Fin.0F} ⟨ x∉fs , dfs ⟩ lij = refl
+distinct-lookup-eq {suc n} {x ∷ fs} {Data.Fin.0F} {Fin.suc j} ⟨ x∉fs , dfs ⟩ refl =
+    ⊥-elim (x∉fs lookup-mem)
+distinct-lookup-eq {.(suc _)} {x ∷ fs} {Fin.suc i} {Data.Fin.0F} ⟨ x∉fs , dfs ⟩ refl =
+    ⊥-elim (x∉fs lookup-mem)
+distinct-lookup-eq {suc n} {x ∷ fs} {Fin.suc i} {Fin.suc j} ⟨ x∉fs , dfs ⟩ lij =
+  let IH = distinct-lookup-eq {n} {fs}{i}{j} dfs lij in
+  cong Fin.suc IH
+```
+
 
 ```
 data Type : Set where
@@ -71,6 +121,8 @@ data Type : Set where
   Record : (n : ℕ) (fs : Vec Id n) (As : Vec Type n) → .{d : distinct fs} → Type 
 ```
 
+### Subtyping
+
 ```
 data _⦂_∈_⦂_ : Id → Type → {n : ℕ} → Vec Id n → Vec Type n → Set where
   member : ∀{n}{i : Fin n}{j : Fin n}{fs : Vec Id n}{As : Vec Type n}{x : Id}{A : Type}
@@ -79,33 +131,67 @@ data _⦂_∈_⦂_ : Id → Type → {n : ℕ} → Vec Id n → Vec Type n → S
          → x ⦂ A ∈ fs ⦂ As
 ```
 
-### Subtyping
+```
+data _⊆_ : ∀{n m} → Vec Id n → Vec Id m → Set where
+  subseteq : ∀ {n m} {xs : Vec Id n} {ys : Vec Id m}
+           → ((i : Fin n) → Σ[ j ∈ Fin m ] lookup xs i ≡ lookup ys j)
+           → xs ⊆ ys 
+```
+
 
 ```
 data _<:_ : Type → Type → Set where
-  <:-refl : ∀{A} → A <: A
+  <:-bool : `𝔹 <: `𝔹
 
-  <:-trans : ∀{A B C}
-    → A <: B   →   B <: C
-      -------------------
-    → A <: C
+  <:-nat : `ℕ <: `ℕ
 
   <:-fun : ∀{A B C D}
     → C <: A  → B <: D
       ----------------
     → A ⇒ B <: C ⇒ D
 
-  <:-rcd-width : ∀{n fs₁ As₁ d₁ fs₂ As₂ d₂}
-    → (∀ {x}{A} → x ⦂ A ∈ fs₂ ⦂ As₂ → x ⦂ A ∈ fs₁ ⦂ As₁)
-      --------------------------------------------------
-    → Record n fs₁ As₁ {d₁} <: Record n fs₂ As₂ {d₂}
+  <:-rcd :  ∀{m}{ks : Vec Id m}{Ss : Vec Type m}.{d1}
+             {n}{ls : Vec Id n}{Ts : Vec Type n}.{d2}
+    → ls ⊆ ks
+    → (∀{i : Fin n}{j : Fin m} → lookup ks j ≡ lookup ls i
+                               → lookup Ss j <: lookup Ts i)
+      ------------------------------------------------------
+    → Record m ks Ss {d1} <: Record n ls Ts {d2}
+```
 
-  <:-rcd-nil : ∀{d1 d2} → Record 0 [] [] {d1} <: Record 0 [] [] {d2}
+```
+t-size : (A : Type) → ℕ
+ts-size : ∀ {n : ℕ} → (As : Vec Type n) → ℕ
 
-  <:-rcd-depth : ∀{n}{fs : Vec Id n}{As₁ As₂ : Vec Type n}{d1 d2}
-    → (∀ {i : Fin n} → lookup As₁ i <: lookup As₂ i)
-      ----------------------------------------------
-    → Record n fs As₁ {d1} <: Record n fs As₂ {d2}
+t-size `𝔹 = 1
+t-size `ℕ = 1
+t-size (A ⇒ B) = suc (t-size A + t-size B)
+t-size (Record n fs As) = suc (ts-size As)
+
+ts-size {n} [] = 0
+ts-size {n} (x ∷ xs) = suc (ts-size xs)
+
+⊆-refl : ∀{n}{fs : Vec Id n} → fs ⊆ fs
+⊆-refl {n}{fs} = subseteq (λ i → ⟨ i , refl ⟩)
+
+<:-refl : ∀{n}{A}{m : t-size A ≤ n} → A <: A
+<:-refl {0}{A}{m} = {!!}
+<:-refl {suc n}{`𝔹}{m} = <:-bool
+<:-refl {suc n}{`ℕ}{m} = <:-nat
+<:-refl {suc n}{A ⇒ B}{m} =
+  let a = ≤-pred m in
+  <:-fun (<:-refl{n}{A}{m+n≤o⇒m≤o (t-size A) a }) (<:-refl{n}{B}{m+n≤o⇒n≤o (t-size A) a})
+<:-refl {suc n}{Record k fs As {d}}{m} = <:-rcd {d1 = d}{d2 = d} ⊆-refl G
+    where
+    G : ∀ {i j : Fin k} →
+          lookup fs j ≡ lookup fs i → lookup As j <: lookup As i
+    G {i}{j} lij rewrite distinct-lookup-eq (distinct-rel d) lij = {!!}
+
+<:-trans : ∀{A B C}
+    → A <: B   →   B <: C
+      -------------------
+    → A <: C
+<:-trans = {!!}
 ```
 
 ## Primitives
@@ -154,33 +240,25 @@ typeof (b ⇒ p) = typeof-base b ⇒ typeof p
 ## Inversion of Subtyping
 
 ```
+{-
 inversion-<:-fun : ∀{A B C : Type}
   → A <: B ⇒ C
-  → Σ[ A₁ ∈ Type ] Σ[ A₂ ∈ Type ] A ≡ A₁ ⇒ A₂
-inversion-<:-fun {.(B ⇒ C)}{B}{C} <:-refl = ⟨ B , ⟨ C , refl ⟩ ⟩
-inversion-<:-fun (<:-trans AB BB₁C)
-    with inversion-<:-fun BB₁C
-... | ⟨ D , ⟨ E , refl ⟩ ⟩ = inversion-<:-fun AB
-inversion-<:-fun (<:-fun {A}{B} ABC ABC₁) = ⟨ A , ⟨ B , refl ⟩ ⟩
-```
-
-```
-inversion-<:-fun2 : ∀{A B C : Type}
-  → A <: B ⇒ C
   → Σ[ A₁ ∈ Type ] Σ[ A₂ ∈ Type ] (A ≡ A₁ ⇒ A₂ × B <: A₁ × A₂ <: C)
-inversion-<:-fun2 {A}{B}{C} <:-refl =
+inversion-<:-fun {A}{B}{C} <:-refl =
     ⟨ B , ⟨ C , ⟨ refl , ⟨ <:-refl , <:-refl ⟩ ⟩ ⟩ ⟩
-inversion-<:-fun2 (<:-trans a<:bc a<:bc₁)
-    with inversion-<:-fun2 a<:bc₁
+inversion-<:-fun (<:-trans a<:bc a<:bc₁)
+    with inversion-<:-fun a<:bc₁
 ... | ⟨ D , ⟨ E , ⟨ refl , ⟨ s1 , s2 ⟩ ⟩ ⟩ ⟩ 
-    with inversion-<:-fun2 a<:bc
+    with inversion-<:-fun a<:bc
 ... | ⟨ D' , ⟨ E' , ⟨ refl , ⟨ s3 , s4 ⟩ ⟩ ⟩ ⟩ =
     ⟨ D' , ⟨ E' , ⟨ refl , ⟨ (<:-trans s1 s3) , (<:-trans s4 s2) ⟩ ⟩ ⟩ ⟩
-inversion-<:-fun2 (<:-fun {A}{B} a<:bc a<:bc₁) =
+inversion-<:-fun (<:-fun {A}{B} a<:bc a<:bc₁) =
     ⟨ A , ⟨ B , ⟨ refl , ⟨ a<:bc , a<:bc₁ ⟩ ⟩ ⟩ ⟩
+-}
 ```
 
 ```
+{-
 inversion-<:-base : ∀ {b A}
   → A <: typeof-base b
   → A ≡ typeof-base b
@@ -192,4 +270,5 @@ inversion-<:-base {B-Bool} <:-refl = refl
 inversion-<:-base {B-Bool} (<:-trans A<: A<:₁)
     rewrite inversion-<:-base A<:₁
     | inversion-<:-base A<: = refl
+-}
 ```

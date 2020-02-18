@@ -354,12 +354,11 @@ _⊢_ : Context → Subst → Set
 ```
 
 ```
-nth-cons : ∀{V : Term}{A}{Γ}{σ}
-         → 𝒱 A V
-         → Γ ⊢ σ
+extend-sub : ∀{V : Term}{A}{Γ}{σ}
+         → 𝒱 A V   →   Γ ⊢ σ
          → (A ∷ Γ) ⊢ (V • σ)
-nth-cons {V} wtv ⊢σ {C} zero refl = wtv
-nth-cons {V} wtv ⊢σ {C} (suc x) eq rewrite eq = ⊢σ x eq
+extend-sub {V} wtv ⊢σ {C} zero refl = wtv
+extend-sub {V} wtv ⊢σ {C} (suc x) eq rewrite eq = ⊢σ x eq
 ```
 
 ### The fundemantal property of the logical relation
@@ -373,10 +372,9 @@ fundamental-property {A}(⊢` {x = x} x∈Γ) ⊢σ = 𝒱→ℰ {A} ( ⊢σ x x
 fundamental-property {A ⇒ B}{Γ}{ƛ M}{σ}(⊢ƛ ⊢M) ⊢σ =
   ⟨ ⟪ σ ⟫ (ƛ M) , ⟨ ƛ (⟪ exts σ ⟫ M) ∎ , ⟨ V-ƛ , G ⟩ ⟩ ⟩
   where
-
   G : {V : Term} → 𝒱 A V → ℰ B (( ⟪ exts σ ⟫ M) [ V ])
   G {V} wtv
-      with fundamental-property {B}{A ∷ Γ}{M}{V • σ} ⊢M (nth-cons wtv ⊢σ)
+      with fundamental-property {B}{A ∷ Γ}{M}{V • σ} ⊢M (extend-sub wtv ⊢σ)
   ... | ⟨ N' , ⟨ N→N' , ⟨ vN' , wtvN' ⟩ ⟩ ⟩
       rewrite exts-sub-cons σ M V =
       ⟨ N' , ⟨ N→N' , ⟨ vN' , wtvN' ⟩ ⟩ ⟩
@@ -389,8 +387,14 @@ fundamental-property {B}{Γ}{L · M}{σ} (⊢· {A = A} ⊢L ⊢M) ⊢σ
 ... | ⟨ M' , ⟨ M→M' , ⟨ vM' , wtvM' ⟩ ⟩ ⟩
     with wtvL' {M'} wtvM'
 ... | ⟨ V , ⟨ →V , ⟨ vV , wtvV ⟩ ⟩ ⟩ =
-      let L·M→L'·M' = app-compat L→L' vL' M→M' in
-      ⟨ V , ⟨ (—↠-trans L·M→L'·M' ((ƛ N) · M' —→⟨ β-ƛ vM' ⟩ →V)) , ⟨ vV , wtvV ⟩ ⟩ ⟩
+      ⟨ V , ⟨ R , ⟨ vV , wtvV ⟩ ⟩ ⟩
+    where
+    R : ⟪ σ ⟫ L · ⟪ σ ⟫ M —↠ V
+    R =   begin
+          ⟪ σ ⟫ L · ⟪ σ ⟫ M     —↠⟨ app-compat L→L' vL' M→M' ⟩
+          (ƛ N) · M'            —→⟨ β-ƛ vM' ⟩
+          N [ M' ]              —↠⟨ →V ⟩
+          V                     ∎
 fundamental-property ⊢zero ⊢σ = 𝒱→ℰ {`ℕ} tt
 fundamental-property (⊢suc ⊢M) ⊢σ 
     with fundamental-property ⊢M ⊢σ
@@ -414,7 +418,7 @@ fundamental-property {M = case L M N}{σ = σ} (⊢case ⊢L ⊢M ⊢N) ⊢σ
 fundamental-property {M = case L M N}{σ} (⊢case {Γ}{A = A} ⊢L ⊢M ⊢N) ⊢σ
     | ⟨ L' , ⟨ L→L' , ⟨ vL , wtvL' ⟩ ⟩ ⟩
     | Nat-S {V = V} n
-    with fundamental-property {σ = V • σ} ⊢N (nth-cons wtvL' ⊢σ)
+    with fundamental-property {σ = V • σ} ⊢N (extend-sub wtvL' ⊢σ)
 ... | ⟨ N' , ⟨ N→N' , ⟨ vN , wtvN ⟩ ⟩ ⟩ =
       ⟨ N' , ⟨ R , ⟨ vN , wtvN ⟩ ⟩ ⟩
     where
@@ -423,11 +427,11 @@ fundamental-property {M = case L M N}{σ} (⊢case {Γ}{A = A} ⊢L ⊢M ⊢N) �
     
     R : case (⟪ σ ⟫ L) (⟪ σ ⟫ M) (⟪ exts σ ⟫ N) —↠ N'
     R = begin
-        (case (⟪ σ ⟫ L) (⟪ σ ⟫ M) (⟪ exts σ ⟫ N))  —↠⟨ case-compat L→L' ⟩
-        (case (`suc V) (⟪ σ ⟫ M) (⟪ exts σ ⟫ N))   —→⟨ β-suc (𝒱→Value {`ℕ} wtvL') ⟩
-        ⟪ exts σ ⟫ N [ V ]                         —↠⟨ S ⟩
-        ⟪ V • σ ⟫ N                                —↠⟨ N→N' ⟩
-        N'                                         ∎
+        case (⟪ σ ⟫ L) (⟪ σ ⟫ M) (⟪ exts σ ⟫ N)  —↠⟨ case-compat L→L' ⟩
+        case (`suc V) (⟪ σ ⟫ M) (⟪ exts σ ⟫ N)   —→⟨ β-suc(𝒱→Value{`ℕ}wtvL') ⟩
+        ⟪ exts σ ⟫ N [ V ]                       —↠⟨ S ⟩
+        ⟪ V • σ ⟫ N                              —↠⟨ N→N' ⟩
+        N'                                       ∎
 ```
 
 All STLC programs terminate.

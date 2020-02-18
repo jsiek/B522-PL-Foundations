@@ -18,8 +18,8 @@ open import Data.Vec.Any using (Any; here; there)
 {-
 open import Data.List.Membership.Propositional using (_∈_)
 -}
-open import Data.Nat using (ℕ; zero; suc; _<_; _+_; _≤_)
-open import Data.Nat.Properties using (≤-refl; ≤-pred; m+n≤o⇒m≤o; m+n≤o⇒n≤o)
+open import Data.Nat using (ℕ; zero; suc; _<_; _+_; _≤_; s≤s; z≤n)
+open import Data.Nat.Properties using (≤-refl; ≤-pred; m+n≤o⇒m≤o; m+n≤o⇒n≤o; n≤0⇒n≡0; ≤-step)
 open import Data.Bool using () renaming (Bool to 𝔹)
 open import Data.Product using (_×_; Σ; Σ-syntax; ∃; ∃-syntax; proj₁; proj₂)
    renaming (_,_ to ⟨_,_⟩)
@@ -29,6 +29,7 @@ open import Data.Empty.Irrelevant renaming (⊥-elim to ⊥-elimi)
 import Relation.Binary.PropositionalEquality as Eq
 open Eq using (_≡_; _≢_; refl; cong)
 open import Relation.Nullary using (Dec; yes; no; ¬_)
+open import Relation.Nullary.Negation using (contradiction)
 import Syntax
 ```
 
@@ -169,13 +170,33 @@ t-size (A ⇒ B) = suc (t-size A + t-size B)
 t-size (Record n fs As) = suc (ts-size As)
 
 ts-size {n} [] = 0
-ts-size {n} (x ∷ xs) = suc (ts-size xs)
+ts-size {n} (x ∷ xs) = suc (t-size x + ts-size xs)
 
 ⊆-refl : ∀{n}{fs : Vec Id n} → fs ⊆ fs
 ⊆-refl {n}{fs} = subseteq (λ i → ⟨ i , refl ⟩)
 
+t-size-pos : ∀ {A} → 0 < t-size A
+t-size-pos {`𝔹} = s≤s z≤n
+t-size-pos {`ℕ} = s≤s z≤n
+t-size-pos {A ⇒ B} = s≤s z≤n
+t-size-pos {Record n fs As} = s≤s z≤n
+
+lookup-ts-size : ∀{n} {As : Vec Type n} {j}
+   → ts-size As ≤ n
+   → t-size (lookup As j) ≤ n
+lookup-ts-size {suc n} {A ∷ As} {Data.Fin.0F} As≤n = ≤-step (m+n≤o⇒m≤o (t-size A) (≤-pred As≤n))
+lookup-ts-size {suc n} {A ∷ As} {Fin.suc j} As≤n =
+  let IH = lookup-ts-size {n} {As} {j} (m+n≤o⇒n≤o (t-size A) (≤-pred As≤n)) in
+  ≤-step IH
+
+
+
 <:-refl : ∀{n}{A}{m : t-size A ≤ n} → A <: A
-<:-refl {0}{A}{m} = {!!}
+<:-refl {0}{A}{m}
+    with t-size-pos {A}
+... | pos rewrite n≤0⇒n≡0 m
+    with pos
+... | ()    
 <:-refl {suc n}{`𝔹}{m} = <:-bool
 <:-refl {suc n}{`ℕ}{m} = <:-nat
 <:-refl {suc n}{A ⇒ B}{m} =
@@ -185,7 +206,7 @@ ts-size {n} (x ∷ xs) = suc (ts-size xs)
     where
     G : ∀ {i j : Fin k} →
           lookup fs j ≡ lookup fs i → lookup As j <: lookup As i
-    G {i}{j} lij rewrite distinct-lookup-eq (distinct-rel d) lij = {!!}
+    G {i}{j} lij rewrite distinct-lookup-eq (distinct-rel d) lij = <:-refl {n}{lookup As j}{{!!}}
 
 <:-trans : ∀{A B C}
     → A <: B   →   B <: C

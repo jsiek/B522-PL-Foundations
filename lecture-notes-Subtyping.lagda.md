@@ -754,9 +754,9 @@ subst {σ = σ} Γ⊢σ (⊢μ ⊢M)      = ⊢μ (subst (exts-pres {σ = σ} Γ
 subst Γ⊢σ (⊢$ e) = ⊢$ e 
 subst {σ = σ} Γ⊢σ (⊢let ⊢M ⊢N) =
     ⊢let (subst Γ⊢σ ⊢M) (subst (exts-pres {σ = σ} Γ⊢σ) ⊢N) 
-subst Γ⊢σ (⊢rcd ⊢Ms dfs) = {!!}
-subst Γ⊢σ (⊢# ⊢R lif liA) = {!!}
-subst Γ⊢σ (⊢<: ⊢N lt) = {!!}
+subst Γ⊢σ (⊢rcd ⊢Ms dfs) = ⊢rcd {!!} {!!}
+subst Γ⊢σ (⊢# {d = d} ⊢R lif liA) = ⊢# {d = d} (subst Γ⊢σ ⊢R) lif liA
+subst Γ⊢σ (⊢<: ⊢N lt) = ⊢<: (subst Γ⊢σ ⊢N) lt
 ```
 
 ```

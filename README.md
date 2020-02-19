@@ -109,16 +109,16 @@ an appropriate choice for your project.
 |          | 12  | [More](https://plfa.github.io/More/) constructs: numbers, let, products (pairs), sums, unit, empty, lists |
 |          | 17  | [STLC Termination via Logical Relations](./STLC-Termination.lagda.md) |
 |          | 19  | [Inference](https://plfa.github.io/Inference/) bidirectional type inference |
-|          | 24  | [Untyped](https://plfa.github.io/Untyped/) Lambda Calculus |
-|          | 26  | [Confluence](https://plfa.github.io/Confluence/) of the Lambda Calculus |
-| March    | 2  | [BigStep](https://plfa.github.io/BigStep/) Call-by-name Evaluation of the Lambda Calculus |
-|          | 4   | [Denotational](https://plfa.github.io/Denotational/) semantics of the Lambda Calculus |
-|          | 9   | [Compositional](https://plfa.github.io/Compositional/) |
-|          | 11   | [Soundness](https://plfa.github.io/Soundness/) |
-|          | 16  | [Adequacy](https://plfa.github.io/Adequacy/) |
-|          | 18  | [ContextualEquivalence](https://plfa.github.io/ContextualEquivalence/) |
-|          | 23  | References and the Heap |
-|          | 25  | Subtyping and Records |
+|          | 24  | [Subtyping and Records](./lecture-notes-Subtyping.lagda.md) |
+|          | 26  | [Untyped](https://plfa.github.io/Untyped/) Lambda Calculus |
+| March    | 2  | [Confluence](https://plfa.github.io/Confluence/) of the Lambda Calculus |
+|          | 4  | [BigStep](https://plfa.github.io/BigStep/) Call-by-name Evaluation of the Lambda Calculus |
+|          | 9   | [Denotational](https://plfa.github.io/Denotational/) semantics of the Lambda Calculus |
+|          | 11   | [Compositional](https://plfa.github.io/Compositional/) |
+|          | 16   | [Soundness](https://plfa.github.io/Soundness/) |
+|          | 18  | [Adequacy](https://plfa.github.io/Adequacy/) |
+|          | 23  | [ContextualEquivalence](https://plfa.github.io/ContextualEquivalence/) |
+|          | 25  | References and the Heap |
 |          | 30  | Classes and Objects (Featherweight Java) |
 | April    | 1   | Gradual Typing |
 |          | 6   | Universal and Existential Types (Parametric Polymorphism) |

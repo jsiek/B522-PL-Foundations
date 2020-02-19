@@ -344,7 +344,7 @@ sig (op-member f) = 0 ∷ []
 
 open Syntax Op sig
   using (`_; _⦅_⦆; cons; nil; bind; ast; _[_];
-         Rename; Subst; ⟪_⟫; ⟦_⟧; exts; _•_; 
+         Rename; Subst; ⟪_⟫; ⟦_⟧; ⟪_⟫₊; exts; _•_; 
          ↑; _⨟_; exts-0; exts-suc-rename; rename; ren-args; ext; ⦉_⦊;
          ext-0; ext-suc; Args; Arg)
   renaming (ABT to Term)
@@ -493,14 +493,16 @@ data Frame : Set where
 The `plug` function fills a frame's hole with a term.
 
 ```
+insert : ∀{n} → Term → (i : Fin n) → Args (repeat 0 n) → Args (repeat 0 n)
+insert {suc n} M 0F (cons M' Ms) = cons (ast M) Ms
+insert {suc n} M (suc i) (cons M' Ms) = cons M' (insert {n} M i Ms)
+```
+
+```
 plug : Term → Frame → Term
 plug L (□· M)             = L · M
 plug M ((L ·□) v)         = L · M
 plug M (rcd□ {n} i fs Ms) = (op-rcd n fs) ⦅ insert {n} M i Ms ⦆
-    where
-    insert : ∀{n} → Term → (i : Fin n) → Args (repeat 0 n) → Args (repeat 0 n)
-    insert {suc n} M 0F (cons M' Ms) = cons (ast M) Ms
-    insert {suc n} M (suc i) (cons M' Ms) = cons M' (insert {n} M i Ms)
 plug M (□# f)          = M # f
 plug M (let□ N)        = `let M N
 ```
@@ -742,6 +744,12 @@ exts-pres {σ = σ} Γ⊢σ (S {x = x} ∋x)
 ```
 
 ```
+subst-args : ∀ {Γ Δ σ}{n}{Ms : Args (repeat 0 n)}{A}
+  → WTSubst Γ σ Δ
+  → Γ ⊢* Ms ⦂ A
+    -----------------
+  → Δ ⊢* ⟪ σ ⟫₊ Ms ⦂ A
+
 subst : ∀ {Γ Δ σ N A}
   → WTSubst Γ σ Δ
   → Γ ⊢ N ⦂ A
@@ -754,9 +762,12 @@ subst {σ = σ} Γ⊢σ (⊢μ ⊢M)      = ⊢μ (subst (exts-pres {σ = σ} Γ
 subst Γ⊢σ (⊢$ e) = ⊢$ e 
 subst {σ = σ} Γ⊢σ (⊢let ⊢M ⊢N) =
     ⊢let (subst Γ⊢σ ⊢M) (subst (exts-pres {σ = σ} Γ⊢σ) ⊢N) 
-subst Γ⊢σ (⊢rcd ⊢Ms dfs) = ⊢rcd {!!} {!!}
+subst Γ⊢σ (⊢rcd ⊢Ms dfs) = ⊢rcd (subst-args Γ⊢σ ⊢Ms ) dfs
 subst Γ⊢σ (⊢# {d = d} ⊢R lif liA) = ⊢# {d = d} (subst Γ⊢σ ⊢R) lif liA
 subst Γ⊢σ (⊢<: ⊢N lt) = ⊢<: (subst Γ⊢σ ⊢N) lt
+
+subst-args Γ⊢σ ⊢*nil = ⊢*nil
+subst-args Γ⊢σ (⊢*cons ⊢M ⊢Ms) = ⊢*cons (subst Γ⊢σ ⊢M) (subst-args Γ⊢σ ⊢Ms)
 ```
 
 ```
@@ -771,4 +782,53 @@ substitution {Γ}{A}{B}{M}{N} ⊢M ⊢N = subst G ⊢N
       → (Γ , A) ∋ x ⦂ A₁ → Γ ⊢ ⟪ M • ↑ 0 ⟫ (` x) ⦂ A₁
     G {A₁} {zero} Z = ⊢M
     G {A₁} {suc x} (S ∋x) = ⊢` ∋x
+```
+## Plug Inversion
+
+```
+insert-inversion : ∀{n}{M}{i : Fin n}{Ms : Args (repeat 0 n)}
+     {As : Vec Type n}
+   → ∅ ⊢* insert M i Ms ⦂ As
+   → Σ[ B ∈ Type ] ∅ ⊢ M ⦂ B × (∀ M' → ∅ ⊢ M' ⦂ B → ∅ ⊢* insert M' i Ms ⦂ As)
+insert-inversion ⊢Ms = {!!}   
+```
+
+```
+plug-inversion : ∀{M F A}
+   → ∅ ⊢ plug M F ⦂ A
+     ----------------------------------------------------------------
+   → Σ[ B ∈ Type ] ∅ ⊢ M ⦂ B × (∀ M' → ∅ ⊢ M' ⦂ B → ∅ ⊢ plug M' F ⦂ A)
+plug-inversion {M} {□· N} {A} (⊢· {A = A'} ⊢M ⊢N) =
+    ⟨ A' ⇒ A , ⟨ ⊢M , (λ M' z → ⊢· z ⊢N) ⟩ ⟩
+plug-inversion {M} {(L ·□) v} {A} (⊢· {A = A'} ⊢L ⊢M) =
+    ⟨ A' , ⟨ ⊢M , (λ M' → ⊢· ⊢L) ⟩ ⟩
+plug-inversion {M} {let□ N} {A} (⊢let {A = A'} ⊢M ⊢N) =
+    ⟨ A' , ⟨ ⊢M , (λ M' z → ⊢let z ⊢N) ⟩ ⟩
+plug-inversion {F = rcd□ i fs Ms} (⊢rcd ⊢Ms dfs)
+    with insert-inversion ⊢Ms
+... | ⟨ A' , ⟨ ⊢M , imp ⟩ ⟩ =    
+    
+    ⟨ {!!} , ⟨ {!!} , {!!} ⟩ ⟩
+plug-inversion {F = □# f} (⊢# ⊢M#f x x₁) = {!!}
+plug-inversion {L} {F} {B} (⊢<: ⊢M A<:B)
+    with plug-inversion {L} {F} ⊢M
+... | ⟨ A' , ⟨ ⊢M' , imp ⟩ ⟩ =
+    ⟨ A' , ⟨ ⊢M' , (λ M' x → ⊢<: (imp M' x) A<:B) ⟩ ⟩
+```
+
+## Preservation
+
+```
+preserve : ∀ {M N A}
+  → ∅ ⊢ M ⦂ A
+  → M —→ N
+    ----------
+  → ∅ ⊢ N ⦂ A
+preserve ⊢M (ξ {M}{M′} F M—→M′)
+    with plug-inversion ⊢M
+... | ⟨ B , ⟨ ⊢M' , plug-wt ⟩ ⟩ = plug-wt M′ (preserve ⊢M' M—→M′)
+preserve (⊢· (⊢λ ⊢N) ⊢M) (β-λ vV) = substitution ⊢M ⊢N
+preserve (⊢μ ⊢M) β-μ = substitution (⊢μ ⊢M) ⊢M
+preserve (⊢· (⊢$ refl) (⊢$ refl)) δ = ⊢$ refl
+preserve (⊢let ⊢M ⊢N) (β-let vV) = substitution ⊢M ⊢N
 ```

@@ -28,34 +28,18 @@ open import Relation.Nullary.Negation using (contradiction)
 import Syntax
 ```
 
-### Syntax
-
-```
-infix  4 _⊢_⦂_
-infixl 5 _,_
-
-infixr 7 _⇒_
-infix 6 _<:_
-
-infix  5 λ:_⇒_
-infixl 7 _·_
-infixr 9 _#_
-
-infix 4 _—→_
-
-infix  9 _❲_❳
-_❲_❳ : ∀{n}{A : Set} → Vec A n → Fin n → A
-xs ❲ i ❳ = lookup xs i
-```
-
-### Types
+## Properties of Record Field Names and Field Lookup
 
 ```
 Id : Set
 Id = String
 ```
 
-The field names in records must be distinct.
+```
+infix  9 _❲_❳
+_❲_❳ : ∀{n}{A : Set} → Vec A n → Fin n → A
+xs ❲ i ❳ = lookup xs i
+```
 
 ```
 distinct : ∀{A : Set}{n} → Vec A n → Set
@@ -111,6 +95,59 @@ distinct-lookup-eq {suc n} {x ∷ fs} {Fin.suc i} {Fin.suc j} ⟨ x∉fs , dfs
   cong Fin.suc IH
 ```
 
+```
+data _⊆_ : ∀{n m} → Vec Id n → Vec Id m → Set where
+  subseteq : ∀ {n m} {xs : Vec Id n} {ys : Vec Id m}
+           → ((i : Fin n) → Σ[ j ∈ Fin m ] xs ❲ i ❳ ≡ ys ❲ j ❳)
+           → xs ⊆ ys 
+```
+
+```
+⊆-refl : ∀{n}{fs : Vec Id n} → fs ⊆ fs
+⊆-refl {n}{fs} = subseteq (λ i → ⟨ i , refl ⟩)
+
+
+⊆-trans : ∀{l n m}{ns  : Vec Id n}{ms  : Vec Id m}{ls  : Vec Id l}
+        → ns ⊆ ms   →    ms ⊆ ls
+        → ns ⊆ ls
+⊆-trans {l}{n}{m}{ns}{ms}{ls} (subseteq a) (subseteq b) = subseteq G
+    where
+    G : (i : Fin n) →  Σ[ j ∈ Fin l ] ns ❲ i ❳ ≡ ls ❲ j ❳
+    G i
+        with a i
+    ... | ⟨ j , lk1 ⟩
+        with b j
+    ... | ⟨ k , lk2 ⟩
+        rewrite lk1 | lk2 = ⟨ k , refl ⟩
+```
+
+```
+lookup-⊆ : ∀{n m : ℕ}{ns : Vec Id n}{ms : Vec Id m}{i : Fin n}
+   → ns ⊆ ms
+   → Σ[ k ∈ Fin m ] ns ❲ i ❳ ≡ ms ❲ k ❳
+lookup-⊆ {suc n} {m} {x ∷ ns} {ms} {i} (subseteq x₁) = x₁ i
+```
+
+## Syntax
+
+```
+infix  4 _⊢_⦂_
+infixl 5 _,_
+
+infixr 7 _⇒_
+infix 6 _<:_
+
+infix  5 λ:_⇒_
+infixl 7 _·_
+infixr 9 _#_
+
+infix 4 _—→_
+```
+
+## Types
+
+
+The field names in records must be distinct.
 
 ```
 data Type : Set where
@@ -120,14 +157,7 @@ data Type : Set where
   Record : (n : ℕ) (fs : Vec Id n) (As : Vec Type n) → .{d : distinct fs} → Type 
 ```
 
-### Subtyping
-
-```
-data _⊆_ : ∀{n m} → Vec Id n → Vec Id m → Set where
-  subseteq : ∀ {n m} {xs : Vec Id n} {ys : Vec Id m}
-           → ((i : Fin n) → Σ[ j ∈ Fin m ] xs ❲ i ❳ ≡ ys ❲ j ❳)
-           → xs ⊆ ys 
-```
+## Subtyping
 
 ```
 data _<:_ : Type → Type → Set where
@@ -167,23 +197,6 @@ t-size (Record n fs As) = suc (ts-size As)
 ts-size {n} [] = 0
 ts-size {n} (x ∷ xs) = t-size x + ts-size xs
 
-⊆-refl : ∀{n}{fs : Vec Id n} → fs ⊆ fs
-⊆-refl {n}{fs} = subseteq (λ i → ⟨ i , refl ⟩)
-
-
-⊆-trans : ∀{l n m}{ns  : Vec Id n}{ms  : Vec Id m}{ls  : Vec Id l}
-        → ns ⊆ ms   →    ms ⊆ ls
-        → ns ⊆ ls
-⊆-trans {l}{n}{m}{ns}{ms}{ls} (subseteq a) (subseteq b) = subseteq G
-    where
-    G : (i : Fin n) →  Σ[ j ∈ Fin l ] ns ❲ i ❳ ≡ ls ❲ j ❳
-    G i
-        with a i
-    ... | ⟨ j , lk1 ⟩
-        with b j
-    ... | ⟨ k , lk2 ⟩
-        rewrite lk1 | lk2 = ⟨ k , refl ⟩
-
 t-size-pos : ∀ {A} → 0 < t-size A
 t-size-pos {`𝔹} = s≤s z≤n
 t-size-pos {`ℕ} = s≤s z≤n
@@ -220,11 +233,6 @@ lookup-ts-size {n} {suc k}{A ∷ As} {Fin.suc j} As≤n =
 
 <:-refl : ∀{A} → A <: A
 <:-refl {A} = <:-refl-aux {t-size A}{A}{≤-refl}
-
-lookup-⊆ : ∀{n m : ℕ}{ns : Vec Id n}{ms : Vec Id m}{i : Fin n}
-   → ns ⊆ ms
-   → Σ[ k ∈ Fin m ] ns ❲ i ❳ ≡ ms ❲ k ❳
-lookup-⊆ {suc n} {m} {x ∷ ns} {ms} {i} (subseteq x₁) = x₁ i
 
 <:-trans : ∀{A B C}
     → A <: B   →   B <: C
@@ -368,10 +376,10 @@ pattern _#_ M f = (op-member f) ⦅ cons (ast M) nil ⦆
 ```
 
 ```
-subst-lam : ∀{A} (N : Term) (σ : Subst) → ⟪ σ ⟫ (λ: A ⇒ N) ≡ λ: A ⇒ (⟪ exts σ ⟫ N)
+subst-lam : ∀{A} N (σ : Subst) → ⟪ σ ⟫ (λ: A ⇒ N) ≡ λ: A ⇒ (⟪ exts σ ⟫ N)
 subst-lam N σ = refl 
 
-subst-app : ∀ (L M : Term) (σ : Subst) → ⟪ σ ⟫ (L · M) ≡ (⟪ σ ⟫ L) · (⟪ σ ⟫ M)
+subst-app : ∀ L M (σ : Subst) → ⟪ σ ⟫ (L · M) ≡ (⟪ σ ⟫ L) · (⟪ σ ⟫ M)
 subst-app L M σ = refl
 ```
 

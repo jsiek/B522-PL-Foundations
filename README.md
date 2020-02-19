@@ -110,24 +110,24 @@ an appropriate choice for your project.
 |          | 17  | [STLC Termination via Logical Relations](./STLC-Termination.lagda.md) |
 |          | 19  | [Inference](https://plfa.github.io/Inference/) bidirectional type inference |
 |          | 24  | [Subtyping and Records](./lecture-notes-Subtyping.lagda.md) |
-|          | 26  | [Untyped](https://plfa.github.io/Untyped/) Lambda Calculus |
-| March    | 2  | [Confluence](https://plfa.github.io/Confluence/) of the Lambda Calculus |
-|          | 4  | [BigStep](https://plfa.github.io/BigStep/) Call-by-name Evaluation of the Lambda Calculus |
-|          | 9   | [Denotational](https://plfa.github.io/Denotational/) semantics of the Lambda Calculus |
-|          | 11   | [Compositional](https://plfa.github.io/Compositional/) |
-|          | 16   | [Soundness](https://plfa.github.io/Soundness/) |
-|          | 18  | [Adequacy](https://plfa.github.io/Adequacy/) |
-|          | 23  | [ContextualEquivalence](https://plfa.github.io/ContextualEquivalence/) |
-|          | 25  | References and the Heap |
-|          | 30  | Classes and Objects (Featherweight Java) |
-| April    | 1   | Gradual Typing |
-|          | 6   | Universal and Existential Types (Parametric Polymorphism) |
-|          | 8   | Hindley-Milner Inference |
-|          | 13  | Recursive Types |
-|          | 15  | Intersection and Union Types |
-|          | 20  | Higher-Order Polymorphism |
-|          | 22  | Dependent Types |
-|          | 27  | TBD |
+|          | 26  | [Bisimulation](https://plfa.github.io/Bisimulation/) |
+| March    | 2  | [Untyped](https://plfa.github.io/Untyped/) Lambda Calculus |
+|          | 4  | [Confluence](https://plfa.github.io/Confluence/) of the Lambda Calculus |
+|          | 9  | [BigStep](https://plfa.github.io/BigStep/) Call-by-name Evaluation of the Lambda Calculus |
+|          | 11   | [Denotational](https://plfa.github.io/Denotational/) semantics of the Lambda Calculus |
+|          | 16   | [Compositional](https://plfa.github.io/Compositional/) |
+|          | 18   | [Soundness](https://plfa.github.io/Soundness/) |
+|          | 23  | [Adequacy](https://plfa.github.io/Adequacy/) |
+|          | 25  | [ContextualEquivalence](https://plfa.github.io/ContextualEquivalence/) |
+|          | 30  | References and the Heap |
+| April    | 1  | Classes and Objects (Featherweight Java) |
+|          | 6   | Gradual Typing |
+|          | 8   | Universal and Existential Types (Parametric Polymorphism) |
+|          | 13   | Hindley-Milner Inference |
+|          | 15  | Recursive Types |
+|          | 20  | Intersection and Union Types |
+|          | 22  | Higher-Order Polymorphism |
+|          | 27  | Dependent Types |
 |          | 29  | TBD |
 
 ## Resources

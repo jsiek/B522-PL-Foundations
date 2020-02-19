@@ -72,9 +72,9 @@ Monday and Wednesday at 4:30-5:45pm in Luddy Hall Room 4101.
    as in [DeBruijn](https://plfa.github.io/DeBruijn/).
    Prove the analogous theorem to `preserve`
    in [Properties](https://plfa.github.io/Properties/).
-   You may omit natural numbers (0, suc, and case)
+   You may omit natural numbers (0, suc, and case) and μ
    from your formalization of the STLC, instead
-   including a bottom (empty) type or a Boolean type.
+   including a unit type or a Boolean type.
 
 
 

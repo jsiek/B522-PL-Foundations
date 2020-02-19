@@ -42,6 +42,10 @@ infixl 7 _·_
 infixr 9 _#_
 
 infix 4 _—→_
+
+infix  9 _❲_❳
+_❲_❳ : ∀{n}{A : Set} → Vec A n → Fin n → A
+xs ❲ i ❳ = lookup xs i
 ```
 
 ### Types
@@ -87,7 +91,7 @@ distinct-rel {n}{fs} d
 
 ```
 lookup-mem : ∀{n}{fs : Vec Id n}{j : Fin n} 
-           → lookup fs j ∈ fs
+           → fs ❲ j ❳ ∈ fs
 lookup-mem {.(suc _)} {x ∷ fs} {Data.Fin.0F} = here refl
 lookup-mem {.(suc _)} {x ∷ fs} {Fin.suc j} = there lookup-mem
 ```
@@ -95,7 +99,7 @@ lookup-mem {.(suc _)} {x ∷ fs} {Fin.suc j} = there lookup-mem
 ```
 distinct-lookup-eq : ∀ {n}{fs : Vec Id n}{i j : Fin n}
    → distinct fs
-   → lookup fs j ≡ lookup fs i
+   → fs ❲ j ❳ ≡ fs ❲ i ❳
    → i ≡ j
 distinct-lookup-eq {.(suc _)} {x ∷ fs} {Data.Fin.0F} {Data.Fin.0F} ⟨ x∉fs , dfs ⟩ lij = refl
 distinct-lookup-eq {suc n} {x ∷ fs} {Data.Fin.0F} {Fin.suc j} ⟨ x∉fs , dfs ⟩ refl =
@@ -121,7 +125,7 @@ data Type : Set where
 ```
 data _⊆_ : ∀{n m} → Vec Id n → Vec Id m → Set where
   subseteq : ∀ {n m} {xs : Vec Id n} {ys : Vec Id m}
-           → ((i : Fin n) → Σ[ j ∈ Fin m ] lookup xs i ≡ lookup ys j)
+           → ((i : Fin n) → Σ[ j ∈ Fin m ] xs ❲ i ❳ ≡ ys ❲ j ❳)
            → xs ⊆ ys 
 ```
 
@@ -139,16 +143,16 @@ data _<:_ : Type → Type → Set where
   <:-rcd :  ∀{m}{ks : Vec Id m}{Ss : Vec Type m}.{d1 : distinct ks}
              {n}{ls : Vec Id n}{Ts : Vec Type n}.{d2 : distinct ls}
     → ls ⊆ ks
-    → (∀{i : Fin n}{j : Fin m} → lookup ks j ≡ lookup ls i
-                               → lookup Ss j <: lookup Ts i)
+    → (∀{i : Fin n}{j : Fin m} → ks ❲ j ❳ ≡ ls ❲ i ❳
+                               → Ss ❲ j ❳ <: Ts ❲ i ❳)
       ------------------------------------------------------
     → Record m ks Ss {d1} <: Record n ls Ts {d2}
 ```
 
 ```
 _⦂_<:_⦂_ : ∀ {m n} → Vec Id m → Vec Type m → Vec Id n → Vec Type n → Set
-_⦂_<:_⦂_ {m}{n} ks Ss ls Ts = (∀{i : Fin n}{j : Fin m} → lookup ks j ≡ lookup ls i
-                               → lookup Ss j <: lookup Ts i)
+_⦂_<:_⦂_ {m}{n} ks Ss ls Ts = (∀{i : Fin n}{j : Fin m}
+    → ks ❲ j ❳ ≡ ls ❲ i ❳  →  Ss ❲ j ❳ <: Ts ❲ i ❳)
 ```
 
 ```
@@ -172,7 +176,7 @@ ts-size {n} (x ∷ xs) = t-size x + ts-size xs
         → ns ⊆ ls
 ⊆-trans {l}{n}{m}{ns}{ms}{ls} (subseteq a) (subseteq b) = subseteq G
     where
-    G : (i : Fin n) →  Σ[ j ∈ Fin l ] lookup ns i ≡ lookup ls j
+    G : (i : Fin n) →  Σ[ j ∈ Fin l ] ns ❲ i ❳ ≡ ls ❲ j ❳
     G i
         with a i
     ... | ⟨ j , lk1 ⟩
@@ -188,8 +192,9 @@ t-size-pos {Record n fs As} = s≤s z≤n
 
 lookup-ts-size : ∀{n}{k} {As : Vec Type k} {j}
    → ts-size As ≤ n
-   → t-size (lookup As j) ≤ n
-lookup-ts-size {n} {suc k} {A ∷ As} {Data.Fin.0F} As≤n = m+n≤o⇒m≤o (t-size A) As≤n
+   → t-size (As ❲ j ❳) ≤ n
+lookup-ts-size {n} {suc k} {A ∷ As} {Data.Fin.0F} As≤n =
+    m+n≤o⇒m≤o (t-size A) As≤n
 lookup-ts-size {n} {suc k}{A ∷ As} {Fin.suc j} As≤n =
     lookup-ts-size {n} {k} {As} {j} (m+n≤o⇒n≤o (t-size A) As≤n)
 
@@ -203,11 +208,12 @@ lookup-ts-size {n} {suc k}{A ∷ As} {Fin.suc j} As≤n =
 <:-refl-aux {suc n}{`ℕ}{m} = <:-nat
 <:-refl-aux {suc n}{A ⇒ B}{m} =
   let a = ≤-pred m in
-  <:-fun (<:-refl-aux{n}{A}{m+n≤o⇒m≤o (t-size A) a }) (<:-refl-aux{n}{B}{m+n≤o⇒n≤o (t-size A) a})
+  <:-fun (<:-refl-aux{n}{A}{m+n≤o⇒m≤o (t-size A) a })
+         (<:-refl-aux{n}{B}{m+n≤o⇒n≤o (t-size A) a})
 <:-refl-aux {suc n}{Record k fs As {d}}{m} = <:-rcd {d1 = d}{d2 = d} ⊆-refl G
     where
     G : ∀ {i j : Fin k} →
-          lookup fs j ≡ lookup fs i → lookup As j <: lookup As i
+          fs ❲ j ❳ ≡ fs ❲ i ❳ → As ❲ j ❳ <: As ❲ i ❳
     G {i}{j} lij rewrite distinct-lookup-eq (distinct-rel d) lij =
         let Asⱼ≤n = lookup-ts-size {n}{k}{As}{j} (≤-pred m) in 
         <:-refl-aux {n}{lookup As j}{Asⱼ≤n}
@@ -217,9 +223,8 @@ lookup-ts-size {n} {suc k}{A ∷ As} {Fin.suc j} As≤n =
 
 lookup-⊆ : ∀{n m : ℕ}{ns : Vec Id n}{ms : Vec Id m}{i : Fin n}
    → ns ⊆ ms
-   → Σ[ k ∈ Fin m ] lookup ns i ≡ lookup ms k
+   → Σ[ k ∈ Fin m ] ns ❲ i ❳ ≡ ms ❲ k ❳
 lookup-⊆ {suc n} {m} {x ∷ ns} {ms} {i} (subseteq x₁) = x₁ i
-
 
 <:-trans : ∀{A B C}
     → A <: B   →   B <: C
@@ -442,8 +447,8 @@ data _⊢_⦂_ : Context → Term → Type → Set where
 
   ⊢# : ∀{Γ A R n fs As d i f}
     → Γ ⊢ R ⦂ Record n fs As {d}
-    → lookup fs i ≡ f
-    → lookup As i ≡ A
+    → fs ❲ i ❳ ≡ f
+    → As ❲ i ❳ ≡ A
       ----------------
     → Γ ⊢ R # f ⦂ A
 
@@ -543,7 +548,7 @@ data _—→_ : Term → Term → Set where
     → `let V N —→ N [ V ]
 
   β-# : ∀ {n}{fs : Vec Id n}{Ms : Args (repeat 0 n)} {f}{i : Fin n}
-    → lookup fs i ≡ f
+    → fs ❲ i ❳ ≡ f
       ---------------------------------------------
     → ((op-rcd n fs) ⦅ Ms ⦆ ) # f —→  getfield i Ms
 ```
@@ -593,8 +598,6 @@ canonical-base {B-Bool} (⊢$ {.∅} {base B-Bool} x) vV = base-const
 canonical-base {B-Bool} (⊢<: ⊢V A<:) vV
     rewrite inversion-<:-base A<: = canonical-base ⊢V vV
 ```
-
-todo: add a Type parameter to Rcd
 
 ```
 data Rcd : Term → Type → Set where
@@ -783,6 +786,7 @@ substitution {Γ}{A}{B}{M}{N} ⊢M ⊢N = subst G ⊢N
     G {A₁} {zero} Z = ⊢M
     G {A₁} {suc x} (S ∋x) = ⊢` ∋x
 ```
+
 ## Plug Inversion
 
 ```
@@ -790,7 +794,11 @@ insert-inversion : ∀{n}{M}{i : Fin n}{Ms : Args (repeat 0 n)}
      {As : Vec Type n}
    → ∅ ⊢* insert M i Ms ⦂ As
    → Σ[ B ∈ Type ] ∅ ⊢ M ⦂ B × (∀ M' → ∅ ⊢ M' ⦂ B → ∅ ⊢* insert M' i Ms ⦂ As)
-insert-inversion ⊢Ms = {!!}   
+insert-inversion {suc n} {M} {0F} {cons (ast M') Ms} (⊢*cons {A = A} ⊢M ⊢Ms) =
+  ⟨ A , ⟨ ⊢M , (λ M' z → ⊢*cons z ⊢Ms) ⟩ ⟩
+insert-inversion {suc n} {M} {suc i} {cons (ast M') Ms} (⊢*cons ⊢M ⊢Ms)
+    with insert-inversion {n} {M} {i} {Ms} ⊢Ms
+... | ⟨ B , ⟨ ⊢M' , imp ⟩ ⟩ = ⟨ B , ⟨ ⊢M' , (λ M' z → ⊢*cons ⊢M (imp M' z)) ⟩ ⟩
 ```
 
 ```
@@ -807,9 +815,9 @@ plug-inversion {M} {let□ N} {A} (⊢let {A = A'} ⊢M ⊢N) =
 plug-inversion {F = rcd□ i fs Ms} (⊢rcd ⊢Ms dfs)
     with insert-inversion ⊢Ms
 ... | ⟨ A' , ⟨ ⊢M , imp ⟩ ⟩ =    
-    
-    ⟨ {!!} , ⟨ {!!} , {!!} ⟩ ⟩
-plug-inversion {F = □# f} (⊢# ⊢M#f x x₁) = {!!}
+    ⟨ A' , ⟨ ⊢M , (λ M' ⊢M' → ⊢rcd (imp M' ⊢M') dfs) ⟩ ⟩
+plug-inversion {F = □# f} (⊢# {n = n}{fs}{As}{d} ⊢M lif liA) =
+    ⟨ Record n fs As , ⟨ ⊢M , (λ M' z → ⊢# {d = d} z lif liA) ⟩ ⟩
 plug-inversion {L} {F} {B} (⊢<: ⊢M A<:B)
     with plug-inversion {L} {F} ⊢M
 ... | ⟨ A' , ⟨ ⊢M' , imp ⟩ ⟩ =
@@ -817,6 +825,15 @@ plug-inversion {L} {F} {B} (⊢<: ⊢M A<:B)
 ```
 
 ## Preservation
+
+```
+getfield-pres : ∀{n}{As : Vec Type n}{A}{Ms : Args (repeat 0 n)}{i : Fin n}
+         → ∅ ⊢* Ms ⦂ As
+         → As ❲ i ❳ ≡ A
+         → ∅ ⊢ getfield i Ms ⦂ A
+getfield-pres {i = 0F} (⊢*cons ⊢M ⊢Ms) refl = ⊢M
+getfield-pres {i = suc i} (⊢*cons ⊢M ⊢Ms) As[i]=A = getfield-pres ⊢Ms As[i]=A
+```
 
 ```
 preserve : ∀ {M N A}
@@ -827,8 +844,26 @@ preserve : ∀ {M N A}
 preserve ⊢M (ξ {M}{M′} F M—→M′)
     with plug-inversion ⊢M
 ... | ⟨ B , ⟨ ⊢M' , plug-wt ⟩ ⟩ = plug-wt M′ (preserve ⊢M' M—→M′)
-preserve (⊢· (⊢λ ⊢N) ⊢M) (β-λ vV) = substitution ⊢M ⊢N
 preserve (⊢μ ⊢M) β-μ = substitution (⊢μ ⊢M) ⊢M
-preserve (⊢· (⊢$ refl) (⊢$ refl)) δ = ⊢$ refl
+preserve (⊢· ⊢L ⊢M) (β-λ vV)
+    with canonical-fun ⊢L V-λ
+... | Fun-λ ⊢N (<:-fun A2A1 BA) = ⊢<: (substitution (⊢<: ⊢M A2A1) ⊢N) BA
+preserve (⊢· ⊢L ⊢M) δ
+    with canonical-fun ⊢L V-const
+... | Fun-prim (<:-fun A1b pA)
+    rewrite inversion-<:-base A1b
+    with canonical-base ⊢M V-const
+... | base-const = ⊢<: (⊢$ refl) pA
 preserve (⊢let ⊢M ⊢N) (β-let vV) = substitution ⊢M ⊢N
+preserve (⊢# {d = d}{i} ⊢R lif liA) (β-# {i = j} lif2)
+    with canonical-rcd {d = d} ⊢R V-rcd
+... | rcd {As = As'}{d = d'} ⊢Ms (<:-rcd fs⊆fs' As'<:As)
+    with lookup-⊆ {i = i} fs⊆fs'
+... | ⟨ k , fsi=fs'k ⟩
+    with getfield-pres {i = k} ⊢Ms refl
+... | ⊢Ms[k] 
+    rewrite distinct-lookup-eq d' (trans lif2 (trans (sym lif) fsi=fs'k))
+    with As'<:As {i}{j} (trans lif2 (sym lif)) 
+... | lt rewrite liA = ⊢<: ⊢Ms[k] lt
+preserve (⊢<: ⊢M A<:B) M—→N = ⊢<: (preserve ⊢M M—→N) A<:B
 ```

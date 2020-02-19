@@ -345,7 +345,7 @@ sig (op-member f) = 0 ∷ []
 open Syntax Op sig
   using (`_; _⦅_⦆; cons; nil; bind; ast; _[_];
          Rename; Subst; ⟪_⟫; ⟦_⟧; exts; _•_; 
-         ↑; _⨟_; exts-0; exts-suc-rename; rename; ext; ⦉_⦊;
+         ↑; _⨟_; exts-0; exts-suc-rename; rename; ren-args; ext; ⦉_⦊;
          ext-0; ext-suc; Args; Arg)
   renaming (ABT to Term)
 
@@ -474,16 +474,12 @@ data Value : Term → Set where
       -----------------
     → Value ($ p k)
 
-  V-rcd : ∀{n}{fs}{Ms} → Value ((op-rcd n fs) ⦅ Ms  ⦆ )
+  V-rcd : ∀{n}{fs}{Ms}
+    {- cheating a bit here -}
+    → Value ((op-rcd n fs) ⦅ Ms  ⦆ )
 ```
 
 ## Frames and plug
-
-With the addition of errors, one would need to add many more rules for
-propagating an error to the top of the program. We instead collapse
-these rules, and the ξ rules, into just two rules by abstracting over
-the notion of a _frame_, which controls how reduction can occur inside
-of each term constructor. Think of the `□` symbol is a hole in the term.
 
 ```
 data Frame : Set where
@@ -678,4 +674,101 @@ progress (⊢# {n = n}{fs}{As}{d}{i}{f} ⊢R lif liA)
 ... | ⟨ k , eq ⟩ rewrite eq = step (β-# {i = k} lif)
 progress (⊢rcd x d)                       = done V-rcd
 progress (⊢<: {A = A}{B} ⊢M A<:B)         = progress ⊢M
+```
+
+## Renaming and substitution
+
+```
+WTRename : Context → Rename → Context → Set
+WTRename Γ ρ Δ = ∀ {x A} → Γ ∋ x ⦂ A → Δ ∋ ⦉ ρ ⦊ x ⦂ A
+```
+
+```
+ext-pres : ∀ {Γ Δ ρ B}
+  → WTRename Γ ρ Δ
+    --------------------------------
+  → WTRename (Γ , B) (ext ρ) (Δ , B)
+ext-pres {ρ = ρ } ⊢ρ Z
+    rewrite ext-0 ρ =  Z
+ext-pres {ρ = ρ } ⊢ρ (S {x = x} ∋x)
+    rewrite ext-suc ρ x =  S (⊢ρ ∋x)
+```
+
+```
+ren-args-pres : ∀ {Γ Δ ρ}{n}{Ms : Args (repeat 0 n)}{As : Vec Type n}
+  → WTRename Γ ρ Δ
+  → Γ ⊢* Ms ⦂ As
+    ---------------------
+  → Δ ⊢* ren-args ρ Ms ⦂ As
+```
+
+```
+rename-pres : ∀ {Γ Δ ρ M A}
+  → WTRename Γ ρ Δ
+  → Γ ⊢ M ⦂ A
+    ------------------
+  → Δ ⊢ rename ρ M ⦂ A
+rename-pres ⊢ρ (⊢` ∋w)           =  ⊢` (⊢ρ ∋w)
+rename-pres {ρ = ρ} ⊢ρ (⊢λ ⊢N)   =  ⊢λ (rename-pres (ext-pres {ρ = ρ} ⊢ρ) ⊢N)
+rename-pres ⊢ρ (⊢· ⊢L ⊢M)        =  ⊢· (rename-pres ⊢ρ ⊢L) (rename-pres ⊢ρ ⊢M)
+rename-pres {ρ = ρ} ⊢ρ (⊢μ ⊢M)   =  ⊢μ (rename-pres (ext-pres {ρ = ρ} ⊢ρ) ⊢M)
+rename-pres ⊢ρ (⊢$ eq)           = ⊢$ eq
+rename-pres {ρ = ρ} ⊢ρ (⊢let ⊢M ⊢N) =
+    ⊢let (rename-pres ⊢ρ ⊢M) (rename-pres (ext-pres {ρ = ρ} ⊢ρ) ⊢N)
+rename-pres ⊢ρ (⊢rcd ⊢Ms dfs) = ⊢rcd (ren-args-pres ⊢ρ ⊢Ms ) dfs
+rename-pres ⊢ρ (⊢# {d = d} ⊢R lif liA) = ⊢# {d = d}(rename-pres ⊢ρ ⊢R) lif liA
+rename-pres ⊢ρ (⊢<: ⊢M lt) = ⊢<: (rename-pres ⊢ρ ⊢M) lt
+
+ren-args-pres ⊢ρ ⊢*nil = ⊢*nil
+ren-args-pres {ρ = ρ} ⊢ρ (⊢*cons ⊢M ⊢Ms) =
+  let IH = ren-args-pres {ρ = ρ} ⊢ρ ⊢Ms in
+  ⊢*cons (rename-pres ⊢ρ ⊢M) IH
+```
+
+```
+WTSubst : Context → Subst → Context → Set
+WTSubst Γ σ Δ = ∀ {A x} → Γ ∋ x ⦂ A → Δ ⊢ ⟪ σ ⟫ (` x) ⦂ A
+```
+
+```
+exts-pres : ∀ {Γ Δ σ B}
+  → WTSubst Γ σ Δ
+    --------------------------------
+  → WTSubst (Γ , B) (exts σ) (Δ , B)
+exts-pres {σ = σ} Γ⊢σ Z
+    rewrite exts-0 σ = ⊢` Z
+exts-pres {σ = σ} Γ⊢σ (S {x = x} ∋x)
+    rewrite exts-suc-rename σ x = rename-pres S (Γ⊢σ ∋x)
+```
+
+```
+subst : ∀ {Γ Δ σ N A}
+  → WTSubst Γ σ Δ
+  → Γ ⊢ N ⦂ A
+    ---------------
+  → Δ ⊢ ⟪ σ ⟫ N ⦂ A
+subst Γ⊢σ (⊢` eq)              = Γ⊢σ eq
+subst {σ = σ} Γ⊢σ (⊢λ ⊢N)      = ⊢λ (subst (exts-pres {σ = σ} Γ⊢σ) ⊢N) 
+subst Γ⊢σ (⊢· ⊢L ⊢M)           = ⊢· (subst Γ⊢σ ⊢L) (subst Γ⊢σ ⊢M) 
+subst {σ = σ} Γ⊢σ (⊢μ ⊢M)      = ⊢μ (subst (exts-pres {σ = σ} Γ⊢σ) ⊢M) 
+subst Γ⊢σ (⊢$ e) = ⊢$ e 
+subst {σ = σ} Γ⊢σ (⊢let ⊢M ⊢N) =
+    ⊢let (subst Γ⊢σ ⊢M) (subst (exts-pres {σ = σ} Γ⊢σ) ⊢N) 
+subst Γ⊢σ (⊢rcd ⊢Ms dfs) = {!!}
+subst Γ⊢σ (⊢# ⊢R lif liA) = {!!}
+subst Γ⊢σ (⊢<: ⊢N lt) = {!!}
+```
+
+```
+substitution : ∀{Γ A B M N}
+   → Γ ⊢ M ⦂ A
+   → (Γ , A) ⊢ N ⦂ B
+     ---------------
+   → Γ ⊢ N [ M ] ⦂ B
+substitution {Γ}{A}{B}{M}{N} ⊢M ⊢N = subst G ⊢N
+    where
+    G : ∀ {A₁ : Type} {x : ℕ}
+      → (Γ , A) ∋ x ⦂ A₁ → Γ ⊢ ⟪ M • ↑ 0 ⟫ (` x) ⦂ A₁
+    G {A₁} {zero} Z = ⊢M
+    G {A₁} {suc x} (S ∋x) = ⊢` ∋x
 ```

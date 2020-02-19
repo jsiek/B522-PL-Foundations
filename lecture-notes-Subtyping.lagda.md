@@ -13,7 +13,8 @@ open import Data.Fin using (Fin; 0F; suc; reduce≥)
 open import Data.Vec.Membership.Propositional using (_∈_)
 open import Data.Vec.Any using (Any; here; there)
 open import Data.Nat using (ℕ; zero; suc; _<_; _+_; _≤_; s≤s; z≤n)
-open import Data.Nat.Properties using (≤-refl; ≤-pred; m+n≤o⇒m≤o; m+n≤o⇒n≤o; n≤0⇒n≡0; ≤-step)
+open import Data.Nat.Properties
+   using (≤-refl; ≤-pred; m+n≤o⇒m≤o; m+n≤o⇒n≤o; n≤0⇒n≡0; ≤-step)
 open import Data.Bool using () renaming (Bool to 𝔹)
 open import Data.Product using (_×_; Σ; Σ-syntax; ∃; ∃-syntax; proj₁; proj₂)
    renaming (_,_ to ⟨_,_⟩)
@@ -135,8 +136,8 @@ data _<:_ : Type → Type → Set where
       ----------------
     → A ⇒ B <: C ⇒ D
 
-  <:-rcd :  ∀{m}{ks : Vec Id m}{Ss : Vec Type m}.{d1}
-             {n}{ls : Vec Id n}{Ts : Vec Type n}.{d2}
+  <:-rcd :  ∀{m}{ks : Vec Id m}{Ss : Vec Type m}.{d1 : distinct ks}
+             {n}{ls : Vec Id n}{Ts : Vec Type n}.{d2 : distinct ls}
     → ls ⊆ ks
     → (∀{i : Fin n}{j : Fin m} → lookup ks j ≡ lookup ls i
                                → lookup Ss j <: lookup Ts i)
@@ -328,9 +329,9 @@ data Op : Set where
   op-rcd : (n : ℕ) → Vec Id n → Op
   op-member : Id → Op
 
-replicate : ℕ → ℕ → List ℕ
-replicate x 0 = []
-replicate x (suc n) = x ∷ replicate x n
+repeat : ℕ → ℕ → List ℕ
+repeat x 0 = []
+repeat x (suc n) = x ∷ repeat x n
 
 sig : Op → List ℕ
 sig (op-lam A) = 1 ∷ []
@@ -338,7 +339,7 @@ sig op-app = 0 ∷ 0 ∷ []
 sig op-rec = 1 ∷ []
 sig (op-const p k) = []
 sig op-let = 0 ∷ 1 ∷ []
-sig (op-rcd n fs) = replicate 0 n
+sig (op-rcd n fs) = repeat 0 n
 sig (op-member f) = 0 ∷ []
 
 open Syntax Op sig
@@ -395,7 +396,7 @@ data _∋_⦂_ : Context → ℕ → Type → Set where
 ## Typing judgement
 
 ```
-data _⊢*_⦂_ : Context → ∀ {n} → Args (replicate 0 n) → Vec Type n → Set 
+data _⊢*_⦂_ : Context → ∀ {n} → Args (repeat 0 n) → Vec Type n → Set 
 
 data _⊢_⦂_ : Context → Term → Type → Set where
 
@@ -434,7 +435,7 @@ data _⊢_⦂_ : Context → Term → Type → Set where
       -----------------
     → Γ ⊢ `let M N ⦂ B
 
-  ⊢rcd : ∀{Γ n}{Ms : Args (replicate 0 n) }{As : Vec Type n}{fs : Vec Id n}
+  ⊢rcd : ∀{Γ n}{Ms : Args (repeat 0 n) }{As : Vec Type n}{fs : Vec Id n}
     → Γ ⊢* Ms ⦂ As
     → (d : distinct fs)
     →  Γ ⊢ (op-rcd n fs) ⦅ Ms ⦆ ⦂ Record n fs As {d}
@@ -454,7 +455,7 @@ data _⊢_⦂_ : Context → Term → Type → Set where
 data _⊢*_⦂_ where
   ⊢*nil : ∀{Γ} → Γ ⊢* nil ⦂ []
 
-  ⊢*cons : ∀ {n}{Γ M}{Ms : Args (replicate 0 n)}{A}{As : Vec Type n}
+  ⊢*cons : ∀ {n}{Γ M}{Ms : Args (repeat 0 n)}{A}{As : Vec Type n}
          → Γ ⊢ M ⦂ A
          → Γ ⊢* Ms ⦂ As
          → Γ ⊢* (cons (ast M) Ms) ⦂ (A ∷ As)
@@ -488,7 +489,7 @@ of each term constructor. Think of the `□` symbol is a hole in the term.
 data Frame : Set where
   □·_ : Term → Frame
   _·□ : (M : Term) → (v : Value M) → Frame
-  rcd□ : ∀ {n : ℕ} (i : Fin n) → Vec Id n → Args (replicate 0 n) → Frame
+  rcd□ : ∀ {n : ℕ} (i : Fin n) → Vec Id n → Args (repeat 0 n) → Frame
   □#_ : Id → Frame
   let□ : Term → Frame
 ```
@@ -501,7 +502,7 @@ plug L (□· M)             = L · M
 plug M ((L ·□) v)         = L · M
 plug M (rcd□ {n} i fs Ms) = (op-rcd n fs) ⦅ insert {n} M i Ms ⦆
     where
-    insert : ∀{n} → Term → (i : Fin n) → Args (replicate 0 n) → Args (replicate 0 n)
+    insert : ∀{n} → Term → (i : Fin n) → Args (repeat 0 n) → Args (repeat 0 n)
     insert {suc n} M 0F (cons M' Ms) = cons (ast M) Ms
     insert {suc n} M (suc i) (cons M' Ms) = cons M' (insert {n} M i Ms)
 plug M (□# f)          = M # f
@@ -511,7 +512,7 @@ plug M (let□ N)        = `let M N
 ## Reduction
 
 ```
-getfield : {n : ℕ} → (i : Fin n) → Args (replicate 0 n) → Term
+getfield : {n : ℕ} → (i : Fin n) → Args (repeat 0 n) → Term
 getfield {suc n} 0F (cons (ast M) Ms) = M
 getfield {suc n} (suc i) (cons (ast M) Ms) = getfield {n} i Ms
 ```
@@ -543,7 +544,7 @@ data _—→_ : Term → Term → Set where
       -------------------
     → `let V N —→ N [ V ]
 
-  β-# : ∀ {n}{fs : Vec Id n}{Ms : Args (replicate 0 n)} {f}{i : Fin n}
+  β-# : ∀ {n}{fs : Vec Id n}{Ms : Args (repeat 0 n)} {f}{i : Fin n}
     → lookup fs i ≡ f
       ---------------------------------------------
     → ((op-rcd n fs) ⦅ Ms ⦆ ) # f —→  getfield i Ms
@@ -553,17 +554,20 @@ data _—→_ : Term → Term → Set where
 
 ```
 data Function : Term → Type → Set where
-  Fun-λ : ∀ {A B}{N} → Function (λ: A ⇒ N) B
-  Fun-prim : ∀{b p k A}
-    → typeof (b ⇒ p) <: A
-    → Function ($ (b ⇒ p) k) A
+  Fun-λ : ∀ {A B C D}{N}
+    → ∅ , A ⊢ N ⦂ B
+    → A ⇒ B <: C ⇒ D
+    → Function (λ: A ⇒ N) (C ⇒ D)
+  Fun-prim : ∀{b p k A B}
+    → typeof (b ⇒ p) <: A ⇒ B
+    → Function ($ (b ⇒ p) k) (A ⇒ B)
 
 canonical-fun : ∀{V A B}
   → ∅ ⊢ V ⦂ A ⇒ B
   → Value V
     ------------------
   → Function V (A ⇒ B)
-canonical-fun (⊢λ ⊢V) vV = Fun-λ
+canonical-fun (⊢λ ⊢V) vV = Fun-λ ⊢V <:-refl
 canonical-fun (⊢$ {p = base B-Nat} ()) vV
 canonical-fun (⊢$ {p = base B-Bool} ()) vV
 canonical-fun (⊢$ {p = b ⇒ p} refl) vV = Fun-prim <:-refl
@@ -571,7 +575,7 @@ canonical-fun (⊢<: ⊢V <:A→B) vV
     with inversion-<:-fun <:A→B
 ... | ⟨ C , ⟨ D , ⟨ refl , _ ⟩ ⟩ ⟩
     with canonical-fun ⊢V vV
-... | Fun-λ = Fun-λ
+... | Fun-λ ⊢N lt = Fun-λ ⊢N (<:-trans lt <:A→B)
 ... | Fun-prim lt = Fun-prim (<:-trans lt <:A→B)
 ```
 
@@ -595,23 +599,28 @@ canonical-base {B-Bool} (⊢<: ⊢V A<:) vV
 todo: add a Type parameter to Rcd
 
 ```
-data Rcd : Term → Set where
-  rcd : ∀{n : ℕ}{fs : Vec Id n}{Ms : Args (replicate 0 n)}
-      → Rcd ((op-rcd n fs) ⦅ Ms ⦆)
+data Rcd : Term → Type → Set where
+  rcd : ∀{n}{fs : Vec Id n}{Ms : Args (repeat 0 n)}{As : Vec Type n}{d : distinct fs}
+         {k}{ks : Vec Id k}{Bs : Vec Type k}{d' : distinct ks}
+      → ∅ ⊢* Ms ⦂ As
+      → Record n fs As {d} <: Record k ks Bs {d'}
+      → Rcd ((op-rcd n fs) ⦅ Ms ⦆) (Record k ks Bs {d'})
 ```
 
 ```
 canonical-rcd : ∀{V n fs As d}
    → ∅ ⊢ V ⦂ Record n fs As {d}
    → Value V
-   → Rcd V
+   → Rcd V (Record n fs As {d})
 canonical-rcd (⊢$ {p = base B-Nat} ()) vV
 canonical-rcd (⊢$ {p = base B-Bool} ()) vV
-canonical-rcd (⊢rcd x d) vV = rcd
-canonical-rcd {d = d} (⊢<: ⊢V A<:) vV
+canonical-rcd (⊢rcd ⊢Ms d) vV = rcd {d = d} {d' = d} ⊢Ms <:-refl
+canonical-rcd {V}{n}{fs}{As}{d} (⊢<: ⊢V A<:) vV
     with inversion-<:-rcd {dks = d} A<:
-... | ⟨ n , ⟨ ns , ⟨ As , ⟨ dns , ⟨ refl , _ ⟩ ⟩ ⟩ ⟩ ⟩ =
-    canonical-rcd {d = dns} ⊢V vV
+... | ⟨ n' , ⟨ fs' , ⟨ As' , ⟨ d' , ⟨ refl , ⟨ fs⊆fs' , lt ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
+    with canonical-rcd {d = d'} ⊢V vV
+... | rcd {fs = fs''}{d = d''} ⊢Ms lt' = 
+      rcd {d = d''}{d' = d} ⊢Ms (<:-trans lt' A<:)
 ```
 
 ## Progress
@@ -646,7 +655,7 @@ progress (⊢· {L = L}{M}{A}{B} ⊢L ⊢M)
 ...     | step M—→M′                      = step (ξ ((L ·□) VL) M—→M′)
 ...     | done VM 
         with canonical-fun ⊢L VL 
-...     | Fun-λ                           = step (β-λ VM)
+...     | Fun-λ ⊢N lt                     = step (β-λ VM)
 ...     | Fun-prim {b}{p}{k} p⇒b<:A⇒B
         with inversion-<:-fun p⇒b<:A⇒B
 ...     | ⟨ A₁ , ⟨ A₂ , ⟨ refl , ⟨ A<:p , b<:B ⟩ ⟩ ⟩ ⟩
@@ -664,7 +673,9 @@ progress (⊢# {n = n}{fs}{As}{d}{i}{f} ⊢R lif liA)
 ... | step R—→R′                          = step (ξ (□# f) R—→R′)
 ... | done VR
     with canonical-rcd {d = d} ⊢R VR
-... | rcd {n'}{fs'}{Ms} = step (β-# {!!})
+... | rcd {n'}{fs'}{Ms} ⊢MS (<:-rcd fs⊆fs' lt)
+    with lookup-⊆ {i = i} fs⊆fs'
+... | ⟨ k , eq ⟩ rewrite eq = step (β-# {i = k} lif)
 progress (⊢rcd x d)                       = done V-rcd
 progress (⊢<: {A = A}{B} ⊢M A<:B)         = progress ⊢M
 ```

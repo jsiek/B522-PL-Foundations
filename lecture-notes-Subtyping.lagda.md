@@ -30,10 +30,16 @@ import Syntax
 
 ## Properties of Record Field Names and Field Lookup
 
+We shall represent field names (aka. identifiers) as strings.
+
 ```
 Id : Set
 Id = String
 ```
+
+The field names of a record will be stored in a sequence, specifically
+Agda's `Vec` type. We define the following short-hand for the `lookup`
+function that retrieve's the ith element in the sequence.
 
 ```
 infix  9 _❲_❳
@@ -41,11 +47,16 @@ _❲_❳ : ∀{n}{A : Set} → Vec A n → Fin n → A
 xs ❲ i ❳ = lookup xs i
 ```
 
+
+
 ```
 distinct : ∀{A : Set}{n} → Vec A n → Set
 distinct [] = ⊤
 distinct (x ∷ xs) = ¬ (x ∈ xs) × distinct xs
+```
 
+
+```
 _∈?_ : ∀{n} (x : Id) → (xs : Vec Id n) → Dec (x ∈ xs)
 x ∈? [] = no λ ()
 x ∈? (y ∷ xs)

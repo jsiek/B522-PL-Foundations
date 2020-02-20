@@ -45,7 +45,9 @@ xs ❲ i ❳ = lookup xs i
 distinct : ∀{A : Set}{n} → Vec A n → Set
 distinct [] = ⊤
 distinct (x ∷ xs) = ¬ (x ∈ xs) × distinct xs
+```
 
+```
 _∈?_ : ∀{n} (x : Id) → (xs : Vec Id n) → Dec (x ∈ xs)
 x ∈? [] = no λ ()
 x ∈? (y ∷ xs)
@@ -55,7 +57,9 @@ x ∈? (y ∷ xs)
     with x ∈? xs
 ... | yes x∈xs = yes (there x∈xs)
 ... | no x∉xs = no λ { (here a) → xy a ; (there a) → x∉xs a } 
+```
 
+```
 distinct? : ∀{n} → (xs : Vec Id n) → Dec (distinct xs)
 distinct? [] = yes tt
 distinct? (x ∷ xs)
@@ -65,7 +69,9 @@ distinct? (x ∷ xs)
     with distinct? xs
 ... | yes dxs = yes ⟨ x∉xs , dxs ⟩
 ... | no ¬dxs = no λ x₁ → ¬dxs (proj₂ x₁)
+```
 
+```
 distinct-rel : ∀ {n}{fs : Vec Id n} .(d : distinct fs) → distinct fs
 distinct-rel {n}{fs} d
     with distinct? fs
@@ -76,8 +82,8 @@ distinct-rel {n}{fs} d
 ```
 lookup-mem : ∀{n}{fs : Vec Id n}{j : Fin n} 
            → fs ❲ j ❳ ∈ fs
-lookup-mem {.(suc _)} {x ∷ fs} {Data.Fin.0F} = here refl
-lookup-mem {.(suc _)} {x ∷ fs} {Fin.suc j} = there lookup-mem
+lookup-mem {.(suc _)} {x ∷ fs} {0F} = here refl
+lookup-mem {.(suc _)} {x ∷ fs} {suc j} = there lookup-mem
 ```
 
 ```
@@ -85,14 +91,14 @@ distinct-lookup-eq : ∀ {n}{fs : Vec Id n}{i j : Fin n}
    → distinct fs
    → fs ❲ j ❳ ≡ fs ❲ i ❳
    → i ≡ j
-distinct-lookup-eq {.(suc _)} {x ∷ fs} {Data.Fin.0F} {Data.Fin.0F} ⟨ x∉fs , dfs ⟩ lij = refl
-distinct-lookup-eq {suc n} {x ∷ fs} {Data.Fin.0F} {Fin.suc j} ⟨ x∉fs , dfs ⟩ refl =
+distinct-lookup-eq {.(suc _)} {x ∷ fs} {0F} {0F} ⟨ x∉fs , dfs ⟩ lij = refl
+distinct-lookup-eq {suc n} {x ∷ fs} {0F} {suc j} ⟨ x∉fs , dfs ⟩ refl =
     ⊥-elim (x∉fs lookup-mem)
-distinct-lookup-eq {.(suc _)} {x ∷ fs} {Fin.suc i} {Data.Fin.0F} ⟨ x∉fs , dfs ⟩ refl =
+distinct-lookup-eq {.(suc _)} {x ∷ fs} {suc i} {0F} ⟨ x∉fs , dfs ⟩ refl =
     ⊥-elim (x∉fs lookup-mem)
-distinct-lookup-eq {suc n} {x ∷ fs} {Fin.suc i} {Fin.suc j} ⟨ x∉fs , dfs ⟩ lij =
+distinct-lookup-eq {suc n} {x ∷ fs} {suc i} {suc j} ⟨ x∉fs , dfs ⟩ lij =
   let IH = distinct-lookup-eq {n} {fs}{i}{j} dfs lij in
-  cong Fin.suc IH
+  cong suc IH
 ```
 
 ```
@@ -105,8 +111,9 @@ data _⊆_ : ∀{n m} → Vec Id n → Vec Id m → Set where
 ```
 ⊆-refl : ∀{n}{fs : Vec Id n} → fs ⊆ fs
 ⊆-refl {n}{fs} = subseteq (λ i → ⟨ i , refl ⟩)
+```
 
-
+```
 ⊆-trans : ∀{l n m}{ns  : Vec Id n}{ms  : Vec Id m}{ls  : Vec Id l}
         → ns ⊆ ms   →    ms ⊆ ls
         → ns ⊆ ls
@@ -146,18 +153,34 @@ infix 4 _—→_
 
 ## Types
 
+A record type is usually written
 
-The field names in records must be distinct.
+    { l₁ = A₁, l₂ = A₂, ..., lᵤ = Aᵤ }
+
+so a natural representation would be as a list of label-type pairs.
+We find it more convenient to represent it as a pair of lists,
+one of labels and one of types:
+
+    l₁, l₂, ..., lᵤ
+    A₁, A₂, ..., Aᵤ
+
+We represent these fixed-length lists using Agda's `Vec` type.
+
+The field names in a record are required to be distinct.
 
 ```
 data Type : Set where
   `𝔹    : Type
   `ℕ    : Type
   _⇒_   : Type → Type → Type
-  Record : (n : ℕ) (fs : Vec Id n) (As : Vec Type n) → .{d : distinct fs} → Type 
+  Record : (n : ℕ)(ls : Vec Id n)(As : Vec Type n) → .{d : distinct ls} → Type 
 ```
 
 ## Subtyping
+
+The following definition of subtyping closely follows
+the algorithmic typing rules in Chapter 16 of
+_Types and Programming Languages_ by Benjamin Pierce.
 
 ```
 data _<:_ : Type → Type → Set where
@@ -179,41 +202,45 @@ data _<:_ : Type → Type → Set where
     → Record m ks Ss {d1} <: Record n ls Ts {d2}
 ```
 
+Here's an abbreviation for the second premise of the record subtyping rule.
+
 ```
 _⦂_<:_⦂_ : ∀ {m n} → Vec Id m → Vec Type m → Vec Id n → Vec Type n → Set
 _⦂_<:_⦂_ {m}{n} ks Ss ls Ts = (∀{i : Fin n}{j : Fin m}
     → ks ❲ j ❳ ≡ ls ❲ i ❳  →  Ss ❲ j ❳ <: Ts ❲ i ❳)
 ```
 
+## Subtyping is reflexive
+
 ```
-t-size : (A : Type) → ℕ
-ts-size : ∀ {n : ℕ} → (As : Vec Type n) → ℕ
+ty-size : (A : Type) → ℕ
+vec-ty-size : ∀ {n : ℕ} → (As : Vec Type n) → ℕ
 
-t-size `𝔹 = 1
-t-size `ℕ = 1
-t-size (A ⇒ B) = suc (t-size A + t-size B)
-t-size (Record n fs As) = suc (ts-size As)
+ty-size `𝔹 = 1
+ty-size `ℕ = 1
+ty-size (A ⇒ B) = suc (ty-size A + ty-size B)
+ty-size (Record n fs As) = suc (vec-ty-size As)
 
-ts-size {n} [] = 0
-ts-size {n} (x ∷ xs) = t-size x + ts-size xs
+vec-ty-size {n} [] = 0
+vec-ty-size {n} (x ∷ xs) = ty-size x + vec-ty-size xs
 
-t-size-pos : ∀ {A} → 0 < t-size A
-t-size-pos {`𝔹} = s≤s z≤n
-t-size-pos {`ℕ} = s≤s z≤n
-t-size-pos {A ⇒ B} = s≤s z≤n
-t-size-pos {Record n fs As} = s≤s z≤n
+ty-size-pos : ∀ {A} → 0 < ty-size A
+ty-size-pos {`𝔹} = s≤s z≤n
+ty-size-pos {`ℕ} = s≤s z≤n
+ty-size-pos {A ⇒ B} = s≤s z≤n
+ty-size-pos {Record n fs As} = s≤s z≤n
 
-lookup-ts-size : ∀{n}{k} {As : Vec Type k} {j}
-   → ts-size As ≤ n
-   → t-size (As ❲ j ❳) ≤ n
-lookup-ts-size {n} {suc k} {A ∷ As} {Data.Fin.0F} As≤n =
-    m+n≤o⇒m≤o (t-size A) As≤n
-lookup-ts-size {n} {suc k}{A ∷ As} {Fin.suc j} As≤n =
-    lookup-ts-size {n} {k} {As} {j} (m+n≤o⇒n≤o (t-size A) As≤n)
+lookup-vec-ty-size : ∀{n}{k} {As : Vec Type k} {j}
+   → vec-ty-size As ≤ n
+   → ty-size (As ❲ j ❳) ≤ n
+lookup-vec-ty-size {n} {suc k} {A ∷ As} {0F} As≤n =
+    m+n≤o⇒m≤o (ty-size A) As≤n
+lookup-vec-ty-size {n} {suc k}{A ∷ As} {suc j} As≤n =
+    lookup-vec-ty-size {n} {k} {As} {j} (m+n≤o⇒n≤o (ty-size A) As≤n)
 
-<:-refl-aux : ∀{n}{A}{m : t-size A ≤ n} → A <: A
+<:-refl-aux : ∀{n}{A}{m : ty-size A ≤ n} → A <: A
 <:-refl-aux {0}{A}{m}
-    with t-size-pos {A}
+    with ty-size-pos {A}
 ... | pos rewrite n≤0⇒n≡0 m
     with pos
 ... | ()    
@@ -221,19 +248,23 @@ lookup-ts-size {n} {suc k}{A ∷ As} {Fin.suc j} As≤n =
 <:-refl-aux {suc n}{`ℕ}{m} = <:-nat
 <:-refl-aux {suc n}{A ⇒ B}{m} =
   let a = ≤-pred m in
-  <:-fun (<:-refl-aux{n}{A}{m+n≤o⇒m≤o (t-size A) a })
-         (<:-refl-aux{n}{B}{m+n≤o⇒n≤o (t-size A) a})
+  <:-fun (<:-refl-aux{n}{A}{m+n≤o⇒m≤o (ty-size A) a })
+         (<:-refl-aux{n}{B}{m+n≤o⇒n≤o (ty-size A) a})
 <:-refl-aux {suc n}{Record k fs As {d}}{m} = <:-rcd {d1 = d}{d2 = d} ⊆-refl G
     where
     G : ∀ {i j : Fin k} →
           fs ❲ j ❳ ≡ fs ❲ i ❳ → As ❲ j ❳ <: As ❲ i ❳
     G {i}{j} lij rewrite distinct-lookup-eq (distinct-rel d) lij =
-        let Asⱼ≤n = lookup-ts-size {n}{k}{As}{j} (≤-pred m) in 
+        let Asⱼ≤n = lookup-vec-ty-size {n}{k}{As}{j} (≤-pred m) in 
         <:-refl-aux {n}{lookup As j}{Asⱼ≤n}
 
 <:-refl : ∀{A} → A <: A
-<:-refl {A} = <:-refl-aux {t-size A}{A}{≤-refl}
+<:-refl {A} = <:-refl-aux {ty-size A}{A}{≤-refl}
+```
 
+## Subtyping is transitive
+
+```
 <:-trans : ∀{A B C}
     → A <: B   →   B <: C
       -------------------
@@ -242,7 +273,8 @@ lookup-ts-size {n} {suc k}{A ∷ As} {Fin.suc j} As≤n =
 <:-trans {.`ℕ} {`ℕ} {.`ℕ} <:-nat <:-nat = <:-nat
 <:-trans {A₁ ⇒ A₂} {B₁ ⇒ B₂} {C₁ ⇒ C₂} (<:-fun A<:B A<:B₁) (<:-fun B<:C B<:C₁) =
     <:-fun (<:-trans B<:C A<:B) (<:-trans A<:B₁ B<:C₁)
-<:-trans {Record l ls As {d1} } {Record m ms Bs {d2} } {Record n ns Cs {d3} } (<:-rcd ms⊆ls As<:Bs) (<:-rcd ns⊆ms Bs<:Cs) =
+<:-trans {Record l ls As {d1} } {Record m ms Bs {d2} } {Record n ns Cs {d3} }
+    (<:-rcd ms⊆ls As<:Bs) (<:-rcd ns⊆ms Bs<:Cs) =
     <:-rcd (⊆-trans ns⊆ms ms⊆ls) G
     where
     G : {i : Fin n} {j : Fin l} →
@@ -259,9 +291,8 @@ lookup-ts-size {n} {suc k}{A ∷ As} {Fin.suc j} As≤n =
 
 ## Primitives
 
-The idea here is to use Agda values as primitive constants. We include
-natural numbers, Booleans, and Agda functions over naturals and
-Booleans.
+We use Agda values as primitive constants. We include natural numbers,
+Booleans, and Agda functions over naturals and Booleans.
 
 The `Base` and `Prim` data types describe the types of constants.
 
@@ -302,12 +333,11 @@ typeof (b ⇒ p) = typeof-base b ⇒ typeof p
 
 ## Inversion of Subtyping
 
-```
-inversion-<:-fun : ∀{A B C : Type}
-  → A <: B ⇒ C
-  → Σ[ A₁ ∈ Type ] Σ[ A₂ ∈ Type ] (A ≡ A₁ ⇒ A₂ × B <: A₁ × A₂ <: C)
-inversion-<:-fun {A₁ ⇒ A₂} {B} {C} (<:-fun B<:A₁ A₂<:C) = ⟨ A₁ , ⟨ A₂ , ⟨ refl , ⟨ B<:A₁ , A₂<:C ⟩ ⟩ ⟩ ⟩
-```
+Because we use algorithmic subtyping rules, the traditional inversion
+lemmas for subtyping become trivial and therefore not necessary. One
+can instead simply pattern match on the subtyping derivation. However,
+the following inversion lemma is still useful because it hides the two
+cases on the base `b`.
 
 ```
 inversion-<:-base : ∀ {b A}
@@ -317,20 +347,30 @@ inversion-<:-base {B-Nat} <:-nat = refl
 inversion-<:-base {B-Bool} <:-bool = refl
 ```
 
-```
-inversion-<:-rcd : ∀{A k}{ks : Vec Id k}{Bs : Vec Type k}{dks : distinct ks}
-  → A <: Record k ks Bs {dks}
-  → Σ[ n ∈ ℕ ] Σ[ ns ∈ Vec Id n ] Σ[ As ∈ Vec Type n ] Σ[ dns ∈ distinct ns ]
-       A ≡ Record n ns As {dns} × ks ⊆ ns × (ns ⦂ As <: ks ⦂ Bs)
-inversion-<:-rcd {Record n ns As {dns}} (<:-rcd ks⊆ns As<:Bs) =
-    ⟨ n , ⟨ ns , ⟨ As , ⟨ (distinct-rel dns) , ⟨ refl , ⟨ ks⊆ns , As<:Bs ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
-```
-
 ## Terms
 
 We use the
 [abstract-binding-trees](https://github.com/jsiek/abstract-binding-trees)
 library to represent terms.
+
+A record term is usually written
+
+    { l₁ = M₁, ..., lᵤ = Mᵤ }
+
+We represent a record term as follows, with the list of labels as part
+of the operator.
+
+   (op-rcd u (l₁, ..., lᵤ)) ⦅ cons (ast M₁) ... (cons (ast Mᵤ) nil) ⦆
+
+Field access is usually written
+
+   M.f
+
+We instead use the notation
+
+  M # f
+
+because the period is a reserved symbol in Agda.
 
 ```
 data Op : Set where
@@ -373,14 +413,6 @@ pattern _·_ L M = op-app ⦅ cons (ast L) (cons (ast M) nil) ⦆
 pattern `let L M = op-let ⦅ cons (ast L) (cons (bind (ast M)) nil) ⦆
 
 pattern _#_ M f = (op-member f) ⦅ cons (ast M) nil ⦆
-```
-
-```
-subst-lam : ∀{A} N (σ : Subst) → ⟪ σ ⟫ (λ: A ⇒ N) ≡ λ: A ⇒ (⟪ exts σ ⟫ N)
-subst-lam N σ = refl 
-
-subst-app : ∀ L M (σ : Subst) → ⟪ σ ⟫ (L · M) ≡ (⟪ σ ⟫ L) · (⟪ σ ⟫ M)
-subst-app L M σ = refl
 ```
 
 ## Contexts
@@ -582,12 +614,10 @@ canonical-fun (⊢λ ⊢V) vV = Fun-λ ⊢V <:-refl
 canonical-fun (⊢$ {p = base B-Nat} ()) vV
 canonical-fun (⊢$ {p = base B-Bool} ()) vV
 canonical-fun (⊢$ {p = b ⇒ p} refl) vV = Fun-prim <:-refl
-canonical-fun (⊢<: ⊢V <:A→B) vV
-    with inversion-<:-fun <:A→B
-... | ⟨ C , ⟨ D , ⟨ refl , _ ⟩ ⟩ ⟩
+canonical-fun (⊢<: ⊢V (<:-fun {C}{D}{A}{B} A<:C D<:B)) vV
     with canonical-fun ⊢V vV
-... | Fun-λ ⊢N lt = Fun-λ ⊢N (<:-trans lt <:A→B)
-... | Fun-prim lt = Fun-prim (<:-trans lt <:A→B)
+... | Fun-λ ⊢N lt = Fun-λ ⊢N (<:-trans lt (<:-fun A<:C D<:B))
+... | Fun-prim lt = Fun-prim (<:-trans lt (<:-fun A<:C D<:B))
 ```
 
 ```
@@ -600,11 +630,9 @@ canonical-base : ∀{b V}
     ------------
   → Constant b V
 canonical-base {B-Nat} (⊢$ {.∅} {base B-Nat} x) vV = base-const
-canonical-base {B-Nat} (⊢<: ⊢V A<:) vV
-    rewrite inversion-<:-base A<: = canonical-base ⊢V vV
+canonical-base {B-Nat} (⊢<: ⊢V <:-nat) vV = canonical-base ⊢V vV
 canonical-base {B-Bool} (⊢$ {.∅} {base B-Bool} x) vV = base-const
-canonical-base {B-Bool} (⊢<: ⊢V A<:) vV
-    rewrite inversion-<:-base A<: = canonical-base ⊢V vV
+canonical-base {B-Bool} (⊢<: ⊢V <:-bool) vV = canonical-base ⊢V vV
 ```
 
 ```
@@ -624,12 +652,10 @@ canonical-rcd : ∀{V n fs As d}
 canonical-rcd (⊢$ {p = base B-Nat} ()) vV
 canonical-rcd (⊢$ {p = base B-Bool} ()) vV
 canonical-rcd (⊢rcd ⊢Ms d) vV = rcd {d = d} {d' = d} ⊢Ms <:-refl
-canonical-rcd {V}{n}{fs}{As}{d} (⊢<: ⊢V A<:) vV
-    with inversion-<:-rcd {dks = d} A<:
-... | ⟨ n' , ⟨ fs' , ⟨ As' , ⟨ d' , ⟨ refl , ⟨ fs⊆fs' , lt ⟩ ⟩ ⟩ ⟩ ⟩ ⟩
-    with canonical-rcd {d = d'} ⊢V vV
+canonical-rcd {V} {n} {fs} {As} {d} (⊢<: ⊢V (<:-rcd {d1 = d1} fs⊆fs' lt)) vV
+    with canonical-rcd {d = distinct-rel d1} ⊢V vV
 ... | rcd {fs = fs''}{d = d''} ⊢Ms lt' = 
-      rcd {d = d''}{d' = d} ⊢Ms (<:-trans lt' A<:)
+      rcd {d = d''}{d' = d} ⊢Ms (<:-trans lt' (<:-rcd fs⊆fs' lt))
 ```
 
 ## Progress
@@ -665,11 +691,8 @@ progress (⊢· {L = L}{M}{A}{B} ⊢L ⊢M)
 ...     | done VM 
         with canonical-fun ⊢L VL 
 ...     | Fun-λ ⊢N lt                     = step (β-λ VM)
-...     | Fun-prim {b}{p}{k} p⇒b<:A⇒B
-        with inversion-<:-fun p⇒b<:A⇒B
-...     | ⟨ A₁ , ⟨ A₂ , ⟨ refl , ⟨ A<:p , b<:B ⟩ ⟩ ⟩ ⟩
-        with inversion-<:-base A<:p
-...     | refl
+...     | Fun-prim {b}{p}{k} (<:-fun A<:p b<:B)
+        rewrite inversion-<:-base A<:p
         with canonical-base ⊢M VM 
 ...     | base-const                      = step δ
 progress (⊢μ ⊢M)                          = step β-μ

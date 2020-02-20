@@ -30,16 +30,16 @@ import Syntax
 
 ## Properties of Record Field Names and Field Lookup
 
-We shall represent field names (aka. identifiers) as strings.
+We shall represent field identifiers (aka. names) as strings.
 
 ```
 Id : Set
 Id = String
 ```
 
-The field names of a record will be stored in a sequence, specifically
-Agda's `Vec` type. We define the following short-hand for the `lookup`
-function that retrieve's the ith element in the sequence.
+The field identifiers of a record will be stored in a sequence,
+specifically Agda's `Vec` type. We define the following short-hand for
+the `lookup` function that retrieve's the ith element in the sequence.
 
 ```
 infix  9 _❲_❳
@@ -47,7 +47,8 @@ _❲_❳ : ∀{n}{A : Set} → Vec A n → Fin n → A
 xs ❲ i ❳ = lookup xs i
 ```
 
-
+We require that the field names of a record be distinct, which we
+define as follows.
 
 ```
 distinct : ∀{A : Set}{n} → Vec A n → Set
@@ -55,6 +56,9 @@ distinct [] = ⊤
 distinct (x ∷ xs) = ¬ (x ∈ xs) × distinct xs
 ```
 
+The following function implements decidable membership in a `Vec`.
+The Agda stdlib should have this, but I couldn't find it in a short
+amount of time.
 
 ```
 _∈?_ : ∀{n} (x : Id) → (xs : Vec Id n) → Dec (x ∈ xs)
@@ -68,6 +72,8 @@ x ∈? (y ∷ xs)
 ... | no x∉xs = no λ { (here a) → xy a ; (there a) → x∉xs a } 
 ```
 
+The next function decides whether a vector is distinct.
+
 ```
 distinct? : ∀{n} → (xs : Vec Id n) → Dec (distinct xs)
 distinct? [] = yes tt
@@ -80,6 +86,9 @@ distinct? (x ∷ xs)
 ... | no ¬dxs = no λ x₁ → ¬dxs (proj₂ x₁)
 ```
 
+This function turns an irrelevant proof that a vector is distinct into
+a relevant proof.
+
 ```
 distinct-rel : ∀ {n}{fs : Vec Id n} .(d : distinct fs) → distinct fs
 distinct-rel {n}{fs} d
@@ -88,12 +97,16 @@ distinct-rel {n}{fs} d
 ... | no ¬dfs = ⊥-elimi (¬dfs d)
 ```
 
+The result of `lookup` is a member of the sequence.
+
 ```
 lookup-mem : ∀{n}{fs : Vec Id n}{j : Fin n} 
            → fs ❲ j ❳ ∈ fs
 lookup-mem {.(suc _)} {x ∷ fs} {0F} = here refl
 lookup-mem {.(suc _)} {x ∷ fs} {suc j} = there lookup-mem
 ```
+
+For distinct vectors, indexing is injective.
 
 ```
 distinct-lookup-eq : ∀ {n}{fs : Vec Id n}{i j : Fin n}
@@ -110,6 +123,9 @@ distinct-lookup-eq {suc n} {x ∷ fs} {suc i} {suc j} ⟨ x∉fs , dfs ⟩ lij
   cong suc IH
 ```
 
+A vector of identifiers is a subset of another one if all the
+identifiers of the first vector are also in the second one.
+
 ```
 data _⊆_ : ∀{n m} → Vec Id n → Vec Id m → Set where
   subseteq : ∀ {n m} {xs : Vec Id n} {ys : Vec Id m}
@@ -117,10 +133,14 @@ data _⊆_ : ∀{n m} → Vec Id n → Vec Id m → Set where
            → xs ⊆ ys 
 ```
 
+This subset relation is reflexive.
+
 ```
 ⊆-refl : ∀{n}{fs : Vec Id n} → fs ⊆ fs
 ⊆-refl {n}{fs} = subseteq (λ i → ⟨ i , refl ⟩)
 ```
+
+The subset relation is also transitive.
 
 ```
 ⊆-trans : ∀{l n m}{ns  : Vec Id n}{ms  : Vec Id m}{ls  : Vec Id l}
@@ -137,12 +157,16 @@ data _⊆_ : ∀{n m} → Vec Id n → Vec Id m → Set where
         rewrite lk1 | lk2 = ⟨ k , refl ⟩
 ```
 
+If one vector `ns` is a subset of another `ms`, then for any element
+`ns ❲ i ❳`, there is an equal element in `ms` at some index.
+
 ```
 lookup-⊆ : ∀{n m : ℕ}{ns : Vec Id n}{ms : Vec Id m}{i : Fin n}
    → ns ⊆ ms
    → Σ[ k ∈ Fin m ] ns ❲ i ❳ ≡ ms ❲ k ❳
 lookup-⊆ {suc n} {m} {x ∷ ns} {ms} {i} (subseteq x₁) = x₁ i
 ```
+
 
 ## Syntax
 
@@ -160,22 +184,21 @@ infixr 9 _#_
 infix 4 _—→_
 ```
 
+
 ## Types
 
 A record type is usually written
 
     { l₁ = A₁, l₂ = A₂, ..., lᵤ = Aᵤ }
 
-so a natural representation would be as a list of label-type pairs.
-We find it more convenient to represent it as a pair of lists,
-one of labels and one of types:
+so a natural representation would be a list of label-type pairs.
+However, we find it more convenient to represent record types as a
+pair of lists, one of labels and one of types:
 
     l₁, l₂, ..., lᵤ
     A₁, A₂, ..., Aᵤ
 
 We represent these fixed-length lists using Agda's `Vec` type.
-
-The field names in a record are required to be distinct.
 
 ```
 data Type : Set where
@@ -184,6 +207,9 @@ data Type : Set where
   _⇒_   : Type → Type → Type
   Record : (n : ℕ)(ls : Vec Id n)(As : Vec Type n) → .{d : distinct ls} → Type 
 ```
+
+In the above, we used `distinct` on the field names of the record.
+
 
 ## Subtyping
 
@@ -221,6 +247,11 @@ _⦂_<:_⦂_ {m}{n} ks Ss ls Ts = (∀{i : Fin n}{j : Fin m}
 
 ## Subtyping is reflexive
 
+The proof that subtyping is reflexive does not go by induction on the
+type because of the `<:-rcd` rule. We instead use induction on the
+size of the type. So we first define size of a type, and the size of a
+vector of types, as follows.
+
 ```
 ty-size : (A : Type) → ℕ
 vec-ty-size : ∀ {n : ℕ} → (As : Vec Type n) → ℕ
@@ -232,13 +263,21 @@ ty-size (Record n fs As) = suc (vec-ty-size As)
 
 vec-ty-size {n} [] = 0
 vec-ty-size {n} (x ∷ xs) = ty-size x + vec-ty-size xs
+```
 
+The size of a type is always positive.
+
+```
 ty-size-pos : ∀ {A} → 0 < ty-size A
 ty-size-pos {`𝔹} = s≤s z≤n
 ty-size-pos {`ℕ} = s≤s z≤n
 ty-size-pos {A ⇒ B} = s≤s z≤n
 ty-size-pos {Record n fs As} = s≤s z≤n
+```
 
+If a vector of types is smaller than `n`, then so is any type in the vector.
+
+```
 lookup-vec-ty-size : ∀{n}{k} {As : Vec Type k} {j}
    → vec-ty-size As ≤ n
    → ty-size (As ❲ j ❳) ≤ n
@@ -246,7 +285,11 @@ lookup-vec-ty-size {n} {suc k} {A ∷ As} {0F} As≤n =
     m+n≤o⇒m≤o (ty-size A) As≤n
 lookup-vec-ty-size {n} {suc k}{A ∷ As} {suc j} As≤n =
     lookup-vec-ty-size {n} {k} {As} {j} (m+n≤o⇒n≤o (ty-size A) As≤n)
+```
 
+Here is the proof of reflexivity, by induction on the size of the type.
+
+```
 <:-refl-aux : ∀{n}{A}{m : ty-size A ≤ n} → A <: A
 <:-refl-aux {0}{A}{m}
     with ty-size-pos {A}
@@ -266,12 +309,20 @@ lookup-vec-ty-size {n} {suc k}{A ∷ As} {suc j} As≤n =
     G {i}{j} lij rewrite distinct-lookup-eq (distinct-rel d) lij =
         let Asⱼ≤n = lookup-vec-ty-size {n}{k}{As}{j} (≤-pred m) in 
         <:-refl-aux {n}{lookup As j}{Asⱼ≤n}
+```
 
+This corollary packages up reflexivity for ease of use.
+
+```
 <:-refl : ∀{A} → A <: A
 <:-refl {A} = <:-refl-aux {ty-size A}{A}{≤-refl}
 ```
 
 ## Subtyping is transitive
+
+The proof of transitivity is a straightforward, given that we've
+already proved the two lemmas needed in the case for `<:-rcd`:
+`⊆-trans` and `lookup-⊆`.
 
 ```
 <:-trans : ∀{A B C}
@@ -448,6 +499,10 @@ data _∋_⦂_ : Context → ℕ → Type → Set where
 ```
 
 ## Typing judgement
+
+The typing rules for records closely follow the rules (T-Rcd and
+T-Proj) in Chapter 11 of _Types and Programming Languages_ by Benjamin
+Pierce.
 
 ```
 data _⊢*_⦂_ : Context → ∀ {n} → Args (repeat 0 n) → Vec Type n → Set 

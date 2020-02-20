@@ -10,8 +10,8 @@ module STLC-Termination where
 import Syntax
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using (List; []; _∷_)
-open import Data.Nat using (ℕ; zero; suc)
 open import Data.Maybe
+open import Data.Nat using (ℕ; zero; suc)
 open import Data.Product using (_×_; Σ; Σ-syntax; ∃; ∃-syntax; proj₁; proj₂)
    renaming (_,_ to ⟨_,_⟩)
 open import Data.Unit using (⊤; tt)
@@ -39,7 +39,7 @@ sig op-case = 0 ∷ 0 ∷ 1 ∷ []
 open Syntax Op sig
   using (`_; _⦅_⦆; cons; nil; bind; ast;
          _[_]; Subst; ⟪_⟫; ⟦_⟧; exts; _•_; id; exts-sub-cons; sub-id)
-  renaming (ABT to Term)
+  renaming (ABT to Term) public
 
 infixl 7  _·_
 
@@ -284,7 +284,7 @@ The 𝒱 function implies the ℰ function.
 
 ```
 𝒱→ℰ : ∀{A}{M : Term} → 𝒱 A M → ℰ A M
-𝒱→ℰ {A}{M = M} wtv = ⟨ M , ⟨ M ∎ , ⟨ 𝒱→Value {A} wtv , wtv ⟩ ⟩ ⟩
+𝒱→ℰ {A}{M} wtv = ⟨ M , ⟨ M ∎ , ⟨ 𝒱→Value {A} wtv , wtv ⟩ ⟩ ⟩
 ```
 
 ### Canonical forms

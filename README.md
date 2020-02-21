@@ -71,7 +71,7 @@ Monday and Wednesday at 4:30-5:45pm in Luddy Hall Room 4101.
    but using de Bruijn indices to represent variables,
    as in [DeBruijn](https://plfa.github.io/DeBruijn/).
    You should use the `ext`, `rename`, `exts`, and `subst`
-   functions from the DeBruijn chapter, adapting the
+   functions from the DeBruijn chapter, simplifying the
    type declarations of those functions. For example,
 
         exts : ∀ {Γ Δ}

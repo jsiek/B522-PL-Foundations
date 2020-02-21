@@ -76,6 +76,16 @@ Monday and Wednesday at 4:30-5:45pm in Luddy Hall Room 4101.
    from your formalization of the STLC, instead
    including a unit type or a Boolean type.
 
+7. March 2:
+
+    * Extend the termination proof for STLC
+      to include products and sums, as they appear
+      in Chapter [More](https://plfa.github.io/More/)
+      (you may use either approach to products).
+      Also, try to add μ and report on where the proof breaks.
+
+    * Extend the bidirectional type rules, `synthesize`, and `inherit`
+      to handle products and sums.
 
 
 ## Project, due May 1

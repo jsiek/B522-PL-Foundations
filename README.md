@@ -70,6 +70,24 @@ Monday and Wednesday at 4:30-5:45pm in Luddy Hall Room 4101.
    style, as in [Lambda](https://plfa.github.io/Lambda/),
    but using de Bruijn indices to represent variables,
    as in [DeBruijn](https://plfa.github.io/DeBruijn/).
+   You should use the `ext`, `rename`, `exts`, and `subst`
+   functions from the DeBruijn chapter, adapting the
+   type declarations of those functions. For example,
+
+        exts : ∀ {Γ Δ}
+          → (∀ {A} →       Γ ∋ A →     Δ ⊢ A)
+            ---------------------------------
+          → (∀ {A B} → Γ , B ∋ A → Δ , B ⊢ A)
+
+   becomes
+
+        exts : 
+          → (Var → Term)
+            ------------
+          → (Var → Term)
+        
+   where  `Var` is define to just be `ℕ`.
+
    Prove the analogous theorem to `preserve`
    in [Properties](https://plfa.github.io/Properties/).
    You may omit natural numbers (0, suc, and case) and μ

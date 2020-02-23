@@ -215,7 +215,7 @@ In the above, we used `distinct` on the field names of the record.
 
 The following definition of subtyping closely follows
 the algorithmic typing rules in Chapter 16 of
-_Types and Programming Languages_ by Benjamin Pierce.
+_Types and Programming Languages_ (TAPL) by Benjamin Pierce.
 
 ```
 data _<:_ : Type → Type → Set where
@@ -320,7 +320,7 @@ This corollary packages up reflexivity for ease of use.
 
 ## Subtyping is transitive
 
-The proof of transitivity is a straightforward, given that we've
+The proof of transitivity is straightforward, given that we've
 already proved the two lemmas needed in the case for `<:-rcd`:
 `⊆-trans` and `lookup-⊆`.
 
@@ -475,6 +475,16 @@ pattern `let L M = op-let ⦅ cons (ast L) (cons (bind (ast M)) nil) ⦆
 pattern _#_ M f = (op-member f) ⦅ cons (ast M) nil ⦆
 ```
 
+The `Ms 〘 i 〙` notation returns the ith term from a sequence of
+arguments.
+
+```
+_〘_〙 : {n : ℕ} → Args (repeat 0 n) → (i : Fin n) → Term
+_〘_〙 {suc n} (cons (ast M) Ms) 0F = M
+_〘_〙 {suc n} (cons (ast M) Ms) (suc i) = Ms 〘 i 〙
+```
+
+
 ## Contexts
 
 ```
@@ -501,8 +511,7 @@ data _∋_⦂_ : Context → ℕ → Type → Set where
 ## Typing judgement
 
 The typing rules for records closely follow the rules (T-Rcd and
-T-Proj) in Chapter 11 of _Types and Programming Languages_ by Benjamin
-Pierce.
+T-Proj) in Chapter 11 of TAPL.
 
 ```
 data _⊢*_⦂_ : Context → ∀ {n} → Args (repeat 0 n) → Vec Type n → Set 
@@ -599,13 +608,16 @@ data Frame : Set where
   let□ : Term → Frame
 ```
 
-The `plug` function fills a frame's hole with a term.
+The `insert` function, used in the `plug` function defined next,
+replaces the ith argument in a sequence of arguments.
 
 ```
 insert : ∀{n} → Term → (i : Fin n) → Args (repeat 0 n) → Args (repeat 0 n)
 insert {suc n} M 0F (cons M' Ms) = cons (ast M) Ms
 insert {suc n} M (suc i) (cons M' Ms) = cons M' (insert {n} M i Ms)
 ```
+
+The `plug` function fills a frame's hole with a term.
 
 ```
 plug : Term → Frame → Term
@@ -618,11 +630,10 @@ plug M (let□ N)        = `let M N
 
 ## Reduction
 
-```
-getfield : {n : ℕ} → (i : Fin n) → Args (repeat 0 n) → Term
-getfield {suc n} 0F (cons (ast M) Ms) = M
-getfield {suc n} (suc i) (cons (ast M) Ms) = getfield {n} i Ms
-```
+In the following, just the β-# rule is new. It corresponds to the
+following reduction rule from Chapter 11 of TAPL.
+
+    { lᵢ = vᵢ | i ∈ 1..n }.lⱼ  —→  vⱼ
 
 ```
 data _—→_ : Term → Term → Set where
@@ -651,10 +662,10 @@ data _—→_ : Term → Term → Set where
       -------------------
     → `let V N —→ N [ V ]
 
-  β-# : ∀ {n}{fs : Vec Id n}{Ms : Args (repeat 0 n)} {f}{i : Fin n}
-    → fs ❲ i ❳ ≡ f
-      ---------------------------------------------
-    → ((op-rcd n fs) ⦅ Ms ⦆ ) # f —→  getfield i Ms
+  β-# : ∀ {n}{ls : Vec Id n}{vs : Args (repeat 0 n)} {lⱼ}{j : Fin n}
+    → ls ❲ j ❳ ≡ lⱼ
+      -----------------------------------------
+    → ((op-rcd n ls) ⦅ vs ⦆ ) # lⱼ —→  vs 〘 j 〙
 ```
 
 ## Canonical Forms
@@ -771,7 +782,7 @@ progress (⊢# {n = n}{fs}{As}{d}{i}{f} ⊢R lif liA)
     with canonical-rcd {d = d} ⊢R VR
 ... | rcd {n'}{fs'}{Ms} ⊢MS (<:-rcd fs⊆fs' lt)
     with lookup-⊆ {i = i} fs⊆fs'
-... | ⟨ k , eq ⟩ rewrite eq = step (β-# {i = k} lif)
+... | ⟨ k , eq ⟩ rewrite eq = step (β-# {j = k} lif)
 progress (⊢rcd x d)                       = done V-rcd
 progress (⊢<: {A = A}{B} ⊢M A<:B)         = progress ⊢M
 ```
@@ -925,7 +936,7 @@ plug-inversion {L} {F} {B} (⊢<: ⊢M A<:B)
 getfield-pres : ∀{n}{As : Vec Type n}{A}{Ms : Args (repeat 0 n)}{i : Fin n}
          → ∅ ⊢* Ms ⦂ As
          → As ❲ i ❳ ≡ A
-         → ∅ ⊢ getfield i Ms ⦂ A
+         → ∅ ⊢ Ms 〘 i 〙 ⦂ A
 getfield-pres {i = 0F} (⊢*cons ⊢M ⊢Ms) refl = ⊢M
 getfield-pres {i = suc i} (⊢*cons ⊢M ⊢Ms) As[i]=A = getfield-pres ⊢Ms As[i]=A
 ```
@@ -950,7 +961,7 @@ preserve (⊢· ⊢L ⊢M) δ
     with canonical-base ⊢M V-const
 ... | base-const = ⊢<: (⊢$ refl) pA
 preserve (⊢let ⊢M ⊢N) (β-let vV) = substitution ⊢M ⊢N
-preserve (⊢# {d = d}{i} ⊢R lif liA) (β-# {i = j} lif2)
+preserve (⊢# {d = d}{i} ⊢R lif liA) (β-# {j = j} lif2)
     with canonical-rcd {d = d} ⊢R V-rcd
 ... | rcd {As = As'}{d = d'} ⊢Ms (<:-rcd fs⊆fs' As'<:As)
     with lookup-⊆ {i = i} fs⊆fs'
@@ -962,3 +973,83 @@ preserve (⊢# {d = d}{i} ⊢R lif liA) (β-# {i = j} lif2)
 ... | lt rewrite liA = ⊢<: ⊢Ms[k] lt
 preserve (⊢<: ⊢M A<:B) M—→N = ⊢<: (preserve ⊢M M—→N) A<:B
 ```
+
+### Exercise `variants` (recommended)
+
+Add variants to the language of this Chapter. The variant type is a
+generalization of a sum type, similar to the way the record type is a
+generalization of product. A variant type is traditionally written:
+
+    〈l₁:A₁, ..., lᵤ:Aᵤ〉
+
+The term for introducing a variant is
+
+    〈l=t〉
+
+and the term for eliminating a variant is
+
+    case L of 〈l₁=x₁〉 ⇒ M₁ | ... | 〈lᵤ=xᵤ〉 ⇒ Mᵤ
+
+The typing rules for these terms are
+
+    (T-Variant)
+    Γ ⊢ Mⱼ : Aⱼ
+    -------------------------------- )
+    Γ ⊢ 〈lⱼ=Mⱼ〉 : 〈l₁=A₁, ... , lᵤ=Aᵤ〉
+
+
+    (T-Case)
+    Γ ⊢ L : 〈l₁=A₁, ... , lᵤ=Aᵤ〉
+    ∀ i ∈ 1..u,   Γ,xᵢ:Aᵢ ⊢ Mᵢ : B
+    ---------------------------------------------------------------------
+    Γ ⊢ case L of 〈l₁=x₁〉 ⇒ M₁ | ... | 〈lᵤ=xᵤ〉 ⇒ Mᵤ  : B
+
+The non-algorithmic subtyping rules for variants are
+
+    (S-VariantWidth)
+    ------------------------------------------------------------
+    〈l₁=A₁, ..., lᵤ=Aᵤ〉   <:   〈l₁=A₁, ..., lᵤ=Aᵤ, ..., lᵤ₊ₓ=Aᵤ₊ₓ〉
+
+    (S-VariantDepth)
+    ∀ i ∈ 1..u,    Aᵢ <: Bᵢ
+    ---------------------------------------------
+    〈l₁=A₁, ..., lᵤ=Aᵤ〉   <:   〈l₁=B₁, ..., lᵤ=Bᵤ〉
+
+    (S-VariantPerm)
+    ∀i∈1..u, ∃j∈1..u, kⱼ = lᵢ and Aⱼ = Bᵢ
+    ----------------------------------------------
+    〈k₁=A₁, ..., kᵤ=Aᵤ〉   <:   〈l₁=B₁, ..., lᵤ=Bᵤ〉
+    
+You may use the non-algorithmic subtyping rules, or come up with
+algorithmic subtyping rules for variant types.
+
+
+### Exercise `<:-alternative` (stretch)
+
+Revise this formalization of records with subtyping (including proofs
+of progress and preservation) to use the non-algorithmic subtyping
+rules for Chapter 15 of TAPL, which we list here:
+
+    (S-RcdWidth)
+    --------------------------------------------------------------
+    { l₁:A₁, ..., lᵤ:Aᵤ, ..., lᵤ₊ₓ:Aᵤ₊ₓ } <: { l₁:A₁, ..., lᵤ:Aᵤ }
+
+    (S-RcdDepth)
+        ∀i∈1..u, Aᵢ <: Bᵢ
+    ----------------------------------------------
+    { l₁:A₁, ..., lᵤ:Aᵤ } <: { l₁:B₁, ..., lᵤ:Bᵤ }
+
+    (S-RcdPerm)
+    ∀i∈1..u, ∃j∈1..u, kⱼ = lᵢ and Aⱼ = Bᵢ
+    ----------------------------------------------
+    { k₁:A₁, ..., kᵤ:Aᵤ } <: { l₁:B₁, ..., lᵤ:Bᵤ }
+
+You will most likely need to prove inversion lemmas for the subtype relation
+of the form:
+
+    If S <: T₁ ⇒ T₂, then S ≡ S₁ ⇒ S₂, T₁ <: S₁, and S₂ <: T₂, for some S₁, S₂.
+
+    If S <: { lᵢ : Tᵢ | i ∈ 1..n }, then S ≡ { kⱼ : Sⱼ | j ∈ 1..m }
+    and { lᵢ | i ∈ 1..n } ⊆ { kⱼ | j ∈ 1..m }
+    and Sⱼ <: Tᵢ for every i and j such that lᵢ = kⱼ. 
+

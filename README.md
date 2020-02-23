@@ -105,6 +105,8 @@ Monday and Wednesday at 4:30-5:45pm in Luddy Hall Room 4101.
     * Extend the bidirectional type rules, `synthesize`, and `inherit`
       to handle products and sums.
 
+8. March 9: 
+
 
 ## Project, due May 1
 

@@ -976,9 +976,11 @@ preserve (⊢<: ⊢M A<:B) M—→N = ⊢<: (preserve ⊢M M—→N) A<:B
 
 ### Exercise `variants` (recommended)
 
-Add variants to the language of this Chapter. The variant type is a
-generalization of a sum type, similar to the way the record type is a
-generalization of product. A variant type is traditionally written:
+Add variants to the language of this Chapter and update the proofs of
+progress and preservation. The variant type is a generalization of a
+sum type, similar to the way the record type is a generalization of
+product. The following summarizes the treatement of variants in TAPL.
+A variant type is traditionally written:
 
     〈l₁:A₁, ..., lᵤ:Aᵤ〉
 

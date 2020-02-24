@@ -484,7 +484,6 @@ _〘_〙 {suc n} (cons (ast M) Ms) 0F = M
 _〘_〙 {suc n} (cons (ast M) Ms) (suc i) = Ms 〘 i 〙
 ```
 
-
 ## Contexts
 
 ```

@@ -189,7 +189,7 @@ infix 4 _—→_
 
 A record type is usually written
 
-    { l₁ = A₁, l₂ = A₂, ..., lᵤ = Aᵤ }
+    { l₁ : A₁, l₂ : A₂, ..., lᵤ : Aᵤ }
 
 so a natural representation would be a list of label-type pairs.
 However, we find it more convenient to represent record types as a
@@ -214,7 +214,7 @@ In the above, we used `distinct` on the field names of the record.
 ## Subtyping
 
 The following definition of subtyping closely follows
-the algorithmic typing rules in Chapter 16 of
+the algorithmic subtyping rules in Chapter 16 of
 _Types and Programming Languages_ (TAPL) by Benjamin Pierce.
 
 ```
@@ -557,12 +557,12 @@ data _⊢_⦂_ : Context → Term → Type → Set where
     → (d : distinct fs)
     →  Γ ⊢ (op-rcd n fs) ⦅ Ms ⦆ ⦂ Record n fs As {d}
 
-  ⊢# : ∀{Γ A R n fs As d i f}
-    → Γ ⊢ R ⦂ Record n fs As {d}
+  ⊢# : ∀{Γ A M n fs As d i f}
+    → Γ ⊢ M ⦂ Record n fs As {d}
     → fs ❲ i ❳ ≡ f
     → As ❲ i ❳ ≡ A
-      ----------------
-    → Γ ⊢ R # f ⦂ A
+      -------------
+    → Γ ⊢ M # f ⦂ A
 
   ⊢<: : ∀{Γ M A B}
     → Γ ⊢ M ⦂ A   → A <: B

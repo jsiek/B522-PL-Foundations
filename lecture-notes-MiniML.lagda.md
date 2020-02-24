@@ -9,10 +9,11 @@ module lecture-notes-MiniML where
 
 ```
 import Syntax
-open import Data.Bool renaming (Bool to 𝔹)
-open import Data.List using (List; []; _∷_)
+open import Data.Bool using () renaming (Bool to 𝔹)
+open import Data.List using (List; []; _∷_; length)
+open import Data.Maybe
 open import Data.Vec using (Vec; []; _∷_)
-open import Data.Nat using (ℕ; zero; suc)
+open import Data.Nat using (ℕ; zero; suc; _<_; s≤s)
 open import Data.Product using (_×_; Σ; Σ-syntax; ∃; ∃-syntax; proj₁; proj₂)
    renaming (_,_ to ⟨_,_⟩)
 open import Relation.Binary.PropositionalEquality
@@ -77,7 +78,7 @@ open Syntax Op sig
   using (`_; _⦅_⦆; cons; nil; bind; ast; _[_];
          Rename; Subst; ⟪_⟫; ⟦_⟧; exts; _•_; 
          ↑; _⨟_; exts-0; exts-suc-rename; rename; ext; ⦉_⦊;
-         ext-0; ext-suc)
+         ext-0; ext-suc; WF; WF-var)
   renaming (ABT to Term)
 
 pattern $ p k = (op-const p k) ⦅ nil ⦆
@@ -500,8 +501,45 @@ preserve (⊢· (⊢$ refl) (⊢$ refl)) δ = ⊢$ refl
 preserve (⊢let ⊢M ⊢N) (β-let vV) = substitution ⊢M ⊢N
 ```
 
+## Type Substitution
+
+```
+sub-vec : Solution → ∀{n} → Vec Type n → Vec Type n
+
+sub-ty : Solution → Type → Type
+sub-ty σ (` x) =  σ x
+sub-ty σ (op ❨ As ❩) = op ❨ sub-vec σ As ❩
+
+sub-vec σ {zero} [] = []
+sub-vec σ {suc n} (A ∷ As) = sub-ty σ A ∷ sub-vec σ As
+
+sub-env : Solution → Context → Context
+sub-env σ ∅ = ∅
+sub-env σ (Γ , A) = sub-env σ Γ , sub-ty σ A
+```
+
+```
+len : Context → ℕ
+len ∅ = 0
+len (Γ , x) = suc (len Γ)
+
+less-mem : ∀{Γ : Context}{x}
+   → x < (len Γ)
+   → Σ[ A ∈ Type ] Γ ∋ x ⦂ A
+less-mem {Γ , A} {zero} x<Γ = ⟨ A , Z ⟩
+less-mem {Γ , A} {suc x} (s≤s x<Γ) =
+  let IH = less-mem {Γ} {x} x<Γ in
+  {!!}
+
+```
+
 ## Type Inferece
 
 ```
-𝒲 : Term → 
+𝒲 : (Γ : Context) → (M : Term) → WF (len Γ) M → ℕ 
+   → Maybe (Σ[ σ ∈ Solution ] Σ[ A ∈ Type ] sub-env σ Γ ⊢ M ⦂ A × ℕ)
+𝒲 Γ (` x) (WF-var .x x<Γ) n = {!!}
+  {- just ⟨ init-soln , ⟨ ? , ⟨ ? , ? ⟩ ⟩ ⟩ , ⟨ {!!} , {!!} ⟩ ⟩ ⟩ -}
+𝒲 Γ (op Syntax.⦅ x ⦆) wfm n = {!!}
+
 ```

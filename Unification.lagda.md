@@ -41,11 +41,11 @@ uf = record
       init = λ x → x }
     where
     union : ℕ → ℕ → (ℕ → ℕ) → (ℕ → ℕ)
-    union x y uf z
-        with x ≟ z
-    ... | yes xz = uf y
-    ... | no xz = uf z
-
+    union x y uf z  {- choose y's to be the representative -}
+        with x ≟ uf z
+    ... | yes xzᵣ = uf y
+    ... | no xzᵣ = uf z
+    
     find : ℕ → (ℕ → ℕ) → ℕ
     find x uf = uf x
     

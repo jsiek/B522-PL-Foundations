@@ -2,7 +2,7 @@
 open import Data.Maybe
 open import Data.Nat
 open import Data.Product
-open import Data.Vec using (Vec)
+open import Data.Vec using (Vec; []; _∷_)
 open import Relation.Nullary using (Dec; yes; no)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
@@ -69,32 +69,57 @@ Solution = Var → AST
 
 init-soln : Solution
 init-soln = λ x → ` x
+
+[_:=_]_ : Var → AST → Solution → Solution
+([ x := M ] σ) y 
+    with x ≟ y
+... | yes xy = M
+... | no xy = σ y
 ```
 
 Huet's algorithm.
 
 ```
+unify-vec : ℕ → ∀{a} → Vec AST a → Vec AST a → UnionFind → Solution
+          → Maybe (UnionFind × Solution)
+
 unify : ℕ → AST → AST → UnionFind → Solution → Maybe (UnionFind × Solution)
 unify 0 M L uf σ = nothing
 unify (suc n) (` x) (` y) uf σ
     with find x uf | find y uf
-... | xr | yr
-    with xr ≟ yr
+... | xᵣ | yᵣ
+    with xᵣ ≟ yᵣ
 ... | yes xy = just (uf , σ)
 ... | no xy
-    with union xr yr uf
+    with union xᵣ yᵣ uf
 ... | uf'    
-    with σ xr | σ yr
+    with σ xᵣ | σ yᵣ
 ... | ` _ | ` _ = just (uf' , σ)
 ... | M | L = unify n M L uf' σ
 unify (suc n) (` x) (op ⦅ Ls ⦆) uf σ
     with find x uf
-... | xr
-    with σ xr
-... | ` _ = {!!}
+... | xᵣ
+    with σ xᵣ
+... | ` _ = just (uf , ([ xᵣ := op ⦅ Ls ⦆ ] σ))
 ... | M = 
     unify n M (op ⦅ Ls ⦆) uf σ
-unify (suc n) (op ⦅ Ms ⦆) (` y) uf σ =
-    unify n (op ⦅ Ms ⦆) (σ (find y uf)) uf σ
-unify (suc n) (op ⦅ Ms ⦆) (op' ⦅ Ls ⦆) uf σ = {!!}
+unify (suc n) (op ⦅ Ms ⦆) (` y) uf σ 
+    with find y uf
+... | yᵣ
+    with σ yᵣ
+... | ` _ = just (uf , ([ yᵣ := op ⦅ Ms ⦆ ] σ))
+... | L =
+    unify n (op ⦅ Ms ⦆) L uf σ
+unify (suc n) (op ⦅ Ms ⦆) (op' ⦅ Ls ⦆) uf σ
+    with op-eq op op'
+... | no neq = nothing
+... | yes refl = unify-vec n Ms Ls uf σ
+
+unify-vec zero {a} Ms Ls uf σ = nothing
+unify-vec (suc n) {zero} [] [] uf σ = just (uf , σ)
+unify-vec (suc n) {suc a} (M ∷ Ms) (L ∷ Ls) uf σ
+    with unify n M L uf σ
+... | nothing = nothing    
+... | just (uf' , σ') =
+    unify-vec n Ms Ls uf' σ'
 ```

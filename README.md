@@ -87,6 +87,16 @@ Monday and Wednesday at 4:30-5:45pm in Luddy Hall Room 4101.
           → (Var → Term)
         
    where  `Var` is define to just be `ℕ`.
+   You will need to prove a type preservation lemma for
+   each of `ext`, `rename`, `exts`, and `subst`,
+   whose declaration will be analogous to the type 
+   declaration of those functions in the DeBruijn chapter.
+   For example,
+   
+        exts-pres : ∀ {Γ Δ σ}
+          → (∀ {A x}  →      Γ ∋ x ⦂ A →            Δ ⊢ σ x ⦂ A)
+            ----------------------------------------------------
+          → (∀ {A B x} → Γ , B ∋ x ⦂ A → Δ , B ⊢ (exts σ) x ⦂ A)
 
    Prove the analogous theorem to `preserve`
    in [Properties](https://plfa.github.io/Properties/).

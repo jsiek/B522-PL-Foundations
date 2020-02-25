@@ -8,7 +8,7 @@ open import Relation.Nullary using (Dec; yes; no)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 open import UnionFind
 
-module Unification
+module UnifyHuet
     (Op : Set)
     (op-eq : (x : Op) → (y : Op) → Dec (x ≡ y))
     (arity : Op → ℕ) where

@@ -504,21 +504,10 @@ preserve (⊢let ⊢M ⊢N) (β-let vV) = substitution ⊢M ⊢N
 ## Type Substitution
 
 ```
-sub-vec : Solution → ∀{n} → Vec Type n → Vec Type n
-
-sub-ty : Solution → Type → Type
-sub-ty σ (` x) =  σ x
-sub-ty σ (op ❨ As ❩) = op ❨ sub-vec σ As ❩
-
-sub-vec σ {zero} [] = []
-sub-vec σ {suc n} (A ∷ As) = sub-ty σ A ∷ sub-vec σ As
-
 sub-env : Solution → Context → Context
 sub-env σ ∅ = ∅
 sub-env σ (Γ , A) = sub-env σ Γ , sub-ty σ A
-```
 
-```
 len : Context → ℕ
 len ∅ = 0
 len (Γ , x) = suc (len Γ)

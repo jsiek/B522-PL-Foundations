@@ -123,3 +123,16 @@ unify-vec (suc n) {suc a} (M ∷ Ms) (L ∷ Ls) uf σ
 ... | just (uf' , σ') =
     unify-vec n Ms Ls uf' σ'
 ```
+
+```
+subst-vec : Solution → ∀{n} → Vec AST n → Vec AST n
+
+subst : Solution → AST → AST
+subst σ (` x) =  σ x
+subst σ (op ⦅ As ⦆) = op ⦅ subst-vec σ As ⦆
+
+subst-vec σ {zero} [] = []
+subst-vec σ {suc n} (A ∷ As) = subst σ A ∷ subst-vec σ As
+```
+
+

@@ -66,7 +66,7 @@ Monday and Wednesday at 4:30-5:45pm in Luddy Hall Room 4101.
    `unstuck`
    (in [Properties](https://plfa.github.io/Properties/)).
 
-6. February 24: Formalize the STLC using the extrinsic
+6. February 28: Formalize the STLC using the extrinsic
    style, as in [Lambda](https://plfa.github.io/Lambda/),
    but using de Bruijn indices to represent variables,
    as in [DeBruijn](https://plfa.github.io/DeBruijn/).
@@ -104,7 +104,7 @@ Monday and Wednesday at 4:30-5:45pm in Luddy Hall Room 4101.
    from your formalization of the STLC, instead
    including a unit type or a Boolean type.
 
-7. March 2:
+7. March 6:
 
     * Extend the termination proof for STLC
       to include products and sums, as they appear
@@ -115,7 +115,7 @@ Monday and Wednesday at 4:30-5:45pm in Luddy Hall Room 4101.
     * Extend the bidirectional type rules, `synthesize`, and `inherit`
       to handle products and sums.
 
-8. March 9: do the `variants` exercise in
+8. March 13: do the `variants` exercise in
    [Subtyping and Records](./lecture-notes-Subtyping.lagda.md).
 
 ## Project, due May 1

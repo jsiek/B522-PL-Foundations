@@ -1029,8 +1029,7 @@ The non-algorithmic subtyping rules for variants are
     ----------------------------------------------
     〈k₁=A₁, ..., kᵤ=Aᵤ〉   <:   〈l₁=B₁, ..., lᵤ=Bᵤ〉
     
-You may use the non-algorithmic subtyping rules, or come up with
-algorithmic subtyping rules for variant types.
+Come up with an algorithmic subtyping rule for variant types.
 
 
 ### Exercise `<:-alternative` (stretch)

@@ -1,7 +1,8 @@
 ```
 open import Data.Maybe
-open import Data.Nat
-open import Data.Product
+open import Data.Nat using (ℕ; zero; suc)
+open import Data.Product using (_×_; Σ; Σ-syntax; ∃; ∃-syntax; proj₁; proj₂)
+   renaming (_,_ to ⟨_,_⟩)
 open import Data.Vec using (Vec; []; _∷_)
 open import Relation.Nullary using (Dec; yes; no)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
@@ -25,8 +26,8 @@ data AST : Set where
 Subst : Set
 Subst = Var → AST
 
-init-soln : Subst
-init-soln = λ x → ` x
+init-subst : Subst
+init-subst = λ x → ` x
 
 [_:=_]_ : Var → AST → Subst → Subst
 ([ x := M ] σ) y 
@@ -44,20 +45,20 @@ unify-vec : ℕ → ∀{a} → Vec AST a → Vec AST a → UnionFind → Subst
 unify : ℕ → AST → AST → UnionFind → Subst → Maybe (UnionFind × Subst)
 unify 0 M L uf σ = nothing
 unify (suc n) (` x) (` y) uf σ
-    with (find x uf) ≟ (find y uf)
-... | yes xy = just (uf , σ)
+    with (find uf x) ≟ (find uf y)
+... | yes xy = just ⟨ uf , σ ⟩
 ... | no xy
-    with σ (find x uf) | σ (find y uf)
-... | ` _ | ` _ = just ((union (find x uf) (find y uf) uf) , σ)
-... | M | L = unify n M L (union (find x uf) (find y uf) uf) σ
+    with σ (find uf x) | σ (find uf y)
+... | ` _ | ` _ = just ⟨ (union (find uf x) (find uf y) uf) , σ ⟩
+... | M | L = unify n M L (union (find uf x) (find uf y) uf) σ
 unify (suc n) (` x) (op ⦅ Ls ⦆) uf σ
-    with σ (find x uf)
-... | ` _ = just (uf , ([ (find x uf) := op ⦅ Ls ⦆ ] σ))
+    with σ (find uf x)
+... | ` _ = just ⟨ uf , ([ (find uf x) := op ⦅ Ls ⦆ ] σ) ⟩
 ... | M = 
     unify n M (op ⦅ Ls ⦆) uf σ
 unify (suc n) (op ⦅ Ms ⦆) (` y) uf σ 
-    with σ (find y uf)
-... | ` _ = just (uf , ([ (find y uf) := op ⦅ Ms ⦆ ] σ))
+    with σ (find uf y)
+... | ` _ = just ⟨ uf , ([ (find uf y) := op ⦅ Ms ⦆ ] σ) ⟩
 ... | L =
     unify n (op ⦅ Ms ⦆) L uf σ
 unify (suc n) (op ⦅ Ms ⦆) (op' ⦅ Ls ⦆) uf σ
@@ -66,11 +67,11 @@ unify (suc n) (op ⦅ Ms ⦆) (op' ⦅ Ls ⦆) uf σ
 ... | yes refl = unify-vec n Ms Ls uf σ
 
 unify-vec zero {a} Ms Ls uf σ = nothing
-unify-vec (suc n) {zero} [] [] uf σ = just (uf , σ)
+unify-vec (suc n) {zero} [] [] uf σ = just ⟨ uf , σ ⟩ 
 unify-vec (suc n) {suc a} (M ∷ Ms) (L ∷ Ls) uf σ
     with unify n M L uf σ
 ... | nothing = nothing    
-... | just (uf' , σ') =
+... | just ⟨ uf' , σ' ⟩ =
     unify-vec n Ms Ls uf' σ'
 ```
 
@@ -87,20 +88,20 @@ subst-vec σ {suc n} (A ∷ As) = subst σ A ∷ subst-vec σ As
 
 ```
 resolve : UnionFind → Subst → Subst
-resolve uf σ x = subst (λ y → ` (find y uf)) (σ (find x uf))
+resolve uf σ x = subst (λ y → ` (find uf y)) (σ (find uf x))
 ```
 
 
 
 
 ```
+{-
 union-resolve-eq : ∀{x y}{uf uf'}{σ σ'}
    → (∀{x} → uf (uf x) ≡ uf x)
    → uf' ≡ union (uf x) (uf y) uf
    → σ' ≡ (resolve (union (uf x) (uf y) uf) σ)
    → σ' (uf' x) ≡ σ' (uf' y)
 union-resolve-eq {x}{y}{uf}{uf'}{σ}{σ'} uf-idem uf'-def σ'-def = {!!}
-{-
     with (uf x) ≟ (uf (uf' x))
 ... | yes xx
     rewrite uf-idem {y} = {!!}
@@ -111,12 +112,12 @@ union-resolve-eq {x}{y}{uf}{uf'}{σ}{σ'} uf-idem uf'-def σ'-def = {!!}
 
 ```
 unify-eq-aux : ∀{n M L uf σ uf' σ'}
-         → unify n M L uf σ ≡ just (uf' , σ')
+         → unify n M L uf σ ≡ just ⟨ uf' , σ' ⟩
          → subst (resolve uf' σ') M ≡ subst (resolve uf' σ') L 
 unify-eq-aux {suc n} {` x} {` y} {uf} {σ} unif
-    with uf x ≟ uf y
+    with find uf x ≟ find uf y
 ... | no xy
-    with σ (find x uf) | σ (find y uf)
+    with σ (find uf x) | σ (find uf y)
 ... | ` _ | ` _ = {!!}
 ... | M | L = {!!}
 unify-eq-aux {suc n} {` x} {` y} {uf} {σ} unif | yes xy
@@ -130,7 +131,7 @@ unify-eq-aux {suc n} {op ⦅ Ms ⦆} {op' ⦅ Ls ⦆} {uf} {σ} unif = {!!}
 
 
 unify-eq : ∀{n M L uf σ}
-         → unify n M L init init-soln ≡ just (uf , σ)
+         → unify n M L init init-subst ≡ just ⟨ uf , σ ⟩
          → subst (resolve uf σ) M ≡ subst (resolve uf σ) L 
 unify-eq unif = {!!}
 ```

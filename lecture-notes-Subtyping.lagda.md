@@ -237,7 +237,15 @@ data _<:_ : Type → Type → Set where
     → Record m ks Ss {d1} <: Record n ls Ts {d2}
 ```
 
-Here's an abbreviation for the second premise of the record subtyping rule.
+The first premise of the record subtyping rule (`<:-rcd`) expresses
+_width subtyping_ by requiring that all the labels in `ls` are also in
+`ks`. So it allows the hiding of fields when going from a subtype to a
+supertype.
+
+The second premise of the record subtyping rule (`<:-rcd`) expresses
+_depth subtyping_, that is, it allows the types of the fields to
+change according to subtyping. The following is an abbreviation for
+this premise.
 
 ```
 _⦂_<:_⦂_ : ∀ {m n} → Vec Id m → Vec Type m → Vec Id n → Vec Type n → Set

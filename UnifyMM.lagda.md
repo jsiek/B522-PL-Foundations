@@ -10,7 +10,7 @@ open import Data.Product using (_×_; Σ; Σ-syntax; ∃; ∃-syntax; proj₁; p
 open import Data.Unit using (⊤; tt)
 open import Data.Vec using (Vec; []; _∷_)
 open import Relation.Nullary using (Dec; yes; no)
-open import Relation.Binary.PropositionalEquality using (_≡_; refl; sym)
+open import Relation.Binary.PropositionalEquality using (_≡_; refl; sym; inspect; [_])
 open import UnionFind
 
 module UnifyMM
@@ -136,15 +136,37 @@ _unifies_ : Equations → State → Set
 ```
 
 ```
+no-just : ∀{M : AST} → nothing ≡ just M → ⊥
+no-just ()
+```
+
+```
 subst-sub : ∀{L N}{z}{θ}{M}
+  → (∀ {x M} → lookup θ x ≡ just M → subst θ M ≡ M)
+  → lookup θ z ≡ just M
   → subst θ L ≡ subst θ N
   → subst θ ([ z := M ] L) ≡ subst θ ([ z := M ] N)
-subst-sub {` x} {` y}{z} θLM
-    with z ≟ x
-... | yes zx = {!!}
-... | no zx = {!!}
-subst-sub {` x} {op ⦅ Ns ⦆}{z} θLM = {!!}
-subst-sub {op ⦅ Ls ⦆} {N} θLM = {!!}
+subst-sub {` x} {` y}{z}{θ}{M} θidem θzM θLM
+    with z ≟ x | z ≟ y
+... | yes zx | yes zy = refl
+... | no zx  | no zy = θLM
+... | yes refl | no zy
+    with lookup θ x | lookup θ y | inspect (lookup θ) x | inspect (lookup θ) y
+... | nothing | _ | [ θx ] | [ θy ] = ⊥-elim (no-just θzM)
+subst-sub {` x} {` y}{z}{θ}{M} θidem θzM θLM | yes refl | no zy
+    | just M' | just L' | [ θx ] | [ θy ]
+    with θLM | θzM
+... | refl | refl = θidem θx
+subst-sub {` x} {` y}{z}{θ}{M} θidem θzM θLM | yes refl | no zy
+    | just M' | nothing | [ θx ] | [ θy ]
+    with θzM | θLM
+... | refl | refl
+    with lookup θ y | inspect (lookup θ) y
+... | nothing | [ θy' ] = refl
+... | just M'' | [ θy' ] = ⊥-elim (no-just (sym θy))
+subst-sub {` x} {` y}{z}{θ}{M} θidem θzM θLM | no zx  | yes zy = {!!}
+subst-sub {` x} {op ⦅ Ns ⦆}{z} θidem θzM θLM = {!!}
+subst-sub {op ⦅ Ls ⦆} {N} θidem θzM θLM = {!!}
 ```
  
 

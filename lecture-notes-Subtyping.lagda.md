@@ -60,6 +60,8 @@ The following function implements decidable membership in a `Vec`.
 The Agda stdlib should have this, but I couldn't find it in a short
 amount of time.
 
+[It's in Data.Vec.Membership.DecPropositional.agda -Jeremy]
+
 ```
 _∈?_ : ∀{n} (x : Id) → (xs : Vec Id n) → Dec (x ∈ xs)
 x ∈? [] = no λ ()

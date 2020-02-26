@@ -226,11 +226,43 @@ subst-sub {op ⦅ Ls ⦆} {` x} θidem θidem2 θzM θLM = {!!}
 subst-sub {op ⦅ Ls ⦆} {op' ⦅ Ns ⦆} θidem θidem2 θzM θLM = {!!}
 
 
-subst-sub2 : ∀{L N}{z}{θ}{M}
+subst-sub2 : ∀{L}{N}{z}{θ}{M}
   → subst θ (` z) ≡ subst θ M
   → subst θ L ≡ subst θ N
   → subst θ ([ z := M ] L) ≡ subst θ ([ z := M ] N)
-subst-sub2 = {!!}
+subst-sub2 {` x} {` y} {z} {θ} {M} θzM θLM
+    with z ≟ x | z ≟ y
+... | yes refl | yes refl = refl
+... | yes refl | no zy =
+                             begin
+        subst θ M            ≡⟨ sym θzM ⟩
+        subst θ (` x)        ≡⟨ θLM ⟩
+        subst θ (` y)
+        ∎
+... | no zx | yes refl =
+                             begin
+        subst θ (` x)        ≡⟨ θLM ⟩
+        subst θ (` y)        ≡⟨ θzM ⟩
+        subst θ M
+        ∎
+... | no zx | no zy = θLM
+subst-sub2 {` x} {op ⦅ Ns ⦆} {z} {θ} {M} θzM θLM
+    with z ≟ x
+... | yes refl
+    with lookup θ x
+... | nothing = {!!}
+... | just M' =
+                                 begin
+        subst θ M                           ≡⟨ sym θzM ⟩
+        M'                                  ≡⟨ θLM ⟩
+        op ⦅ subst-vec θ Ns ⦆                ≡⟨ {!!} ⟩
+        op ⦅ subst-vec θ ([ x ::= M ] Ns) ⦆  ≡⟨⟩
+        subst θ ([ x := M ] (op ⦅ Ns ⦆))
+        ∎
+subst-sub2 {` x} {op ⦅ Ns ⦆} {z} {θ} {M} θzM θLM
+    | no zx = {!!}
+subst-sub2 {op ⦅ Ls ⦆} {` y} {z} {θ} {M} θzM θLM = {!!}
+subst-sub2 {op ⦅ Ls ⦆} {op' ⦅ Ns ⦆} {z} {θ} {M} θzM θLM = {!!}
 ```
  
 

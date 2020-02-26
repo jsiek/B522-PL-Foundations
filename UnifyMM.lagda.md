@@ -10,7 +10,10 @@ open import Data.Product using (_×_; Σ; Σ-syntax; ∃; ∃-syntax; proj₁; p
 open import Data.Unit using (⊤; tt)
 open import Data.Vec using (Vec; []; _∷_)
 open import Relation.Nullary using (Dec; yes; no)
-open import Relation.Binary.PropositionalEquality using (_≡_; refl; sym; inspect; [_])
+open import Relation.Binary.PropositionalEquality
+   using (_≡_; refl; sym; inspect; [_]; cong)
+open Relation.Binary.PropositionalEquality.≡-Reasoning
+   using (begin_; _≡⟨⟩_; _≡⟨_⟩_; _∎)
 open import UnionFind
 
 module UnifyMM
@@ -136,51 +139,6 @@ _unifies_ : Equations → State → Set
 ```
 
 ```
-no-just : ∀{M : AST} → nothing ≡ just M → ⊥
-no-just ()
-```
-
-```
-subst-sub : ∀{L N}{z}{θ}{M}
-  → (∀ {x M} → lookup θ x ≡ just M → subst θ M ≡ M)
-  → lookup θ z ≡ just M
-  → subst θ L ≡ subst θ N
-  → subst θ ([ z := M ] L) ≡ subst θ ([ z := M ] N)
-subst-sub {` x} {` y}{z}{θ}{M} θidem θzM θLM
-    with z ≟ x | z ≟ y
-... | yes zx | yes zy = refl
-... | no zx  | no zy = θLM
-... | yes refl | no zy
-    with lookup θ x | lookup θ y | inspect (lookup θ) x | inspect (lookup θ) y
-... | nothing | _ | [ θx ] | [ θy ] = ⊥-elim (no-just θzM)
-subst-sub {` x} {` y}{z}{θ}{M} θidem θzM θLM | yes refl | no zy
-    | just M' | just L' | [ θx ] | [ θy ]
-    with θLM | θzM
-... | refl | refl = θidem θx
-subst-sub {` x} {` y}{z}{θ}{M} θidem θzM θLM | yes refl | no zy
-    | just M' | nothing | [ θx ] | [ θy ]
-    with θzM | θLM
-... | refl | refl
-    with lookup θ y | inspect (lookup θ) y
-... | nothing | [ θy' ] = refl
-... | just M'' | [ θy' ] = ⊥-elim (no-just (sym θy))
-subst-sub {` x} {` y}{z}{θ}{M} θidem θzM θLM | no zx  | yes zy = {!!}
-subst-sub {` x} {op ⦅ Ns ⦆}{z} θidem θzM θLM = {!!}
-subst-sub {op ⦅ Ls ⦆} {N} θidem θzM θLM = {!!}
-```
- 
-
-```
-subst-pres : ∀{eqs θ x M}
-  → subst θ (` x) ≡ subst θ M
-  → θ unifies-eqs eqs
-  → θ unifies-eqs ([ M / x ] eqs)
-subst-pres {[]} eq θeqs = tt
-subst-pres {⟨ L , N ⟩ ∷ eqs} eq ⟨ θLM , θeqs ⟩ =
-  ⟨ {!!} , subst-pres {eqs} eq θeqs ⟩
-```
-
-```
 op≡-inversion : ∀{op op' Ms Ms'} → op ⦅ Ms ⦆ ≡ op' ⦅ Ms' ⦆ → op ≡ op'
 op≡-inversion refl = refl
 
@@ -191,6 +149,99 @@ Ms≡-inversion refl = refl
    → _≡_ {a = Agda.Primitive.lzero}{A = Vec AST (suc n)} (x ∷ xs) (y ∷ ys)
    → x ≡ y  ×  xs ≡ ys
 ∷≡-inversion refl = ⟨ refl , refl ⟩
+```
+
+```
+no-just : ∀{M : AST} → nothing ≡ just M → ⊥
+no-just ()
+```
+
+```
+subst-sub : ∀{L N}{z}{θ}{M}
+  → (∀ {x M} → lookup θ x ≡ just M → subst θ M ≡ M)
+  → (∀ {x M N} → lookup θ x ≡ just M → [ x := N ] M ≡ M)
+  → lookup θ z ≡ just M
+  → subst θ L ≡ subst θ N
+  → subst θ ([ z := M ] L) ≡ subst θ ([ z := M ] N)
+subst-sub {` x} {` y}{z}{θ}{M} θidem θidem2 θzM θLM
+    with z ≟ x | z ≟ y
+... | yes zx | yes zy = refl
+... | no zx  | no zy = θLM
+... | yes refl | no zy
+    with lookup θ x | lookup θ y | inspect (lookup θ) x | inspect (lookup θ) y
+... | nothing | _ | [ θx ] | [ θy ] = ⊥-elim (no-just θzM)
+subst-sub {` x} {` y}{z}{θ}{M} θidem θidem2 θzM θLM | yes refl | no zy
+    | just M' | just L' | [ θx ] | [ θy ]
+    with θLM | θzM
+... | refl | refl = θidem θx
+subst-sub {` x} {` y}{z}{θ}{M} θidem θidem2 θzM θLM | yes refl | no zy
+    | just M' | nothing | [ θx ] | [ θy ]
+    with θzM | θLM
+... | refl | refl
+    with lookup θ y | inspect (lookup θ) y
+... | nothing | [ θy' ] = refl
+... | just M'' | [ θy' ] = ⊥-elim (no-just (sym θy))
+subst-sub {` x} {` y}{z}{θ}{M} θidem θidem2 θzM θLM | no zx  | yes refl
+    with lookup θ x | lookup θ y | inspect (lookup θ) x | inspect (lookup θ) y
+... | nothing | just L' | [ θx ] | [ θy ]
+    with θLM | θzM
+... | refl | refl
+    with lookup θ x
+... | nothing = refl
+... | just M' = ⊥-elim (no-just (sym θx))
+subst-sub {` x} {` y}{z}{θ}{M} θidem θidem2 θzM θLM | no zx  | yes refl
+    | just M' | just L' | [ θx ] | [ θy ]
+    with θLM | θzM
+... | refl | refl = sym (θidem θy)
+subst-sub {` x} {` y}{z}{θ}{M} θidem θidem2 θzM θLM | no zx  | yes refl
+    | just M' | nothing | [ θx ] | [ θy ]
+    with θzM
+... | ()
+subst-sub {` x} {op ⦅ Ns ⦆}{z}{θ} θidem θidem2 θzM θLM
+    with z ≟ x 
+... | yes refl
+    with lookup θ x | inspect (lookup θ) x
+... | nothing | [ θx ] = ⊥-elim (no-just θzM)
+... | just M' | [ θx ]
+    with θLM | θzM
+... | refl | refl =
+    cong (λ □ → op ⦅ □ ⦆) G
+    where
+    G : subst-vec θ (subst-vec θ Ns) ≡
+        subst-vec θ ([ x ::= op ⦅ subst-vec θ Ns ⦆ ] Ns)
+    G = begin
+        subst-vec θ (subst-vec θ Ns)                    ≡⟨ Ms≡-inversion (θidem θx) ⟩
+        subst-vec θ Ns                                  ≡⟨ cong (λ □ → subst-vec θ □) (sym {!!}) ⟩
+        subst-vec θ ([ x ::= op ⦅ subst-vec θ Ns ⦆ ] Ns) ∎
+
+{-    
+    with Ms≡-inversion (θidem2 {N = op ⦅ subst-vec θ Ns ⦆} θx)
+... | eq    
+    rewrite Ms≡-inversion (θidem θx) =
+    {!!}
+-}
+
+subst-sub {` x} {op ⦅ Ns ⦆}{z} θidem θidem2 θzM θLM | no zx = {!!}
+subst-sub {op ⦅ Ls ⦆} {` x} θidem θidem2 θzM θLM = {!!}
+subst-sub {op ⦅ Ls ⦆} {op' ⦅ Ns ⦆} θidem θidem2 θzM θLM = {!!}
+
+
+subst-sub2 : ∀{L N}{z}{θ}{M}
+  → subst θ (` z) ≡ subst θ M
+  → subst θ L ≡ subst θ N
+  → subst θ ([ z := M ] L) ≡ subst θ ([ z := M ] N)
+subst-sub2 = {!!}
+```
+ 
+
+```
+subst-pres : ∀{eqs θ x M}
+  → subst θ (` x) ≡ subst θ M
+  → θ unifies-eqs eqs
+  → θ unifies-eqs ([ M / x ] eqs)
+subst-pres {[]} eq θeqs = tt
+subst-pres {⟨ L , N ⟩ ∷ eqs} {θ}{x}{M} eq ⟨ θLM , θeqs ⟩ =
+  ⟨ subst-sub2 {L = L}{N = N} eq θLM , (subst-pres {eqs} eq θeqs) ⟩
 ```
 
 ```

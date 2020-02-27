@@ -398,20 +398,35 @@ middle? error = ⊥
 length-union-LB2 : ∀{xs ys : FiniteSet} → ∣ ys ∣ ≤ ∣ xs ∪ ys ∣
 length-union-LB2 {xs}{ys} = p⊆q⇒∣p∣≤∣q∣ {ys}{xs ∪ ys} (q⊆p∪q xs ys)
 
-vars-subst-∪ : ∀{N}{x M} → vars ([ x := M ] N) ⊆ vars M  ∪  vars N
-vars-vec-subst-∪ : ∀{n}{Ns : Vec AST n}{x M} → vars-vec ([ x ::= M ] Ns) ⊆ vars M  ∪  vars-vec Ns
+vars-subst-∪ : ∀{N}{x M} → vars ([ x := M ] N) ⊆ vars M  ∪  (vars N - ⁅ x ⁆)
+vars-vec-subst-∪ : ∀{n}{Ns : Vec AST n}{x M} → vars-vec ([ x ::= M ] Ns) ⊆ vars M  ∪  (vars-vec Ns - ⁅ x ⁆)
 vars-subst-∪ {` y} {x} {M}
     with x ≟ y
-... | yes refl = p⊆p∪q (vars M) ⁅ y ⁆
-... | no xy = q⊆p∪q (vars M) ⁅ y ⁆
-vars-subst-∪ {op ⦅ Ns ⦆} {x} {M} = vars-vec-subst-∪ {Ns = Ns}
+... | yes refl =
+    begin⊆
+    vars M                   ⊆⟨ ∪-identityʳ₁ (vars M) ⟩
+    vars M ∪ ∅               ⊆⟨ p⊆r→q⊆s→p∪q⊆r∪s ⊆-refl ∅⊆p ⟩
+    vars M ∪ (⁅ y ⁆ - ⁅ y ⁆)
+    ■
+... | no xy =
+    begin⊆
+    ⁅ y ⁆                      ⊆⟨ q⊆p∪q (vars M) ⁅ y ⁆ ⟩
+    vars M ∪ ⁅ y ⁆             ⊆⟨ p⊆r→q⊆s→p∪q⊆r∪s ⊆-refl (⊆-reflexive (sym (⁅y⁆-⁅x⁆≡⁅y⁆ xy) )) ⟩
+    vars M ∪ (⁅ y ⁆ - ⁅ x ⁆)
+    ■
+vars-subst-∪ {op ⦅ Ns ⦆} {x} {M} = vars-vec-subst-∪ {Ns = Ns} 
 vars-vec-subst-∪ {zero} {[]} {x} {M} = ∅⊆p
 vars-vec-subst-∪ {suc n} {N ∷ Ns} {x} {M} =
     begin⊆
-    vars ([ x := M ] N) ∪ vars-vec ([ x ::= M ] Ns)    ⊆⟨ p⊆r→q⊆s→p∪q⊆r∪s (vars-subst-∪ {N}{x}{M}) (vars-vec-subst-∪ {Ns = Ns}{x}{M}) ⟩
-    (vars M ∪ vars N) ∪ (vars M ∪ vars-vec Ns)         ⊆⟨ {!!} ⟩
-    vars M ∪ (vars N ∪ vars-vec Ns)
-    ■
+    vars ([ x := M ] N) ∪ vars-vec ([ x ::= M ] Ns)                 ⊆⟨ p⊆r→q⊆s→p∪q⊆r∪s (vars-subst-∪ {N}{x}{M}) (vars-vec-subst-∪ {Ns = Ns}{x}{M}) ⟩
+    (vars M ∪ (vars N - ⁅ x ⁆)) ∪ (vars M ∪ (vars-vec Ns - ⁅ x ⁆))  ⊆⟨ ⊆-reflexive (∪-assoc _ _ _) ⟩
+    vars M ∪ ((vars N - ⁅ x ⁆) ∪ (vars M ∪ (vars-vec Ns - ⁅ x ⁆)))  ⊆⟨ ⊆-reflexive (cong (λ □ → vars M ∪ □) (sym (∪-assoc _ _ _))) ⟩
+    vars M ∪ (((vars N - ⁅ x ⁆) ∪ vars M) ∪ (vars-vec Ns - ⁅ x ⁆))  ⊆⟨ ⊆-reflexive (cong (λ □ → vars M ∪ (□ ∪ (vars-vec Ns - ⁅ x ⁆))) (∪-comm _ _)) ⟩
+    vars M ∪ ((vars M ∪ (vars N - ⁅ x ⁆)) ∪ (vars-vec Ns - ⁅ x ⁆))  ⊆⟨ ⊆-reflexive (cong (λ □ → vars M ∪ □) (∪-assoc _ _ _)) ⟩
+    vars M ∪ (vars M ∪ ((vars N - ⁅ x ⁆) ∪ (vars-vec Ns - ⁅ x ⁆)))  ⊆⟨ ⊆-reflexive (sym (∪-assoc _ _ _)) ⟩
+    (vars M ∪ vars M) ∪ ((vars N - ⁅ x ⁆) ∪ (vars-vec Ns - ⁅ x ⁆))  ⊆⟨ p⊆r→q⊆s→p∪q⊆r∪s ⊆-refl (distrib-∪- _ _ _) ⟩
+    (vars M ∪ vars M) ∪ ((vars N ∪ vars-vec Ns) - ⁅ x ⁆)            ⊆⟨ p⊆r→q⊆s→p∪q⊆r∪s (⊆-reflexive (∪-idem _)) ⊆-refl ⟩
+    vars M ∪ ((vars N ∪ vars-vec Ns) - ⁅ x ⁆)                       ■
 
 step-down : ∀ s → (m : middle? s) → mless (measure (step s)) (measure s)
 step-down (middle [] θ) m = third-less z≤n z≤n (s≤s z≤n)

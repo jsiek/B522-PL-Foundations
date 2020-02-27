@@ -47,7 +47,8 @@ abstract
   ⁅ 0 ⁆ = true ∷ []
   ⁅ suc n ⁆ = false ∷ ⁅ n ⁆
 
-  infix 4 _∈_ _∉_ _⊆_
+  infix 4 _∈_ _∉_ _⊆_ _⇔_
+  infixr 8 _-_
   infixr 7 _∩_
   infixr 6 _∪_
 
@@ -62,6 +63,9 @@ abstract
   _⊆_ : FiniteSet → FiniteSet → Set
   p ⊆ q = ∀ {x} → x ∈ p → x ∈ q  
 
+  _⇔_ : FiniteSet → FiniteSet → Set
+  p ⇔ q = p ⊆ q × q ⊆ p
+
   _∪_ : FiniteSet → FiniteSet → FiniteSet
   [] ∪ ys = ys
   (x ∷ xs) ∪ [] = x ∷ xs
@@ -71,6 +75,16 @@ abstract
   [] ∩ ys = []
   (x ∷ xs) ∩ [] = []
   (b ∷ xs) ∩ (c ∷ ys) = (b ∧ c) ∷ (xs ∪ ys)
+
+  subtract : Bool → Bool → Bool
+  subtract false b = false
+  subtract true false = true
+  subtract true true = false
+
+  _-_ : FiniteSet → FiniteSet → FiniteSet
+  [] - ys = []
+  (x ∷ xs) - [] = x ∷ xs
+  (b ∷ xs) - (c ∷ ys) = (subtract b c) ∷ (xs - ys)
 
   ∣_∣ : FiniteSet → ℕ
   ∣ [] ∣ = 0
@@ -184,4 +198,54 @@ abstract
 
   _■ : ∀ p → p ⊆ p
   _■ p = ⊆-refl {p}
+
+  ⊆-reflexive : ∀ {p q} → p ≡ q → p ⊆ q
+  ⊆-reflexive {p} refl = ⊆-refl {p}
+
+  ∪-idem : ∀ p → p ∪ p ≡ p
+  ∪-idem [] = refl
+  ∪-idem (false ∷ p) rewrite ∪-idem p = refl
+  ∪-idem (true ∷ p) rewrite ∪-idem p = refl
+
+  p-p⊆∅ : ∀ p → p - p ⊆ ∅
+  p-p⊆∅ [] ()
+  p-p⊆∅ (false ∷ p) {suc x} x∈ = p-p⊆∅ p {x} x∈
+  p-p⊆∅ (true ∷ p) {suc x} x∈ = p-p⊆∅ p {x} x∈
+
+  ∅⊆p-p : ∀ p → ∅ ⊆ p - p
+  ∅⊆p-p p {x} ()
+
+  p-∅≡p : ∀ p → p - ∅ ≡ p
+  p-∅≡p [] = refl
+  p-∅≡p (x ∷ p) = refl
+
+  ⁅y⁆-⁅x⁆≡⁅y⁆ : ∀ {x y } → x ≢ y → ⁅ y ⁆ - ⁅ x ⁆ ≡ ⁅ y ⁆
+  ⁅y⁆-⁅x⁆≡⁅y⁆ {zero} {zero} xy = ⊥-elim (xy refl)
+  ⁅y⁆-⁅x⁆≡⁅y⁆ {suc x} {zero} xy = refl
+  ⁅y⁆-⁅x⁆≡⁅y⁆ {zero} {suc y} xy = cong (λ □ → false ∷ □) (p-∅≡p _)
+  ⁅y⁆-⁅x⁆≡⁅y⁆ {suc x} {suc y} xy =
+      cong (λ □ → false ∷ □) (⁅y⁆-⁅x⁆≡⁅y⁆ λ z → xy (cong suc z))
+
+  ∪-identityʳ₁ : ∀ p → p ⊆ p ∪ ∅
+  ∪-identityʳ₁ [] ()
+  ∪-identityʳ₁ (b ∷ p) {x} x∈ = x∈
+
+  distrib-∪- : ∀ p q r → (p - r) ∪ (q - r) ⊆ (p ∪ q) - r
+  distrib-∪- [] [] r ()
+  distrib-∪- [] (x ∷ q) [] x∈ = x∈
+  distrib-∪- [] (b ∷ q) (c ∷ r) x∈ = x∈
+  distrib-∪- (a ∷ p) [] [] x∈ = x∈
+  distrib-∪- (a ∷ p) [] (c ∷ r) x∈ = x∈
+  distrib-∪- (a ∷ p) (b ∷ q) [] x∈ = x∈
+  distrib-∪- (a ∷ p) (b ∷ q) (c ∷ r) {zero} x∈
+      with a | b | c
+  ... | false | false | false = x∈
+  ... | false | false | true = x∈
+  ... | false | true  | false = tt
+  ... | false | true  | true = x∈
+  ... | true  | false | false = tt
+  ... | true  | false | true = x∈
+  ... | true  | true  | false = tt
+  ... | true  | true  | true = x∈
+  distrib-∪- (a ∷ p) (b ∷ q) (c ∷ r) {suc x} x∈ = distrib-∪- p q r {x} x∈
 

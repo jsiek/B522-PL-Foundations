@@ -5,10 +5,11 @@ open import Data.Bool using (Bool; true; false; _∨_)
 open import Data.List using (List; []; _∷_; length)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.List.Membership.DecPropositional using (_∈?_)
+open import Data.List.Relation.Unary.Any using (here; there)
 open import Data.Maybe
 open import Data.Nat using (ℕ; zero; suc; _+_; _<_; _≤_; z≤n; s≤s; _<?_)
 open import Data.Nat.Properties
-  using (m≤m+n; m≤n+m; ≤-step; ≤-pred; n≤1+n; 1+n≰n)
+  using (m≤m+n; m≤n+m; ≤-step; ≤-pred; n≤1+n; 1+n≰n; ≤-refl; +-comm; +-mono-≤)
 open Data.Nat.Properties.≤-Reasoning
   using (_≤⟨_⟩_)
   renaming (begin_ to begin≤_; _∎ to _QED)
@@ -384,11 +385,11 @@ data mless : ℕ × ℕ × ℕ → ℕ × ℕ × ℕ → Set where
      → mless ⟨ n₁ , ⟨ n₂ , n₃ ⟩ ⟩ ⟨ k₁ , ⟨ k₂ , k₃ ⟩ ⟩ 
 
    second-less : ∀{n₁ n₂ n₃ k₁ k₂ k₃}
-     → n₁ ≡ k₁ → n₂ < k₂
+     → n₁ ≤ k₁ → n₂ < k₂
      → mless ⟨ n₁ , ⟨ n₂ , n₃ ⟩ ⟩ ⟨ k₁ , ⟨ k₂ , k₃ ⟩ ⟩ 
 
    third-less : ∀{n₁ n₂ n₃ k₁ k₂ k₃}
-     → n₁ ≡ k₁ → n₂ ≡ k₂ → n₃ < k₃
+     → n₁ ≤ k₁ → n₂ ≤ k₂ → n₃ < k₃
      → mless ⟨ n₁ , ⟨ n₂ , n₃ ⟩ ⟩ ⟨ k₁ , ⟨ k₂ , k₃ ⟩ ⟩ 
 
 middle? : State → Set
@@ -396,12 +397,119 @@ middle? (middle x x₁) = ⊤
 middle? (done x) = ⊥
 middle? error = ⊥
 
+length-union : ∀{xs ys} → length (union xs ys) ≤ length xs + length ys
+length-union {[]} {ys} = ≤-refl
+length-union {x ∷ xs} {ys}
+    with (_∈?_ _≟_) x ys
+... | yes x∈ys =
+      let IH = length-union {xs} {ys} in
+      begin≤
+        length (union xs ys)          ≤⟨ IH ⟩
+        length xs + length ys         ≤⟨ n≤1+n _ ⟩
+        suc (length xs + length ys)
+      QED
+... | no x∉ys = s≤s (length-union {xs} {ys})
+
+length-union-LB2 : ∀{xs ys} → length ys ≤ length (union xs ys)
+length-union-LB2 {[]} {ys} = ≤-refl
+length-union-LB2 {x ∷ xs} {ys}
+    with (_∈?_ _≟_) x ys
+... | yes x∈ys =
+      begin≤
+        length ys                ≤⟨ length-union-LB2 {xs} {ys} ⟩
+        length (union xs ys)
+      QED
+... | no x∉ys =
+      begin≤
+        length ys                  ≤⟨ length-union-LB2 {xs} {ys} ⟩
+        length (union xs ys)       ≤⟨ n≤1+n _ ⟩
+        suc (length (union xs ys))
+      QED
+
+length-subst-eqs : ∀{eqs x M} → length ([ M / x ] eqs) ≤ length eqs
+length-subst-eqs {[]} = z≤n
+length-subst-eqs {eq ∷ eqs}{x}{M} = s≤s (length-subst-eqs {eqs}{x}{M})
+
+length-vars-vec-subst : ∀{n}{Ns : Vec AST n}{x M} → length (vars-vec ([ x ::= M ] Ns)) ≤ length (vars M) + length (vars-vec Ns)
+
+length-vars-subst : ∀{N}{x M} → length (vars ([ x := M ] N)) ≤ length (vars M) + length (vars N)
+length-vars-subst {` y}{x}{M}
+    with x ≟ y
+... | yes refl rewrite +-comm (length (vars M)) 1 = n≤1+n _
+... | no xy rewrite +-comm (length (vars M)) 1 = s≤s z≤n
+length-vars-subst {op ⦅ Ns ⦆} = length-vars-vec-subst {Ns = Ns}
+
+_⊆_ : List ℕ → List ℕ → Set
+xs ⊆ ys = ∀ x → x ∈ xs → x ∈ ys
+
+
+vars-vec-subst : ∀{n}{Ns : Vec AST n}{x M} → vars-vec ([ x ::= M ] Ns) ⊆ union (vars M) (vars-vec Ns)
+
+vars-subst : ∀{N}{x M} → vars ([ x := M ] N) ⊆ union (vars M) (vars N)
+vars-subst {N}{x}{M} = {!!}
+
+vars-vec-subst = {!!}
+
+distinct : List ℕ → Set
+distinct [] = ⊤
+distinct (x ∷ xs) = ¬ (x ∈ xs) × distinct xs
+
+distinct? : (xs : List ℕ) → Dec (distinct xs)
+distinct? [] = yes tt
+distinct? (x ∷ xs)
+    with _∈?_ _≟_ x xs
+... | yes x∈xs = no λ z → proj₁ z x∈xs
+... | no x∉xs
+    with distinct? xs
+... | yes dxs = yes ⟨ x∉xs , dxs ⟩
+... | no ¬dxs = no λ x₁ → ¬dxs (proj₂ x₁)
+
+length-⊆ : ∀ xs ys → xs ⊆ ys → distinct xs → distinct ys → length xs ≤ length ys
+length-⊆ [] [] xs⊆ys dxs dys = z≤n
+length-⊆ (x ∷ xs) [] xs⊆ys dxs dys 
+    with xs⊆ys x (here refl)
+... | ()
+length-⊆ xs (y ∷ ys) xs⊆ys dxs dys = {!!}
+
+{-
+length-⊆ [] ys xs⊆ys dxs dys = z≤n
+length-⊆ (x ∷ xs) ys xs⊆ys dxs dys =
+  let xs≤ys = length-⊆ xs ys (λ x z → xs⊆ys x (there z)) (proj₂ dxs) dys in
+  let x∈ys = xs⊆ys x (here refl) in
+  begin≤
+    length (x ∷ xs)  ≤⟨ ≤-refl ⟩
+    suc (length xs)  ≤⟨ {!!} ⟩
+    length ys
+  QED
+-}
+
+
+length-vars-vec-subst {zero} {Ns} = m≤n+m _ _
+length-vars-vec-subst {suc n} {N ∷ Ns}{x}{M} =
+    let IH = length-vars-vec-subst {n} {Ns}{x}{M} in
+    begin≤
+    length (union (vars ([ x := M ] N)) (vars-vec ([ x ::= M ] Ns)))    ≤⟨ {!!} ⟩
+    length (vars M) + length (union (vars N) (vars-vec Ns))
+    QED
+
 step-down : ∀ s → (m : middle? s) → mless (measure (step s)) (measure s)
-step-down (middle [] θ) m = third-less refl refl (s≤s z≤n)
+step-down (middle [] θ) m = third-less z≤n z≤n (s≤s z≤n)
 step-down (middle (⟨ ` x , ` y ⟩ ∷ eqs) θ) m
     with x ≟ y
-... | yes xy = third-less {!!} refl {!!}
-... | no xy = {!!}
+... | yes refl = third-less G1 ≤-refl (s≤s (s≤s ≤-refl))
+    where
+    G1 : num-vars eqs ≤ num-vars (⟨ ` x , ` x ⟩ ∷ eqs)
+    G1 = begin≤
+         num-vars eqs                                            ≤⟨ ≤-refl ⟩
+         length (vars-eqs eqs)                                   ≤⟨ length-union-LB2 {x ∷ []} {vars-eqs eqs} ⟩
+         length (union (x ∷ []) (vars-eqs eqs))                  ≤⟨ length-union-LB2 {x ∷ []} {(union (x ∷ []) (vars-eqs eqs))} ⟩
+         length (union (x ∷ []) (union (x ∷ []) (vars-eqs eqs))) ≤⟨ ≤-refl ⟩
+         num-vars (⟨ ` x , ` x ⟩ ∷ eqs)                          QED
+... | no xy = first-less G1
+    where
+    G1 : num-vars ([ ` y / x ] eqs) < num-vars (⟨ ` x , ` y ⟩ ∷ eqs)
+    G1 = {!!}
+
 step-down (middle (⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ eqs) θ) m = {!!}
 step-down (middle (⟨ op ⦅ Ms ⦆ , ` y ⟩ ∷ eqs) θ) m = {!!}
 step-down (middle (⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs) θ) m = {!!}

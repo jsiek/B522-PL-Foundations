@@ -230,6 +230,17 @@ abstract
   ∪-identityʳ₁ [] ()
   ∪-identityʳ₁ (b ∷ p) {x} x∈ = x∈
 
+  p∪∅≡p : ∀ p → p ∪ ∅ ≡ p
+  p∪∅≡p [] = refl
+  p∪∅≡p (x ∷ p) = refl
+
+  distrib-∪- : ∀ p q r → (p - r) ∪ (q - r) ≡ (p ∪ q) - r
+  distrib-∪- [] [] r = refl
+  distrib-∪- [] (x ∷ q) r = refl
+  distrib-∪- (x ∷ p) [] r = p∪∅≡p ((x ∷ p) - r)
+  distrib-∪- (x ∷ p) (x₁ ∷ q) r = {!!}
+  
+{-
   distrib-∪- : ∀ p q r → (p - r) ∪ (q - r) ⊆ (p ∪ q) - r
   distrib-∪- [] [] r ()
   distrib-∪- [] (x ∷ q) [] x∈ = x∈
@@ -249,3 +260,4 @@ abstract
   ... | true  | true  | true = x∈
   distrib-∪- (a ∷ p) (b ∷ q) (c ∷ r) {suc x} x∈ = distrib-∪- p q r {x} x∈
 
+-}

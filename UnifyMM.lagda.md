@@ -3,13 +3,15 @@ open import Agda.Primitive using (lzero)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Bool using (Bool; true; false; _∨_)
 open import Data.List using (List; []; _∷_; length)
+{-
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.List.Membership.DecPropositional using (_∈?_)
+-}
 open import Data.List.Relation.Unary.Any using (here; there)
 open import Data.Maybe
 open import Data.Nat using (ℕ; zero; suc; _+_; _<_; _≤_; z≤n; s≤s; _<?_)
 open import Data.Nat.Properties
-  using (m≤m+n; m≤n+m; ≤-step; ≤-pred; n≤1+n; 1+n≰n; ≤-refl; +-comm; +-mono-≤)
+  using (m≤m+n; m≤n+m; ≤-step; ≤-pred; n≤1+n; 1+n≰n; ≤-refl; +-comm; +-mono-≤; ≤-reflexive)
 open Data.Nat.Properties.≤-Reasoning
   using (_≤⟨_⟩_)
   renaming (begin_ to begin≤_; _∎ to _QED)
@@ -96,17 +98,25 @@ append-eqs {suc n} (M ∷ Ms) (L ∷ Ls) eqs = ⟨ M , L ⟩ ∷ append-eqs Ms L
 ```
 
 ```
+vars-vec : ∀{n} → Vec AST n → FiniteSet
+
+vars : AST → FiniteSet
+vars (` x) = ⁅ x ⁆
+vars (op ⦅ Ms ⦆) = vars-vec Ms
+
+vars-vec {zero} Ms = ∅
+vars-vec {suc n} (M ∷ Ms) = vars M  ∪  vars-vec Ms
+
+vars-eqs : Equations → FiniteSet
+vars-eqs [] = ∅
+vars-eqs (⟨ L , M ⟩ ∷ eqs) = vars L  ∪  vars M  ∪  vars-eqs eqs
+```
+
+```
 occurs-vec : Var → ∀{n} → Vec AST n → Set
-
 occurs : Var → AST → Set
-occurs x (` y)
-    with x ≟ y
-... | yes xy = ⊤
-... | no xy = ⊥
-occurs x (op ⦅ Ms ⦆) = occurs-vec x Ms
-
-occurs-vec x {zero} Ms = ⊥
-occurs-vec x {suc n} (M ∷ Ms) = occurs x M  ⊎  occurs-vec x Ms
+occurs x M = x ∈ vars M
+occurs-vec x {n} Ms = x ∈ vars-vec Ms
 
 occurs-eqs : Var → Equations → Set
 occurs-eqs x [] = ⊥
@@ -119,18 +129,24 @@ occurs-vec? : (x : Var) → ∀{n} → (Ms : Vec AST n) → Dec (occurs-vec x Ms
 occurs? : (x : Var) → (M : AST) → Dec (occurs x M)
 occurs? x (` y)
     with x ≟ y
-... | yes xy = yes tt
-... | no xy = no (λ z → z)
+... | yes refl = yes (x∈⁅x⁆ x)
+... | no xy = no (x∉⁅y⁆ x y xy)
 occurs? x (op ⦅ Ms ⦆) = occurs-vec? x Ms
 
-occurs-vec? x {zero} Ms = no (λ z → z)
+occurs-vec? x {zero} [] = no (∉∅ {x})
 occurs-vec? x {suc n} (M ∷ Ms)
     with occurs? x M
-... | yes x∈M = yes (inj₁ x∈M)
-... | no x∉M
+... | yes x∈M = yes ((p⊆p∪q _ _) {x} x∈M)
+... | no x∉M
     with occurs-vec? x Ms
-... | yes x∈Ms = yes (inj₂ x∈Ms)
-... | no x∉Ms = no λ { (inj₁ x∈M) → x∉M x∈M ; (inj₂ x∈Ms) → x∉Ms x∈Ms }
+... | yes x∈Ms = yes ((q⊆p∪q _ _) {x} x∈Ms)
+... | no x∉Ms = no G
+    where
+    G : ¬ x ∈ vars M ∪ vars-vec Ms
+    G x∈M∪Ms
+        with ∈p∪q→∈p⊎∈q x∈M∪Ms
+    ... | inj₁ x∈M = x∉M x∈M
+    ... | inj₂ x∈Ms = x∉Ms x∈Ms
 ```
 
 ```
@@ -144,22 +160,23 @@ data State : Set where
 Martelli and Montanari's Algorithm 1.
 
 ```
-step : State → State
-step (done σ) = (done σ)
-step error = error
-step (middle [] σ) = done σ
-step (middle (⟨ ` x , ` y ⟩ ∷ eqs) σ)
+step : Equations → Equations → State
+step [] σ = done σ
+step (⟨ ` x , ` y ⟩ ∷ eqs) σ
     with x ≟ y
 ... | yes xy = middle eqs σ
 ... | no xy = middle ([ ` y / x ] eqs) (⟨ ` x , ` y ⟩ ∷ [ ` y / x ] σ)
-
-step (middle (⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ eqs) σ) =
-  middle ([ op ⦅ Ms ⦆ / x ] eqs) (⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ [ op ⦅ Ms ⦆ / x ] σ)
-
-step (middle (⟨ op ⦅ Ms ⦆ , ` x ⟩ ∷ eqs) σ) =
-  middle ([ op ⦅ Ms ⦆ / x ] eqs) (⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ [ op ⦅ Ms ⦆ / x ] σ)
-
-step (middle (⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs) σ)
+step (⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ eqs) σ
+    with occurs? x (op ⦅ Ms ⦆)
+... | yes x∈M = error
+... | no x∉M =
+    middle ([ op ⦅ Ms ⦆ / x ] eqs) (⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ [ op ⦅ Ms ⦆ / x ] σ)
+step (⟨ op ⦅ Ms ⦆ , ` x ⟩ ∷ eqs) σ
+    with occurs? x (op ⦅ Ms ⦆)
+... | yes x∈M = error
+... | no x∉M =
+    middle ([ op ⦅ Ms ⦆ / x ] eqs) (⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ [ op ⦅ Ms ⦆ / x ] σ)
+step (⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs) σ
     with op-eq? op op'
 ... | yes refl = middle (append-eqs Ms Ls eqs) σ
 ... | no neq = error
@@ -216,27 +233,41 @@ num-ops-less : ∀ {M}{x θ}
    → is-op M
    → num-ops (subst θ (` x)) < num-ops (subst θ M)
 num-ops-less {op ⦅ Ms ⦆}{x}{θ} x∈Ms opM =
-   s≤s (num-ops-less-vec {θ = θ} x∈Ms)
+   s≤s (num-ops-less-vec {Ms = Ms}{x}{θ} x∈Ms)
 
-num-ops-less-vec {suc n} {(` y) ∷ Ms}{x}{θ} (inj₁ x∈M)
+num-ops-less-vec {zero} {[]} {x} {θ} x∈Ms = ⊥-elim (∉∅ {x} x∈Ms)
+num-ops-less-vec {suc n} {(` y) ∷ Ms} {x} {θ} x∈MMs
+    with ∈p∪q→∈p⊎∈q x∈MMs
+... | inj₁ x∈M
     with x ≟ y
 ... | yes refl = m≤m+n (num-ops (subst θ (` y))) (num-ops-vec (subst-vec θ Ms))
-... | no xy = ⊥-elim x∈M
-num-ops-less-vec {suc n} {(op ⦅ Ls ⦆) ∷ Ms}{x}{θ} (inj₁ x∈M) =
-  let θx<1+θLS = num-ops-less {(op ⦅ Ls ⦆)}{x}{θ} x∈M tt in
-  begin≤
-     num-ops (subst θ (` x))       ≤⟨ ≤-pred θx<1+θLS ⟩
-     num-ops-vec (subst-vec θ Ls)  ≤⟨ m≤m+n _ _ ⟩
-     num-ops-vec (subst-vec θ Ls) + num-ops-vec (subst-vec θ Ms) ≤⟨ n≤1+n _ ⟩
-     suc (num-ops-vec (subst-vec θ Ls) + num-ops-vec (subst-vec θ Ms))
+... | no xy = ⊥-elim ((x∉⁅y⁆ x y xy) x∈M)
+num-ops-less-vec {suc n} {(` y) ∷ Ms} {x} {θ} x∈MMs
+    | inj₂ x∈Ms =
+    let IH = num-ops-less-vec {n} {Ms}{x}{θ} x∈Ms in
+    begin≤
+    num-ops (subst θ (` x))         ≤⟨ IH ⟩
+    num-ops-vec (subst-vec θ Ms)    ≤⟨ m≤n+m _ _ ⟩
+    num-ops (subst θ (` y)) + num-ops-vec (subst-vec θ Ms)
     QED
-num-ops-less-vec {suc n} {M ∷ Ms}{x}{θ} (inj₂ x∈Ms) =
-  let IH = num-ops-less-vec {n} {Ms}{x}{θ} x∈Ms in
-  begin≤
-  num-ops (subst θ (` x))         ≤⟨ IH ⟩
-  num-ops-vec (subst-vec θ Ms)    ≤⟨ m≤n+m _ _ ⟩
-  num-ops (subst θ M) + num-ops-vec (subst-vec θ Ms)
-  QED
+num-ops-less-vec {suc n} {(op ⦅ Ls ⦆) ∷ Ms} {x} {θ} x∈MMs
+    with ∈p∪q→∈p⊎∈q x∈MMs
+... | inj₁ x∈M =
+    let θx<1+θLS = num-ops-less {(op ⦅ Ls ⦆)}{x}{θ} x∈M tt in
+    begin≤
+       num-ops (subst θ (` x))       ≤⟨ ≤-pred θx<1+θLS ⟩
+       num-ops-vec (subst-vec θ Ls)  ≤⟨ m≤m+n _ _ ⟩
+       num-ops-vec (subst-vec θ Ls) + num-ops-vec (subst-vec θ Ms) ≤⟨ n≤1+n _ ⟩
+       suc (num-ops-vec (subst-vec θ Ls) + num-ops-vec (subst-vec θ Ms))
+      QED
+num-ops-less-vec {suc n} {M ∷ Ms} {x} {θ} x∈MMs
+    | inj₂ x∈Ms =
+    let IH = num-ops-less-vec {n} {Ms}{x}{θ} x∈Ms in
+    begin≤
+    num-ops (subst θ (` x))         ≤⟨ IH ⟩
+    num-ops-vec (subst-vec θ Ms)    ≤⟨ m≤n+m _ _ ⟩
+    num-ops (subst θ M) + num-ops-vec (subst-vec θ Ms)
+    QED
 
 occurs-no-soln : ∀{θ x M}
   → occurs x M → is-op M
@@ -261,7 +292,7 @@ subst-id-no-occurs : ∀{N x M}
   → [ x := M ] N ≡ N
 subst-id-no-occurs {` y}{x} ¬x∈M
     with x ≟ y
-... | yes refl = ⊥-elim (¬x∈M tt)
+... | yes refl = ⊥-elim (¬x∈M (x∈⁅x⁆ y))
 ... | no xy = refl
 subst-id-no-occurs {op ⦅ Ns ⦆} ¬x∈M =
     cong (λ □ → op ⦅ □ ⦆) (subst-vec-id-no-occurs ¬x∈M)
@@ -269,8 +300,9 @@ subst-id-no-occurs {op ⦅ Ns ⦆} ¬x∈M =
 subst-vec-id-no-occurs {zero} {[]} ¬x∈M = refl
 subst-vec-id-no-occurs {suc n} {N ∷ Ns} {x}{M} ¬x∈M
     with occurs? x N | occurs-vec? x Ns
-... | yes x∈N | _ = ⊥-elim (¬x∈M (inj₁ x∈N))
-... | no x∉N | yes x∈Ns = ⊥-elim (¬x∈M (inj₂ x∈Ns)) 
+... | yes x∈N | _ =
+      ⊥-elim (¬x∈M (p⊆p∪q (vars N) (vars-vec Ns) x∈N))
+... | no x∉N | yes x∈Ns = ⊥-elim (¬x∈M ((q⊆p∪q (vars N) (vars-vec Ns) x∈Ns))) 
 ... | no x∉N | no x∉Ns
     rewrite subst-id-no-occurs {N}{x}{M} x∉N
     | subst-vec-id-no-occurs {n}{Ns}{x}{M} x∉Ns = refl
@@ -327,51 +359,35 @@ subst-vec-pres {suc n} {M ∷ Ms} {L ∷ Ls} θeqs θMLMsLs
 ```
 
 ```
-unifier-pres : ∀{σ θ}
-   → θ unifies σ
-   → θ unifies (step σ)
-unifier-pres {middle [] eqs'} {θ} ⟨ θeqs , θeqs' ⟩ = θeqs'
-unifier-pres {middle (⟨ ` x , ` y ⟩ ∷ eqs) eqs'} {θ} ⟨ ⟨ θxy , θeqs ⟩  , θeqs' ⟩
+unifier-pres : ∀{eqs σ θ}
+   → θ unifies (middle eqs σ)
+   → θ unifies (step eqs σ)
+unifier-pres {[]}{eqs'} {θ} ⟨ θeqs , θeqs' ⟩ = θeqs'
+unifier-pres {⟨ ` x , ` y ⟩ ∷ eqs}{eqs'} {θ} ⟨ ⟨ θxy , θeqs ⟩  , θeqs' ⟩
     with x ≟ y
 ... | yes xy = ⟨ θeqs , θeqs' ⟩
 ... | no xy = ⟨ subst-pres θxy θeqs , ⟨ θxy , subst-pres θxy θeqs' ⟩ ⟩
-unifier-pres {middle (⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ eqs) eqs'}
-    ⟨ ⟨ θxM , θeqs ⟩ , θeqs' ⟩ =
+unifier-pres {⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ eqs}{eqs'}{θ} ⟨ ⟨ θxM , θeqs ⟩ , θeqs' ⟩ 
+    with occurs? x (op ⦅ Ms ⦆)
+... | yes x∈M = soln-no-occurs {θ}{x}{op ⦅ Ms ⦆} θxM tt x∈M
+... | no x∉M = 
     ⟨ subst-pres θxM θeqs , ⟨ θxM , subst-pres θxM θeqs' ⟩ ⟩
-unifier-pres {middle (⟨ op ⦅ Ms ⦆ , ` x ⟩ ∷ eqs) eqs'}
-    ⟨ ⟨ θxM , θeqs ⟩ , θeqs' ⟩ =
+unifier-pres {⟨ op ⦅ Ms ⦆ , ` x ⟩ ∷ eqs}{eqs'}{θ}
+    ⟨ ⟨ θxM , θeqs ⟩ , θeqs' ⟩
+    with occurs? x (op ⦅ Ms ⦆)
+... | yes x∈M = soln-no-occurs {θ}{x}{op ⦅ Ms ⦆} (sym θxM) tt x∈M
+... | no x∉M = 
     ⟨ subst-pres (sym θxM) θeqs , ⟨ sym θxM , subst-pres (sym θxM) θeqs' ⟩ ⟩
-unifier-pres {middle (⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs) eqs'}
+unifier-pres {⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs}{eqs'}
     ⟨ ⟨ θMsLs , θeqs ⟩ , θeqs' ⟩
     with op-eq? op op'
 ... | yes refl = ⟨ subst-vec-pres θeqs (Ms≡-inversion θMsLs) , θeqs' ⟩
 ... | no neq = ⊥-elim (neq (op≡-inversion θMsLs))
-unifier-pres {done eqs} θσ = θσ
 ```
 
 ## Proof of Termination
 
 ```
-union : List ℕ → List ℕ → List ℕ
-union [] ys = ys
-union (x ∷ xs) ys
-    with (_∈?_ _≟_) x ys
-... | yes x∈ys = union xs ys
-... | no x∉ys = x ∷ (union xs ys)
-
-vars-vec : ∀{n} → Vec AST n → FiniteSet
-
-vars : AST → FiniteSet
-vars (` x) = ⁅ x ⁆
-vars (op ⦅ Ms ⦆) = vars-vec Ms
-
-vars-vec {zero} Ms = ∅
-vars-vec {suc n} (M ∷ Ms) = vars M  ∪  vars-vec Ms
-
-vars-eqs : Equations → FiniteSet
-vars-eqs [] = ∅
-vars-eqs (⟨ L , M ⟩ ∷ eqs) = vars L  ∪  vars M  ∪  vars-eqs eqs
-
 measure : State → ℕ × ℕ × ℕ
 measure (middle eqs θ) = ⟨ ∣ vars-eqs eqs ∣ , ⟨ num-ops-eqs eqs , suc (length eqs) ⟩ ⟩
 measure (done θ) = ⟨ 0 , ⟨ 0 , 0 ⟩ ⟩
@@ -439,18 +455,21 @@ vars-eqs-subst-∪ {⟨ L , N ⟩ ∷ eqs} {x} {M} =
     vars M ∪ (vars L ∪ vars N ∪ vars-eqs eqs) - ⁅ x ⁆
     ■
     where
-    G : (vars M ∪ (vars L - ⁅ x ⁆)) ∪ (vars M ∪ (vars N - ⁅ x ⁆)) ∪ (vars M ∪ (vars-eqs eqs - ⁅ x ⁆))
+    L-x = (vars L - ⁅ x ⁆)
+    N-x = (vars N - ⁅ x ⁆)
+    eqs-x = (vars-eqs eqs - ⁅ x ⁆)
+    G : (vars M ∪ (vars L - ⁅ x ⁆)) ∪ (vars M ∪ (vars N - ⁅ x ⁆)) ∪ (vars M ∪ eqs-x)
          ≡ vars M ∪ (vars L ∪ vars N ∪ vars-eqs eqs) - ⁅ x ⁆
-    G rewrite ∪-assoc (vars M) (vars L - ⁅ x ⁆) ((vars M ∪ (vars N - ⁅ x ⁆)) ∪ (vars M ∪ (vars-eqs eqs - ⁅ x ⁆)))
-      | ∪-assoc (vars M) (vars N - ⁅ x ⁆) (vars M ∪ (vars-eqs eqs - ⁅ x ⁆))
-      | sym (∪-assoc (vars L - ⁅ x ⁆) (vars M) (vars N - ⁅ x ⁆ ∪ vars M ∪ vars-eqs eqs - ⁅ x ⁆))
-      | ∪-comm (vars L - ⁅ x ⁆) (vars M)
-      | ∪-assoc (vars M) (vars L - ⁅ x ⁆) (vars N - ⁅ x ⁆ ∪ vars M ∪ vars-eqs eqs - ⁅ x ⁆)
-      | sym (∪-assoc (vars L - ⁅ x ⁆) (vars N - ⁅ x ⁆) (vars M ∪ vars-eqs eqs - ⁅ x ⁆))
-      | sym (∪-assoc (vars L - ⁅ x ⁆ ∪ vars N - ⁅ x ⁆) (vars M) (vars-eqs eqs - ⁅ x ⁆))
-      | ∪-comm (vars L - ⁅ x ⁆ ∪ vars N - ⁅ x ⁆) (vars M) 
-      | ∪-assoc (vars M) (vars L - ⁅ x ⁆ ∪ vars N - ⁅ x ⁆) (vars-eqs eqs - ⁅ x ⁆)
-      | sym (∪-assoc (vars M) (vars M) (vars M ∪ (vars L - ⁅ x ⁆ ∪ vars N - ⁅ x ⁆) ∪ vars-eqs eqs - ⁅ x ⁆))
+    G rewrite ∪-assoc (vars M) L-x ((vars M ∪ N-x) ∪ (vars M ∪ eqs-x))
+      | ∪-assoc (vars M) N-x (vars M ∪ eqs-x)
+      | sym (∪-assoc L-x (vars M) (N-x ∪ vars M ∪ eqs-x))
+      | ∪-comm L-x (vars M)
+      | ∪-assoc (vars M) L-x (N-x ∪ vars M ∪ eqs-x)
+      | sym (∪-assoc L-x N-x (vars M ∪ eqs-x))
+      | sym (∪-assoc (L-x ∪ N-x) (vars M) eqs-x)
+      | ∪-comm (L-x ∪ N-x) (vars M) 
+      | ∪-assoc (vars M) (L-x ∪ N-x) eqs-x
+      | sym (∪-assoc (vars M) (vars M) (vars M ∪ (L-x ∪ N-x) ∪ eqs-x))
       | distrib-∪- (vars L) (vars N) ⁅ x ⁆
       | distrib-∪- (vars L ∪ vars N) (vars-eqs eqs) ⁅ x ⁆
       | ∪-idem (vars M)
@@ -458,9 +477,9 @@ vars-eqs-subst-∪ {⟨ L , N ⟩ ∷ eqs} {x} {M} =
       | ∪-idem (vars M)
       | ∪-assoc (vars L) (vars N) (vars-eqs eqs) = refl
 
-step-down : ∀ s → (m : middle? s) → mless (measure (step s)) (measure s)
-step-down (middle [] θ) m = third-less z≤n z≤n (s≤s z≤n)
-step-down (middle (⟨ ` x , ` y ⟩ ∷ eqs) θ) m
+step-down : ∀ eqs θ → mless (measure (step eqs θ)) (measure (middle eqs θ))
+step-down [] θ = third-less z≤n z≤n (s≤s z≤n)
+step-down (⟨ ` x , ` y ⟩ ∷ eqs) θ 
     with x ≟ y
 ... | yes refl = third-less G1 ≤-refl (s≤s (s≤s ≤-refl))
     where
@@ -473,18 +492,33 @@ step-down (middle (⟨ ` x , ` y ⟩ ∷ eqs) θ) m
 ... | no xy = first-less G1
     where
     G1 : ∣ vars-eqs ([ ` y / x ] eqs) ∣ < ∣ vars-eqs (⟨ ` x , ` y ⟩ ∷ eqs) ∣
-    G1 = {!!}
-    G2 : vars-eqs ([ ` y / x ] eqs) ⊆ ⁅ y ⁆ ∪ (vars-eqs eqs - ⁅ x ⁆)
-    G2 = vars-eqs-subst-∪ {eqs} {x} {` y}
-    G3 : vars-eqs (⟨ ` x , ` y ⟩ ∷ eqs) ≡ ⁅ x ⁆ ∪ ⁅ y ⁆ ∪ vars-eqs eqs
-    G3 = refl
-    G4 : ⁅ y ⁆ ∪ (vars-eqs eqs - ⁅ x ⁆)
-         ≡ (⁅ y ⁆ ∪ vars-eqs eqs) - ⁅ x ⁆
-    G4 = distrib-∪-2 ⁅ y ⁆ (vars-eqs eqs) ⁅ x ⁆ {!!}
-
-step-down (middle (⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ eqs) θ) m = {!!}
-step-down (middle (⟨ op ⦅ Ms ⦆ , ` y ⟩ ∷ eqs) θ) m = {!!}
-step-down (middle (⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs) θ) m = {!!}
+    G1 = begin≤
+         suc ∣ vars-eqs ([ ` y / x ] eqs) ∣       ≤⟨ s≤s (p⊆q⇒∣p∣≤∣q∣ (vars-eqs-subst-∪ {eqs} {x} {` y})) ⟩
+         suc ∣ ⁅ y ⁆ ∪ (vars-eqs eqs - ⁅ x ⁆) ∣   ≤⟨ ≤-reflexive (cong (λ □ → suc ∣ □ ∣) (distrib-∪-2 ⁅ y ⁆ (vars-eqs eqs) ⁅ x ⁆ (⁅y⁆∩⁅x⁆⊆∅ x y xy))) ⟩
+         suc ∣ (⁅ y ⁆ ∪ vars-eqs eqs) - ⁅ x ⁆ ∣   ≤⟨ ∣p-x∣<∣p∪x∣ (⁅ y ⁆ ∪ vars-eqs eqs) x ⟩
+         ∣ (⁅ y ⁆ ∪ vars-eqs eqs) ∪ ⁅ x ⁆ ∣       ≤⟨ ≤-reflexive (cong ∣_∣ (∪-comm _ _)) ⟩
+         ∣ ⁅ x ⁆ ∪ ⁅ y ⁆ ∪ vars-eqs eqs ∣         ≤⟨ ≤-reflexive refl ⟩
+         ∣ vars-eqs (⟨ ` x , ` y ⟩ ∷ eqs) ∣       QED
+step-down (⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ eqs) θ
+    with occurs? x (op ⦅ Ms ⦆)
+... | yes x∈M = second-less z≤n (s≤s z≤n)
+... | no x∉M = first-less G1
+    where
+    M = op ⦅ Ms ⦆
+    G2 : vars M ∩ ⁅ x ⁆ ⊆ ∅
+    G2 {z} z∈Ms∩x =
+        let z∈Ms = ? in
+        let z∈x = ? in
+        {!!} {- ⊥-elim (x∉M (∈p∩q→∈p {!!} )) -}
+    G1 : ∣ vars-eqs ([ M / x ] eqs) ∣ < ∣ ⁅ x ⁆ ∪ vars M ∪ vars-eqs eqs ∣
+    G1 = begin≤
+         suc ∣ vars-eqs ([ M / x ] eqs) ∣          ≤⟨ s≤s (p⊆q⇒∣p∣≤∣q∣ (vars-eqs-subst-∪ {eqs}{x}{M})) ⟩
+         suc ∣ vars M ∪ (vars-eqs eqs - ⁅ x ⁆) ∣   ≤⟨ ≤-reflexive (cong (λ □ → suc ∣ □ ∣) (distrib-∪-2 (vars M) (vars-eqs eqs) ⁅ x ⁆ G2)) ⟩
+         suc ∣ (vars M ∪ vars-eqs eqs) - ⁅ x ⁆ ∣   ≤⟨ {!!} ⟩
+         ∣ ⁅ x ⁆ ∪ vars M ∪ vars-eqs eqs ∣
+         QED
+step-down (⟨ op ⦅ Ms ⦆ , ` x ⟩ ∷ eqs) θ = {!!}
+step-down (⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs) θ = {!!}
 
 {-
 solve : ∀{n₁ n₂ n₃ : ℕ} → (s : State)

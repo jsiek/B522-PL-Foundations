@@ -57,14 +57,16 @@ abstract
   zero ∈ b ∷ p = T b
   suc x ∈ b ∷ p = x ∈ p
 
-  _∉_ : ℕ → FiniteSet → Set
-  x ∉ p = ¬ (x ∈ p)
+_∉_ : ℕ → FiniteSet → Set
+x ∉ p = ¬ (x ∈ p)
 
-  _⊆_ : FiniteSet → FiniteSet → Set
-  p ⊆ q = ∀ {x} → x ∈ p → x ∈ q  
+_⊆_ : FiniteSet → FiniteSet → Set
+p ⊆ q = ∀ {x} → x ∈ p → x ∈ q  
 
-  _⇔_ : FiniteSet → FiniteSet → Set
-  p ⇔ q = p ⊆ q × q ⊆ p
+_⇔_ : FiniteSet → FiniteSet → Set
+p ⇔ q = p ⊆ q × q ⊆ p
+
+abstract
 
   _∪_ : FiniteSet → FiniteSet → FiniteSet
   [] ∪ ys = ys
@@ -75,16 +77,6 @@ abstract
   [] ∩ ys = []
   (x ∷ xs) ∩ [] = []
   (b ∷ xs) ∩ (c ∷ ys) = (b ∧ c) ∷ (xs ∩ ys)
-{-
-  (b ∷ xs) ∩ (c ∷ ys)
-      with (xs ∩ ys)
-  ... | (z ∷ zs) = (b ∧ c) ∷ z ∷ zs
-  ... | []
-      with b | c
-  ... | true | true = true ∷ []
-  ... | false | _ = []
-  ... | true | false = []
--}
 
   subtract : Bool → Bool → Bool
   subtract false b = false
@@ -118,6 +110,16 @@ abstract
   ∣⁅x⁆∣≡1 zero = refl
   ∣⁅x⁆∣≡1 (suc x) = ∣⁅x⁆∣≡1 x
 
+  x∈⁅x⁆ : ∀ x → x ∈ ⁅ x ⁆
+  x∈⁅x⁆ zero = tt
+  x∈⁅x⁆ (suc x) = x∈⁅x⁆ x
+
+  x∉⁅y⁆ : ∀ x y → x ≢ y → x ∉ ⁅ y ⁆
+  x∉⁅y⁆ zero zero x∈ = ⊥-elim (x∈ refl)
+  x∉⁅y⁆ (suc x) zero x∈ = λ z → z
+  x∉⁅y⁆ zero (suc y) x∈ = λ z → z
+  x∉⁅y⁆ (suc x) (suc y) x∈ = x∉⁅y⁆ x y λ z → x∈ (cong suc z)
+  
   ⊆-refl : ∀ {S} → S ⊆ S
   ⊆-refl {S} = λ z → z
   
@@ -184,6 +186,14 @@ abstract
   ∈p∪q→∈p⊎∈q {true ∷ p} {c ∷ q} {zero} x∈pq = inj₁ tt
   ∈p∪q→∈p⊎∈q {b ∷ p} {c ∷ q} {suc x} x∈pq = ∈p∪q→∈p⊎∈q {p} {q} {x} x∈pq
 
+  ∈p∩q→∈p : ∀{p q x} → x ∈ p ∩ q → x ∈ p
+  ∈p∩q→∈p {true ∷ p} {true ∷ q} {zero} x∈p∩q = tt
+  ∈p∩q→∈p {a ∷ p} {b ∷ q} {suc x} x∈p∩q = ∈p∩q→∈p {p} {q} {x} x∈p∩q
+
+  ∈p∩q→∈q : ∀{p q x} → x ∈ p ∩ q → x ∈ q
+  ∈p∩q→∈q {true ∷ p} {true ∷ q} {zero} x∈p∩q = tt
+  ∈p∩q→∈q {a ∷ p} {b ∷ q} {suc x} x∈p∩q = ∈p∩q→∈q {p} {q} {x} x∈p∩q
+  
   ∪-lub : ∀ {p q r } → p ⊆ r → q ⊆ r → p ∪ q ⊆ r
   ∪-lub {p}{q}{r} pr qr {x} x∈p∪q
       with ∈p∪q→∈p⊎∈q {p}{q}{x} x∈p∪q

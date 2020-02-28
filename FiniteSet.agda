@@ -183,6 +183,12 @@ abstract
   q⊆p∪q (true ∷ p) (true ∷ q) {zero} x∈q = tt
   q⊆p∪q (b ∷ p) (c ∷ q) {suc x} x∈q = q⊆p∪q p q {x} x∈q
 
+  p⊆q→p⊆q∪r : ∀ p q r → p ⊆ q → p ⊆ q ∪ r
+  p⊆q→p⊆q∪r p q r pq = ⊆-trans {p}{q}{q ∪ r} pq (p⊆p∪q q r)
+
+  p⊆r→p⊆q∪r : ∀ p q r → p ⊆ r → p ⊆ q ∪ r
+  p⊆r→p⊆q∪r p q r pr = ⊆-trans {p}{r}{q ∪ r} pr (q⊆p∪q q r)
+
   ∈p∪q→∈p⊎∈q : ∀{p q x} → x ∈ p ∪ q → x ∈ p ⊎ x ∈ q
   ∈p∪q→∈p⊎∈q {[]} {q} {x} x∈pq = inj₂ x∈pq
   ∈p∪q→∈p⊎∈q {b ∷ p} {[]} {x} x∈pq = inj₁ x∈pq
@@ -204,11 +210,16 @@ abstract
   ... | inj₁ x∈p = pr x∈p
   ... | inj₂ x∈q = qr x∈q
 
+  p⊆r→q⊆r→p∪q⊆r : ∀ p q r → p ⊆ r → q ⊆ r → p ∪ q ⊆ r
+  p⊆r→q⊆r→p∪q⊆r p q r = ∪-lub {p}{q}{r}
+
   p⊆r→q⊆s→p∪q⊆r∪s : ∀{p q r s} → p ⊆ r → q ⊆ s → p ∪ q ⊆ r ∪ s
   p⊆r→q⊆s→p∪q⊆r∪s {p}{q}{r}{s} pr qs {x} x∈p∪q
       with ∈p∪q→∈p⊎∈q {p}{q}{x} x∈p∪q
   ... | inj₁ x∈p = (p⊆p∪q r s) (pr x∈p)
   ... | inj₂ x∈q = (q⊆p∪q r s) (qs x∈q)
+
+
 
   infix  1 begin⊆_
   infixr 2 _⊆⟨_⟩_
@@ -274,6 +285,10 @@ abstract
   p∪∅≡p [] = refl
   p∪∅≡p (x ∷ p) = refl
 
+  ∅∪p≡p : ∀ p → ∅ ∪ p ≡ p
+  ∅∪p≡p [] = refl
+  ∅∪p≡p (x ∷ p) = refl
+  
   distrib-∨-sub : ∀ a b c → subtract a c ∨ subtract b c ≡ subtract (a ∨ b) c
   distrib-∨-sub false b c = refl
   distrib-∨-sub true false false = refl

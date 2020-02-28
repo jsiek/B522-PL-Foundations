@@ -496,6 +496,29 @@ vars-eqs-sub-less {op}{Ms}{x}{eqs} x∉Ms = begin≤
         let z∈Ms = ∈p∩q→∈p z∈Ms∩x in
         ⊥-elim (x∉Ms z∈Ms)
 
+var-eqs-append-⊆ : ∀ {n} (Ms Ls : Vec AST n) eqs
+   → vars-eqs (append-eqs Ms Ls eqs) ⊆ vars-vec Ms ∪ vars-vec Ls ∪ vars-eqs eqs
+var-eqs-append-⊆ {zero} [] [] eqs x∈eqs
+    rewrite ∅∪p≡p (vars-eqs eqs) | ∅∪p≡p (vars-eqs eqs) = x∈eqs
+var-eqs-append-⊆ {suc n} (M ∷ Ms) (L ∷ Ls) eqs {x} x∈M∪L∪app-Ms-Ls-eqs
+    rewrite sym (∪-assoc (vars M) (vars L) (vars-eqs (append-eqs Ms Ls eqs)))
+    with ∈p∪q→∈p⊎∈q x∈M∪L∪app-Ms-Ls-eqs
+... | inj₁ x∈M∪L = sub x∈M∪L
+    where
+    sub : vars M ∪ vars L ⊆ (vars M ∪ vars-vec Ms) ∪ (vars L ∪ vars-vec Ls) ∪ vars-eqs eqs
+    sub = p⊆r→q⊆r→p∪q⊆r _ _ _ (p⊆q→p⊆q∪r _ _ _ (p⊆q→p⊆q∪r _ _ _ ⊆-refl))
+            (p⊆r→p⊆q∪r _ _ _ (p⊆q→p⊆q∪r _ _ _ (p⊆q→p⊆q∪r _ _ _ ⊆-refl)))
+    
+... | inj₂ x∈app-Ms-Ls-eqs
+    rewrite ∪-assoc (vars L) (vars-vec Ls) (vars-eqs eqs)
+    | ∪-assoc (vars M) (vars-vec Ms) (vars L ∪ vars-vec Ls ∪ vars-eqs eqs)
+    | sym (∪-assoc (vars-vec Ms) (vars L) (vars-vec Ls ∪ vars-eqs eqs))
+    | ∪-comm (vars-vec Ms) (vars L) 
+    | ∪-assoc (vars L) (vars-vec Ms) (vars-vec Ls ∪ vars-eqs eqs)
+    | sym (∪-assoc (vars M) (vars L) (vars-vec Ms ∪ vars-vec Ls ∪ vars-eqs eqs)) =
+    let IH = var-eqs-append-⊆ {n} Ms Ls eqs {x} x∈app-Ms-Ls-eqs in
+    q⊆p∪q (vars M ∪ vars L) (vars-vec Ms ∪ vars-vec Ls ∪ vars-eqs eqs) {x} IH 
+
 step-down : ∀ eqs θ → mless (measure (step eqs θ)) (measure (middle eqs θ))
 step-down [] θ = third-less z≤n z≤n (s≤s z≤n)
 step-down (⟨ ` x , ` y ⟩ ∷ eqs) θ 
@@ -541,7 +564,7 @@ step-down (⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs) θ
 ... | yes refl = second-less G1 G2
     where
     G1 : ∣ vars-eqs (append-eqs Ms Ls eqs) ∣ ≤ ∣ vars-vec Ms ∪ vars-vec Ls ∪ vars-eqs eqs ∣
-    G1 = {!!}
+    G1 = p⊆q⇒∣p∣≤∣q∣ (var-eqs-append-⊆ Ms Ls eqs)
     G2 : num-ops-eqs (append-eqs Ms Ls eqs) < suc (num-ops-vec Ms + suc (num-ops-vec Ls) + num-ops-eqs eqs)
     G2 = {!!}
 

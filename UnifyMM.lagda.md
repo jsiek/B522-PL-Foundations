@@ -424,7 +424,7 @@ vars-vec-subst-∪ {suc n} {N ∷ Ns} {x} {M} =
     vars M ∪ (((vars N - ⁅ x ⁆) ∪ vars M) ∪ (vars-vec Ns - ⁅ x ⁆))  ⊆⟨ ⊆-reflexive (cong (λ □ → vars M ∪ (□ ∪ (vars-vec Ns - ⁅ x ⁆))) (∪-comm _ _)) ⟩
     vars M ∪ ((vars M ∪ (vars N - ⁅ x ⁆)) ∪ (vars-vec Ns - ⁅ x ⁆))  ⊆⟨ ⊆-reflexive (cong (λ □ → vars M ∪ □) (∪-assoc _ _ _)) ⟩
     vars M ∪ (vars M ∪ ((vars N - ⁅ x ⁆) ∪ (vars-vec Ns - ⁅ x ⁆)))  ⊆⟨ ⊆-reflexive (sym (∪-assoc _ _ _)) ⟩
-    (vars M ∪ vars M) ∪ ((vars N - ⁅ x ⁆) ∪ (vars-vec Ns - ⁅ x ⁆))  ⊆⟨ p⊆r→q⊆s→p∪q⊆r∪s ⊆-refl (distrib-∪- _ _ _) ⟩
+    (vars M ∪ vars M) ∪ ((vars N - ⁅ x ⁆) ∪ (vars-vec Ns - ⁅ x ⁆))  ⊆⟨ p⊆r→q⊆s→p∪q⊆r∪s ⊆-refl (⊆-reflexive (distrib-∪- _ _ _)) ⟩
     (vars M ∪ vars M) ∪ ((vars N ∪ vars-vec Ns) - ⁅ x ⁆)            ⊆⟨ p⊆r→q⊆s→p∪q⊆r∪s (⊆-reflexive (∪-idem _)) ⊆-refl ⟩
     vars M ∪ ((vars N ∪ vars-vec Ns) - ⁅ x ⁆)                       ■
 
@@ -435,13 +435,7 @@ vars-eqs-subst-∪ {⟨ L , N ⟩ ∷ eqs} {x} {M} =
     let IH = vars-eqs-subst-∪ {eqs} {x} {M} in
     begin⊆
     vars ([ x := M ] L) ∪ vars ([ x := M ] N) ∪ vars-eqs ([ M / x ] eqs)                            ⊆⟨ p⊆r→q⊆s→p∪q⊆r∪s (vars-subst-∪ {L}) (p⊆r→q⊆s→p∪q⊆r∪s (vars-subst-∪ {N}) IH) ⟩
-    (vars M ∪ (vars L - ⁅ x ⁆)) ∪ (vars M ∪ (vars N - ⁅ x ⁆)) ∪ (vars M ∪ (vars-eqs eqs - ⁅ x ⁆))   ⊆⟨ ⊆-reflexive (∪-assoc _ _ _) ⟩
-    vars M ∪ (vars L - ⁅ x ⁆) ∪ (vars M ∪ (vars N - ⁅ x ⁆)) ∪ (vars M ∪ (vars-eqs eqs - ⁅ x ⁆))     ⊆⟨ ⊆-reflexive (cong (λ □ → vars M ∪ vars L - ⁅ x ⁆ ∪ □) (∪-assoc _ _ _)) ⟩
-    vars M ∪ (vars L - ⁅ x ⁆) ∪ vars M ∪ (vars N - ⁅ x ⁆) ∪ vars M ∪ (vars-eqs eqs - ⁅ x ⁆)         ⊆⟨ ⊆-reflexive (cong (λ □ → vars M ∪ □) ((sym (∪-assoc _ _ _)))) ⟩
-    vars M ∪ ((vars L - ⁅ x ⁆) ∪ vars M) ∪ (vars N - ⁅ x ⁆) ∪ vars M ∪ (vars-eqs eqs - ⁅ x ⁆)       ⊆⟨ ⊆-reflexive (cong (λ □ → vars M ∪ □ ∪ vars N - ⁅ x ⁆ ∪ vars M ∪ vars-eqs eqs - ⁅ x ⁆) (∪-comm _ _)) ⟩
-    vars M ∪ (vars M ∪ (vars L - ⁅ x ⁆)) ∪ (vars N - ⁅ x ⁆) ∪ vars M ∪ (vars-eqs eqs - ⁅ x ⁆)       ⊆⟨ ⊆-reflexive (cong (λ □ → vars M ∪ □) (∪-assoc _ _ _)) ⟩
-    vars M ∪ vars M ∪ (vars L - ⁅ x ⁆) ∪ (vars N - ⁅ x ⁆) ∪ vars M ∪ (vars-eqs eqs - ⁅ x ⁆)       ⊆⟨ {!!} ⟩
-    
+    (vars M ∪ (vars L - ⁅ x ⁆)) ∪ (vars M ∪ (vars N - ⁅ x ⁆)) ∪ (vars M ∪ (vars-eqs eqs - ⁅ x ⁆))   ⊆⟨ ⊆-reflexive G ⟩
     vars M ∪ (vars L ∪ vars N ∪ vars-eqs eqs) - ⁅ x ⁆
     ■
     where
@@ -456,7 +450,13 @@ vars-eqs-subst-∪ {⟨ L , N ⟩ ∷ eqs} {x} {M} =
       | sym (∪-assoc (vars L - ⁅ x ⁆ ∪ vars N - ⁅ x ⁆) (vars M) (vars-eqs eqs - ⁅ x ⁆))
       | ∪-comm (vars L - ⁅ x ⁆ ∪ vars N - ⁅ x ⁆) (vars M) 
       | ∪-assoc (vars M) (vars L - ⁅ x ⁆ ∪ vars N - ⁅ x ⁆) (vars-eqs eqs - ⁅ x ⁆)
-      | sym (∪-assoc (vars M) (vars M) (vars M ∪ (vars L - ⁅ x ⁆ ∪ vars N - ⁅ x ⁆) ∪ vars-eqs eqs - ⁅ x ⁆)) = {!!}
+      | sym (∪-assoc (vars M) (vars M) (vars M ∪ (vars L - ⁅ x ⁆ ∪ vars N - ⁅ x ⁆) ∪ vars-eqs eqs - ⁅ x ⁆))
+      | distrib-∪- (vars L) (vars N) ⁅ x ⁆
+      | distrib-∪- (vars L ∪ vars N) (vars-eqs eqs) ⁅ x ⁆
+      | ∪-idem (vars M)
+      | sym (∪-assoc (vars M) (vars M) (((vars L ∪ vars N) ∪ vars-eqs eqs) - ⁅ x ⁆))
+      | ∪-idem (vars M)
+      | ∪-assoc (vars L) (vars N) (vars-eqs eqs) = refl
 
 step-down : ∀ s → (m : middle? s) → mless (measure (step s)) (measure s)
 step-down (middle [] θ) m = third-less z≤n z≤n (s≤s z≤n)
@@ -474,6 +474,13 @@ step-down (middle (⟨ ` x , ` y ⟩ ∷ eqs) θ) m
     where
     G1 : ∣ vars-eqs ([ ` y / x ] eqs) ∣ < ∣ vars-eqs (⟨ ` x , ` y ⟩ ∷ eqs) ∣
     G1 = {!!}
+    G2 : vars-eqs ([ ` y / x ] eqs) ⊆ ⁅ y ⁆ ∪ (vars-eqs eqs - ⁅ x ⁆)
+    G2 = vars-eqs-subst-∪ {eqs} {x} {` y}
+    G3 : vars-eqs (⟨ ` x , ` y ⟩ ∷ eqs) ≡ ⁅ x ⁆ ∪ ⁅ y ⁆ ∪ vars-eqs eqs
+    G3 = refl
+    G4 : ⁅ y ⁆ ∪ (vars-eqs eqs - ⁅ x ⁆)
+         ≡ (⁅ y ⁆ ∪ vars-eqs eqs) - ⁅ x ⁆
+    G4 = distrib-∪-2 ⁅ y ⁆ (vars-eqs eqs) ⁅ x ⁆ {!!}
 
 step-down (middle (⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ eqs) θ) m = {!!}
 step-down (middle (⟨ op ⦅ Ms ⦆ , ` y ⟩ ∷ eqs) θ) m = {!!}

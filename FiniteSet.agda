@@ -74,7 +74,17 @@ abstract
   _∩_ : FiniteSet → FiniteSet → FiniteSet
   [] ∩ ys = []
   (x ∷ xs) ∩ [] = []
-  (b ∷ xs) ∩ (c ∷ ys) = (b ∧ c) ∷ (xs ∪ ys)
+  (b ∷ xs) ∩ (c ∷ ys) = (b ∧ c) ∷ (xs ∩ ys)
+{-
+  (b ∷ xs) ∩ (c ∷ ys)
+      with (xs ∩ ys)
+  ... | (z ∷ zs) = (b ∧ c) ∷ z ∷ zs
+  ... | []
+      with b | c
+  ... | true | true = true ∷ []
+  ... | false | _ = []
+  ... | true | false = []
+-}
 
   subtract : Bool → Bool → Bool
   subtract false b = false
@@ -226,6 +236,22 @@ abstract
   ⁅y⁆-⁅x⁆≡⁅y⁆ {suc x} {suc y} xy =
       cong (λ □ → false ∷ □) (⁅y⁆-⁅x⁆≡⁅y⁆ λ z → xy (cong suc z))
 
+  ⁅y⁆∩⁅x⁆⊆∅ : ∀ x y → x ≢ y → ⁅ y ⁆ ∩ ⁅ x ⁆ ⊆ ∅
+  ⁅y⁆∩⁅x⁆⊆∅ zero zero xy = ⊥-elim (xy refl)
+  ⁅y⁆∩⁅x⁆⊆∅ zero (suc y) xy {z}
+       with y
+  ... | 0
+      with z
+  ... | 0 = λ z → z
+  ... | suc z' = λ z → z
+  ⁅y⁆∩⁅x⁆⊆∅ zero (suc y) xy {0} | suc y' = λ z → z
+  ⁅y⁆∩⁅x⁆⊆∅ zero (suc y) xy {suc z} | suc y' = λ z → z
+  ⁅y⁆∩⁅x⁆⊆∅ (suc x) zero xy {zero} = λ z → z
+  ⁅y⁆∩⁅x⁆⊆∅ (suc x) zero xy {suc z} = λ z → z
+  ⁅y⁆∩⁅x⁆⊆∅ (suc x) (suc y) xy {zero} = λ z → z
+  ⁅y⁆∩⁅x⁆⊆∅ (suc x) (suc y) xy {suc z} =
+      (⁅y⁆∩⁅x⁆⊆∅ x y λ z → xy (cong suc z)) {z}
+      
   ∪-identityʳ₁ : ∀ p → p ⊆ p ∪ ∅
   ∪-identityʳ₁ [] ()
   ∪-identityʳ₁ (b ∷ p) {x} x∈ = x∈
@@ -234,30 +260,49 @@ abstract
   p∪∅≡p [] = refl
   p∪∅≡p (x ∷ p) = refl
 
+  distrib-∨-sub : ∀ a b c → subtract a c ∨ subtract b c ≡ subtract (a ∨ b) c
+  distrib-∨-sub false b c = refl
+  distrib-∨-sub true false false = refl
+  distrib-∨-sub true false true = refl
+  distrib-∨-sub true true false = refl
+  distrib-∨-sub true true true = refl
+
   distrib-∪- : ∀ p q r → (p - r) ∪ (q - r) ≡ (p ∪ q) - r
   distrib-∪- [] [] r = refl
   distrib-∪- [] (x ∷ q) r = refl
-  distrib-∪- (x ∷ p) [] r = p∪∅≡p ((x ∷ p) - r)
-  distrib-∪- (x ∷ p) (x₁ ∷ q) r = {!!}
-  
-{-
-  distrib-∪- : ∀ p q r → (p - r) ∪ (q - r) ⊆ (p ∪ q) - r
-  distrib-∪- [] [] r ()
-  distrib-∪- [] (x ∷ q) [] x∈ = x∈
-  distrib-∪- [] (b ∷ q) (c ∷ r) x∈ = x∈
-  distrib-∪- (a ∷ p) [] [] x∈ = x∈
-  distrib-∪- (a ∷ p) [] (c ∷ r) x∈ = x∈
-  distrib-∪- (a ∷ p) (b ∷ q) [] x∈ = x∈
-  distrib-∪- (a ∷ p) (b ∷ q) (c ∷ r) {zero} x∈
-      with a | b | c
-  ... | false | false | false = x∈
-  ... | false | false | true = x∈
-  ... | false | true  | false = tt
-  ... | false | true  | true = x∈
-  ... | true  | false | false = tt
-  ... | true  | false | true = x∈
-  ... | true  | true  | false = tt
-  ... | true  | true  | true = x∈
-  distrib-∪- (a ∷ p) (b ∷ q) (c ∷ r) {suc x} x∈ = distrib-∪- p q r {x} x∈
+  distrib-∪- (x ∷ p) [] r = p∪∅≡p _
+  distrib-∪- (a ∷ p) (b ∷ q) [] = refl
+  distrib-∪- (a ∷ p) (b ∷ q) (c ∷ r)
+      rewrite distrib-∪- p q r | distrib-∨-sub a b c = refl
 
--}
+  p∩r⊆∅→p-r≡p : ∀ p r
+     → p ∩ r ⊆ ∅
+     → p - r ≡ p
+  p∩r⊆∅→p-r≡p [] r p∩r = refl
+  p∩r⊆∅→p-r≡p (x ∷ p) [] p∩r = refl
+  p∩r⊆∅→p-r≡p (false ∷ p) (_ ∷ r) p∩r =
+    let IH = p∩r⊆∅→p-r≡p p r (λ {z} z∈ → p∩r {suc z} z∈) in
+    cong (λ □ → false ∷ □) IH
+  p∩r⊆∅→p-r≡p (true ∷ p) (false ∷ r) p∩r =
+    let IH = p∩r⊆∅→p-r≡p p r (λ {z} z∈ → p∩r {suc z} z∈) in
+    cong (λ □ → true ∷ □) IH
+  p∩r⊆∅→p-r≡p (true ∷ p) (true ∷ r) p∩r = ⊥-elim (p∩r {0} tt)
+
+  distrib-∪-2 : ∀ p q r
+     → p ∩ r ⊆ ∅
+     → p ∪ (q - r) ≡ (p ∪ q) - r
+  distrib-∪-2 [] q r p∩r = refl
+  distrib-∪-2 (x ∷ p) [] [] p∩r = refl
+  distrib-∪-2 (false ∷ p) [] (b ∷ r) p∩r =
+      cong (λ □ → false ∷ □) (sym (p∩r⊆∅→p-r≡p p r (λ {x} z → p∩r {suc x} z)))
+  distrib-∪-2 (true ∷ p) [] (false ∷ r) p∩r =
+      cong (λ □ → true ∷ □) (sym (p∩r⊆∅→p-r≡p p r (λ {x} z → p∩r {suc x} z)))
+  distrib-∪-2 (true ∷ p) [] (true ∷ r) p∩r = ⊥-elim (p∩r {0} tt)
+  distrib-∪-2 (a ∷ p) (b ∷ q) [] p∩r = refl
+  distrib-∪-2 (false ∷ p) (b ∷ q) (c ∷ r) p∩r =
+      let IH = distrib-∪-2 p q r λ {x} x∈ → p∩r {suc x} x∈ in
+      cong (λ □ → subtract b c ∷ □) IH
+  distrib-∪-2 (true ∷ p) (b ∷ q) (false ∷ r) p∩r =
+      let IH = distrib-∪-2 p q r λ {x} x∈ → p∩r {suc x} x∈ in
+      cong (λ □ → true ∷ □) IH
+  distrib-∪-2 (true ∷ p) (b ∷ q) (true ∷ r) p∩r = ⊥-elim (p∩r {0} tt)

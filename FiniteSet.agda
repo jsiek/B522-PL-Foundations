@@ -306,3 +306,13 @@ abstract
       let IH = distrib-∪-2 p q r λ {x} x∈ → p∩r {suc x} x∈ in
       cong (λ □ → true ∷ □) IH
   distrib-∪-2 (true ∷ p) (b ∷ q) (true ∷ r) p∩r = ⊥-elim (p∩r {0} tt)
+
+  ∣p-x∣<∣p∪x∣ : ∀ p x → ∣ (p - ⁅ x ⁆) ∣ < ∣ p ∪ ⁅ x ⁆ ∣
+  ∣p-x∣<∣p∪x∣ [] x
+      rewrite ∣⁅x⁆∣≡1 x = ≤-refl
+  ∣p-x∣<∣p∪x∣ (false ∷ p) zero
+      rewrite p-∅≡p p = s≤s (p⊆q⇒∣p∣≤∣q∣ {p}{p ∪ ∅} (∪-identityʳ₁ p))
+  ∣p-x∣<∣p∪x∣ (true ∷ p) zero
+      rewrite p-∅≡p p = s≤s (p⊆q⇒∣p∣≤∣q∣ {p}{p ∪ ∅} (∪-identityʳ₁ p))  
+  ∣p-x∣<∣p∪x∣ (false ∷ p) (suc x) = ∣p-x∣<∣p∪x∣ p x
+  ∣p-x∣<∣p∪x∣ (true ∷ p) (suc x) = s≤s (∣p-x∣<∣p∪x∣ p x)

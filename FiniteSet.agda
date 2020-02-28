@@ -119,7 +119,11 @@ abstract
   x∉⁅y⁆ (suc x) zero x∈ = λ z → z
   x∉⁅y⁆ zero (suc y) x∈ = λ z → z
   x∉⁅y⁆ (suc x) (suc y) x∈ = x∉⁅y⁆ x y λ z → x∈ (cong suc z)
-  
+
+  x∈⁅y⁆→x≡y : ∀ x y → x ∈ ⁅ y ⁆ → x ≡ y
+  x∈⁅y⁆→x≡y zero zero x∈y = refl
+  x∈⁅y⁆→x≡y (suc x) (suc y) x∈y = cong suc (x∈⁅y⁆→x≡y x y x∈y)
+
   ⊆-refl : ∀ {S} → S ⊆ S
   ⊆-refl {S} = λ z → z
   

@@ -506,10 +506,11 @@ step-down (⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ eqs) θ
     where
     M = op ⦅ Ms ⦆
     G2 : vars M ∩ ⁅ x ⁆ ⊆ ∅
-    G2 {z} z∈Ms∩x =
-        let z∈Ms = ? in
-        let z∈x = ? in
-        {!!} {- ⊥-elim (x∉M (∈p∩q→∈p {!!} )) -}
+    G2 {z} z∈Ms∩x
+        with x∈⁅y⁆→x≡y z x (∈p∩q→∈q z∈Ms∩x)
+    ... | refl =
+        let z∈Ms = ∈p∩q→∈p z∈Ms∩x in
+        ⊥-elim (x∉M z∈Ms)
     G1 : ∣ vars-eqs ([ M / x ] eqs) ∣ < ∣ ⁅ x ⁆ ∪ vars M ∪ vars-eqs eqs ∣
     G1 = begin≤
          suc ∣ vars-eqs ([ M / x ] eqs) ∣          ≤⟨ s≤s (p⊆q⇒∣p∣≤∣q∣ (vars-eqs-subst-∪ {eqs}{x}{M})) ⟩

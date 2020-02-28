@@ -477,6 +477,25 @@ vars-eqs-subst-∪ {⟨ L , N ⟩ ∷ eqs} {x} {M} =
       | ∪-idem (vars M)
       | ∪-assoc (vars L) (vars N) (vars-eqs eqs) = refl
 
+vars-eqs-sub-less : ∀{op Ms x eqs}
+   → ¬ x ∈ vars-vec Ms
+   → ∣ vars-eqs ([ op ⦅ Ms ⦆ / x ] eqs) ∣ < ∣ ⁅ x ⁆ ∪ vars-vec Ms ∪ vars-eqs eqs ∣
+vars-eqs-sub-less {op}{Ms}{x}{eqs} x∉Ms = begin≤
+         suc ∣ vars-eqs ([ M / x ] eqs) ∣          ≤⟨ s≤s (p⊆q⇒∣p∣≤∣q∣ (vars-eqs-subst-∪ {eqs}{x}{M})) ⟩
+         suc ∣ vars M ∪ (vars-eqs eqs - ⁅ x ⁆) ∣   ≤⟨ ≤-reflexive (cong (λ □ → suc ∣ □ ∣) (distrib-∪-2 (vars M) (vars-eqs eqs) ⁅ x ⁆ G2)) ⟩
+         suc ∣ (vars M ∪ vars-eqs eqs) - ⁅ x ⁆ ∣   ≤⟨ ∣p-x∣<∣p∪x∣ (vars M ∪ vars-eqs eqs) x ⟩
+         ∣ (vars M ∪ vars-eqs eqs) ∪ ⁅ x ⁆ ∣       ≤⟨ ≤-reflexive (cong (λ □ → ∣ □ ∣) (∪-comm _ _)) ⟩
+         ∣ ⁅ x ⁆ ∪ vars M ∪ vars-eqs eqs ∣
+         QED
+    where
+    M = op ⦅ Ms ⦆
+    G2 : vars M ∩ ⁅ x ⁆ ⊆ ∅
+    G2 {z} z∈Ms∩x
+        with x∈⁅y⁆→x≡y z x (∈p∩q→∈q z∈Ms∩x)
+    ... | refl =
+        let z∈Ms = ∈p∩q→∈p z∈Ms∩x in
+        ⊥-elim (x∉Ms z∈Ms)
+
 step-down : ∀ eqs θ → mless (measure (step eqs θ)) (measure (middle eqs θ))
 step-down [] θ = third-less z≤n z≤n (s≤s z≤n)
 step-down (⟨ ` x , ` y ⟩ ∷ eqs) θ 
@@ -502,24 +521,29 @@ step-down (⟨ ` x , ` y ⟩ ∷ eqs) θ
 step-down (⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ eqs) θ
     with occurs? x (op ⦅ Ms ⦆)
 ... | yes x∈M = second-less z≤n (s≤s z≤n)
-... | no x∉M = first-less G1
+... | no x∉M = first-less (vars-eqs-sub-less {op}{Ms}{x}{eqs} x∉M)
+step-down (⟨ op ⦅ Ms ⦆ , ` x ⟩ ∷ eqs) θ
+    with occurs? x (op ⦅ Ms ⦆)
+... | yes x∈M = second-less z≤n (s≤s z≤n)
+... | no x∉M = first-less G
     where
-    M = op ⦅ Ms ⦆
-    G2 : vars M ∩ ⁅ x ⁆ ⊆ ∅
-    G2 {z} z∈Ms∩x
-        with x∈⁅y⁆→x≡y z x (∈p∩q→∈q z∈Ms∩x)
-    ... | refl =
-        let z∈Ms = ∈p∩q→∈p z∈Ms∩x in
-        ⊥-elim (x∉M z∈Ms)
-    G1 : ∣ vars-eqs ([ M / x ] eqs) ∣ < ∣ ⁅ x ⁆ ∪ vars M ∪ vars-eqs eqs ∣
-    G1 = begin≤
-         suc ∣ vars-eqs ([ M / x ] eqs) ∣          ≤⟨ s≤s (p⊆q⇒∣p∣≤∣q∣ (vars-eqs-subst-∪ {eqs}{x}{M})) ⟩
-         suc ∣ vars M ∪ (vars-eqs eqs - ⁅ x ⁆) ∣   ≤⟨ ≤-reflexive (cong (λ □ → suc ∣ □ ∣) (distrib-∪-2 (vars M) (vars-eqs eqs) ⁅ x ⁆ G2)) ⟩
-         suc ∣ (vars M ∪ vars-eqs eqs) - ⁅ x ⁆ ∣   ≤⟨ {!!} ⟩
-         ∣ ⁅ x ⁆ ∪ vars M ∪ vars-eqs eqs ∣
-         QED
-step-down (⟨ op ⦅ Ms ⦆ , ` x ⟩ ∷ eqs) θ = {!!}
-step-down (⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs) θ = {!!}
+    G : ∣ vars-eqs ([ op ⦅ Ms ⦆ / x ] eqs) ∣ < ∣ vars-vec Ms ∪ ⁅ x ⁆ ∪ vars-eqs eqs ∣
+    G = begin≤
+        suc ∣ vars-eqs ([ op ⦅ Ms ⦆ / x ] eqs) ∣ ≤⟨ vars-eqs-sub-less {op}{Ms}{x}{eqs} x∉M ⟩
+        ∣ ⁅ x ⁆ ∪ vars-vec Ms ∪ vars-eqs eqs ∣ ≤⟨ ≤-reflexive (cong (λ □ → ∣ □ ∣) (sym (∪-assoc _ _ _))) ⟩
+        ∣ (⁅ x ⁆ ∪ vars-vec Ms) ∪ vars-eqs eqs ∣ ≤⟨ ≤-reflexive (cong (λ □ → ∣ □ ∪ vars-eqs eqs ∣) (∪-comm _ _)) ⟩
+        ∣ (vars-vec Ms ∪ ⁅ x ⁆) ∪ vars-eqs eqs ∣ ≤⟨ ≤-reflexive (cong (λ □ → ∣ □ ∣) (∪-assoc _ _ _)) ⟩
+        ∣ vars-vec Ms ∪ ⁅ x ⁆ ∪ vars-eqs eqs ∣
+        QED
+step-down (⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs) θ
+    with op-eq? op op'
+... | no neq = second-less z≤n (s≤s z≤n)
+... | yes refl = second-less G1 G2
+    where
+    G1 : ∣ vars-eqs (append-eqs Ms Ls eqs) ∣ ≤ ∣ vars-vec Ms ∪ vars-vec Ls ∪ vars-eqs eqs ∣
+    G1 = {!!}
+    G2 : num-ops-eqs (append-eqs Ms Ls eqs) < suc (num-ops-vec Ms + suc (num-ops-vec Ls) + num-ops-eqs eqs)
+    G2 = {!!}
 
 {-
 solve : ∀{n₁ n₂ n₃ : ℕ} → (s : State)

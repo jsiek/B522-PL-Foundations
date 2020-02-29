@@ -3,15 +3,12 @@ open import Agda.Primitive using (lzero)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Bool using (Bool; true; false; _∨_)
 open import Data.List using (List; []; _∷_; length)
-{-
-open import Data.List.Membership.Propositional using (_∈_)
-open import Data.List.Membership.DecPropositional using (_∈?_)
--}
 open import Data.List.Relation.Unary.Any using (here; there)
 open import Data.Maybe
-open import Data.Nat using (ℕ; zero; suc; _+_; _<_; _≤_; z≤n; s≤s; _<?_)
+open import Data.Nat using (ℕ; zero; suc; _+_; _<_; _≤_; z≤n; s≤s; _<?_){-; _≤′_; _<′_)-}
 open import Data.Nat.Properties
-  using (m≤m+n; m≤n+m; ≤-step; ≤-pred; n≤1+n; 1+n≰n; ≤-refl; +-comm; +-mono-≤; ≤-reflexive)
+  using (m≤m+n; m≤n+m; ≤-step; ≤-pred; n≤1+n; 1+n≰n; ≤-refl; +-comm; +-assoc;
+         +-mono-≤; ≤-reflexive) {-; ≤′-refl; ≤′-step; ≤⇒≤′; ≤′⇒≤; ≤-trans)-}
 open Data.Nat.Properties.≤-Reasoning
   using (_≤⟨_⟩_)
   renaming (begin_ to begin≤_; _∎ to _QED)
@@ -393,18 +390,18 @@ measure (middle eqs θ) = ⟨ ∣ vars-eqs eqs ∣ , ⟨ num-ops-eqs eqs , suc (
 measure (done θ) = ⟨ 0 , ⟨ 0 , 0 ⟩ ⟩
 measure error = ⟨ 0 , ⟨ 0 , 0 ⟩ ⟩
 
-data mless : ℕ × ℕ × ℕ → ℕ × ℕ × ℕ → Set where
+data _<<_ : ℕ × ℕ × ℕ → ℕ × ℕ × ℕ → Set where
    first-less : ∀{n₁ n₂ n₃ k₁ k₂ k₃}
      → n₁ < k₁
-     → mless ⟨ n₁ , ⟨ n₂ , n₃ ⟩ ⟩ ⟨ k₁ , ⟨ k₂ , k₃ ⟩ ⟩ 
+     → ⟨ n₁ , ⟨ n₂ , n₃ ⟩ ⟩ << ⟨ k₁ , ⟨ k₂ , k₃ ⟩ ⟩ 
 
    second-less : ∀{n₁ n₂ n₃ k₁ k₂ k₃}
      → n₁ ≤ k₁ → n₂ < k₂
-     → mless ⟨ n₁ , ⟨ n₂ , n₃ ⟩ ⟩ ⟨ k₁ , ⟨ k₂ , k₃ ⟩ ⟩ 
+     → ⟨ n₁ , ⟨ n₂ , n₃ ⟩ ⟩ << ⟨ k₁ , ⟨ k₂ , k₃ ⟩ ⟩ 
 
    third-less : ∀{n₁ n₂ n₃ k₁ k₂ k₃}
      → n₁ ≤ k₁ → n₂ ≤ k₂ → n₃ < k₃
-     → mless ⟨ n₁ , ⟨ n₂ , n₃ ⟩ ⟩ ⟨ k₁ , ⟨ k₂ , k₃ ⟩ ⟩ 
+     → ⟨ n₁ , ⟨ n₂ , n₃ ⟩ ⟩ << ⟨ k₁ , ⟨ k₂ , k₃ ⟩ ⟩ 
 
 middle? : State → Set
 middle? (middle x x₁) = ⊤
@@ -519,7 +516,20 @@ var-eqs-append-⊆ {suc n} (M ∷ Ms) (L ∷ Ls) eqs {x} x∈M∪L∪app-Ms-Ls-e
     let IH = var-eqs-append-⊆ {n} Ms Ls eqs {x} x∈app-Ms-Ls-eqs in
     q⊆p∪q (vars M ∪ vars L) (vars-vec Ms ∪ vars-vec Ls ∪ vars-eqs eqs) {x} IH 
 
-step-down : ∀ eqs θ → mless (measure (step eqs θ)) (measure (middle eqs θ))
+open import Data.Nat.Solver using (module +-*-Solver)
+
+num-ops-append : ∀ {n} (Ms Ls : Vec AST n) eqs
+   → num-ops-eqs (append-eqs Ms Ls eqs) ≡ num-ops-vec Ms + num-ops-vec Ls + num-ops-eqs eqs
+num-ops-append {zero} [] [] eqs = refl
+num-ops-append {suc n} (M ∷ Ms) (L ∷ Ls) eqs
+    rewrite num-ops-append {n} Ms Ls eqs = G (num-ops M) (num-ops L) (num-ops-vec Ms) (num-ops-vec Ls) (num-ops-eqs eqs)
+    where
+    open +-*-Solver
+    G : (nM nL nMs nLs neqs : ℕ) → (nM + nL) + ((nMs + nLs) + neqs) ≡ ((nM + nMs) + (nL + nLs)) + neqs
+    G = solve 5 (λ nM nL nMs nLs neqs →
+          (nM :+ nL) :+ ((nMs :+ nLs) :+ neqs) := ((nM :+ nMs) :+ (nL :+ nLs)) :+ neqs) refl
+
+step-down : ∀ eqs θ → (measure (step eqs θ)) << (measure (middle eqs θ))
 step-down [] θ = third-less z≤n z≤n (s≤s z≤n)
 step-down (⟨ ` x , ` y ⟩ ∷ eqs) θ 
     with x ≟ y
@@ -566,15 +576,76 @@ step-down (⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs) θ
     G1 : ∣ vars-eqs (append-eqs Ms Ls eqs) ∣ ≤ ∣ vars-vec Ms ∪ vars-vec Ls ∪ vars-eqs eqs ∣
     G1 = p⊆q⇒∣p∣≤∣q∣ (var-eqs-append-⊆ Ms Ls eqs)
     G2 : num-ops-eqs (append-eqs Ms Ls eqs) < suc (num-ops-vec Ms + suc (num-ops-vec Ls) + num-ops-eqs eqs)
-    G2 = {!!}
+    G2 rewrite num-ops-append Ms Ls eqs
+       | +-comm (num-ops-vec Ms) (suc (num-ops-vec Ls))
+       | +-comm (num-ops-vec Ls) (num-ops-vec Ms) = s≤s (≤-step ≤-refl)
+
+data Result : Set where
+  r-done : Equations → Result
+  r-error : Result
 
 {-
-solve : ∀{n₁ n₂ n₃ : ℕ} → (s : State)
-   → {m : mless (measure s) ⟨ n₁ , ⟨ n₂ , n₃ ⟩ ⟩} → State
-solve {zero} {zero} {zero} s {m} = {!!}
-solve {zero} {zero} {suc n₃} s {m} = {!!}
-solve {zero} {suc n₂} {n₃} s {m} = {!!}
-solve {suc n₁} {n₂} {n₃} s {m} = {!!}
+open import Data.Nat.Induction
+open import Agda.Primitive
+
+plus : ℕ → ℕ → ℕ
+plus = rec {lzero} (λ x → ℕ → ℕ → ℕ) helper 0
+  where
+  helper : (x : ℕ) (x₁ : Rec lzero (λ _ → (x₂ x₃ : ℕ) → ℕ) x) (x₂ x₃ : ℕ) → ℕ
+  helper x r a b = {!!}
+
+xx : plus 3 4 ≡ 0
+xx = refl
+-}
+{- 
+open import Induction.WellFounded
+open import Level
+open import Relation.Unary
+open import Function
+open import Induction
+open import Relation.Binary
+B : A → Set b
+RelB : ∀ x → Rel (B x) ℓ₂
+RelB = ?
+open Lexicographic _<_ 
+≤′-trans : ∀{x y z} → x ≤′ y → y ≤′ z → x ≤′ z
+≤′-trans x≤′y y≤′z = ≤⇒≤′ (≤-trans (≤′⇒≤ x≤′y) (≤′⇒≤ y≤′z))
+
+
+  The following is based on code from Pierre-Evariste Dagand.
+  https://pages.lip6.fr/Pierre-Evariste.Dagand/stuffs/notes/html/Bove.html
+
+<<-wellfounded : (P : ℕ → ℕ → ℕ → Set) →
+         (∀ x y z → (∀ {x' y' z'} → ⟨ x' , ⟨ y' , z' ⟩ ⟩ << ⟨ x , ⟨ y , z ⟩ ⟩ → P x' y' z') → P x y z) →
+         ∀ x y z → P x y z
+<<-wellfounded P ih x y z = ih x y z (help x y z)
+  where help : (x y z : ℕ) → ∀{ x' y' z'} → ⟨ x' , ⟨ y' , z' ⟩ ⟩ << ⟨ x , ⟨ y , z ⟩ ⟩ → P x' y' z'
+        help .(suc x') y z {x'}{y'}{z'} (first-less ≤′-refl) = 
+            ih x' y' z' (help x' y' z') 
+        help .(suc x) y z {x'}{y'}{z'} (first-less (≤′-step {x} q)) =
+            help x y z {x'}{y'}{z'} (first-less q)
+        help x .(suc y) z {x'}{y}{z} (second-less x'≤x ≤′-refl) =
+            let h : ∀ {x₁} {x₂} {x₃} → (⟨ x₁ , ⟨ x₂ , x₃ ⟩ ⟩ << ⟨ x , ⟨ y , z ⟩ ⟩) → P x₁ x₂ x₃
+                h = help x y z in
+            ih x' y z G
+            where
+            G : ∀ {x'' y'} → ⟨ x'' , y' ⟩ << ⟨ x' , y ⟩ → P x'' y'
+            G {x''} {y'} (first-less x''<x') =
+               help x y (first-less {y = y'}{y' = y} (≤′-trans x''<x' x'≤x))
+            G {x''} {y'} (second-less x''≤x' y'<y) =
+               help x y {x''}{y'} (second-less (≤′-trans x''≤x' x'≤x) y'<y)
+        help x .(suc y) z {x'}{y'}{z} (second-less x′≤x (≤′-step {y} q)) =
+            help x y {x'}{y'} (second-less x′≤x q)
+ -}
+{-
+unify : ∀{v o l : ℕ} (eqs θ : Equations)
+   → {m : mless (measure (middle eqs θ)) ⟨ v , ⟨ o , l ⟩ ⟩}
+   → Result
+unify {suc v} {suc o} {suc l} eqs θ {m}
+    with step eqs θ
+... | middle eqs' θ' = unify {v}{o}{l} eqs' θ' {{!!}}
+... | done θ' = r-done θ'
+... | error = r-error
 -}
 
 ```

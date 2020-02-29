@@ -5,10 +5,10 @@ open import Data.Bool using (Bool; true; false; _∨_)
 open import Data.List using (List; []; _∷_; length)
 open import Data.List.Relation.Unary.Any using (here; there)
 open import Data.Maybe
-open import Data.Nat using (ℕ; zero; suc; _+_; _<_; _≤_; z≤n; s≤s; _<?_){-; _≤′_; _<′_)-}
+open import Data.Nat using (ℕ; zero; suc; _+_; _<_; _≤_; z≤n; s≤s; _<?_){- ; _≤′_; ≤′-refl; ≤′-step; _<′_)-}
 open import Data.Nat.Properties
   using (m≤m+n; m≤n+m; ≤-step; ≤-pred; n≤1+n; 1+n≰n; ≤-refl; +-comm; +-assoc;
-         +-mono-≤; ≤-reflexive) {-; ≤′-refl; ≤′-step; ≤⇒≤′; ≤′⇒≤; ≤-trans)-}
+         +-mono-≤; ≤-reflexive; ≤∧≢⇒<) {-≤⇒≤′; ≤′⇒≤; ≤-trans)-}
 open Data.Nat.Properties.≤-Reasoning
   using (_≤⟨_⟩_)
   renaming (begin_ to begin≤_; _∎ to _QED)
@@ -584,68 +584,67 @@ data Result : Set where
   r-done : Equations → Result
   r-error : Result
 
-{-
-open import Data.Nat.Induction
-open import Agda.Primitive
+open import Data.Nat.Induction using (Acc; rec; acc; <-wellFounded)
+open import LexicographicOrdering {-using (×-Lex; ×-wellFounded)-}
+open import Induction.WellFounded using (WellFounded)
+open import Relation.Binary {-using (Rel)-}
 
-plus : ℕ → ℕ → ℕ
-plus = rec {lzero} (λ x → ℕ → ℕ → ℕ) helper 0
-  where
-  helper : (x : ℕ) (x₁ : Rec lzero (λ _ → (x₂ x₃ : ℕ) → ℕ) x) (x₂ x₃ : ℕ) → ℕ
-  helper x r a b = {!!}
+_<₃_ : Rel (ℕ × ℕ × ℕ) _
+_<₃_ = ×-Lex _≡_ _<_ (×-Lex _≡_ _<_ _<_)
 
-xx : plus 3 4 ≡ 0
-xx = refl
--}
-{- 
-open import Induction.WellFounded
-open import Level
-open import Relation.Unary
-open import Function
-open import Induction
-open import Relation.Binary
-B : A → Set b
-RelB : ∀ x → Rel (B x) ℓ₂
-RelB = ?
-open Lexicographic _<_ 
-≤′-trans : ∀{x y z} → x ≤′ y → y ≤′ z → x ≤′ z
-≤′-trans x≤′y y≤′z = ≤⇒≤′ (≤-trans (≤′⇒≤ x≤′y) (≤′⇒≤ y≤′z))
+<₃-wellFounded : WellFounded _<₃_
+<₃-wellFounded = ×-wellFounded <-wellFounded
+                   (×-wellFounded <-wellFounded <-wellFounded)
 
+f-aux : ∀ (x : ℕ × ℕ × ℕ) → Acc _<₃_ x → ℕ
+f-aux ⟨ x , ⟨ zero  , z ⟩ ⟩ rec       = z
+f-aux ⟨ x , ⟨ suc y , z ⟩ ⟩ (acc rec) = f-aux ⟨ x , ⟨ y , suc z ⟩ ⟩
+  (rec _ (inj₂ ⟨ refl , inj₁ ≤-refl ⟩))  -- proof that the tuple is decreasing lexicographically
 
-  The following is based on code from Pierre-Evariste Dagand.
-  https://pages.lip6.fr/Pierre-Evariste.Dagand/stuffs/notes/html/Bove.html
+f : ℕ × ℕ × ℕ → ℕ
+f xyz = f-aux xyz (<₃-wellFounded xyz)
 
-<<-wellfounded : (P : ℕ → ℕ → ℕ → Set) →
-         (∀ x y z → (∀ {x' y' z'} → ⟨ x' , ⟨ y' , z' ⟩ ⟩ << ⟨ x , ⟨ y , z ⟩ ⟩ → P x' y' z') → P x y z) →
-         ∀ x y z → P x y z
-<<-wellfounded P ih x y z = ih x y z (help x y z)
-  where help : (x y z : ℕ) → ∀{ x' y' z'} → ⟨ x' , ⟨ y' , z' ⟩ ⟩ << ⟨ x , ⟨ y , z ⟩ ⟩ → P x' y' z'
-        help .(suc x') y z {x'}{y'}{z'} (first-less ≤′-refl) = 
-            ih x' y' z' (help x' y' z') 
-        help .(suc x) y z {x'}{y'}{z'} (first-less (≤′-step {x} q)) =
-            help x y z {x'}{y'}{z'} (first-less q)
-        help x .(suc y) z {x'}{y}{z} (second-less x'≤x ≤′-refl) =
-            let h : ∀ {x₁} {x₂} {x₃} → (⟨ x₁ , ⟨ x₂ , x₃ ⟩ ⟩ << ⟨ x , ⟨ y , z ⟩ ⟩) → P x₁ x₂ x₃
-                h = help x y z in
-            ih x' y z G
-            where
-            G : ∀ {x'' y'} → ⟨ x'' , y' ⟩ << ⟨ x' , y ⟩ → P x'' y'
-            G {x''} {y'} (first-less x''<x') =
-               help x y (first-less {y = y'}{y' = y} (≤′-trans x''<x' x'≤x))
-            G {x''} {y'} (second-less x''≤x' y'<y) =
-               help x y {x''}{y'} (second-less (≤′-trans x''≤x' x'≤x) y'<y)
-        help x .(suc y) z {x'}{y'}{z} (second-less x′≤x (≤′-step {y} q)) =
-            help x y {x'}{y'} (second-less x′≤x q)
- -}
-{-
-unify : ∀{v o l : ℕ} (eqs θ : Equations)
-   → {m : mless (measure (middle eqs θ)) ⟨ v , ⟨ o , l ⟩ ⟩}
-   → Result
-unify {suc v} {suc o} {suc l} eqs θ {m}
-    with step eqs θ
-... | middle eqs' θ' = unify {v}{o}{l} eqs' θ' {{!!}}
+measure' : Equations → Equations → ℕ × ℕ × ℕ
+measure' eqs θ = ⟨ ∣ vars-eqs eqs ∣ , ⟨ num-ops-eqs eqs , suc (length eqs) ⟩ ⟩
+
+vars-< : ∀ eqs θ eqs' θ'
+   → ∣ vars-eqs eqs' ∣ < ∣ vars-eqs eqs ∣
+   → measure' eqs' θ' <₃ measure' eqs θ
+vars-< eqs θ eqs' θ' vars< = inj₁ vars<
+
+vars-≤-ops-< : ∀ eqs θ eqs' θ' {x y : ℕ}
+   → y ≤ x
+   → {x≡ : x ≡ ∣ vars-eqs eqs ∣} {y≡ : y ≡ ∣ vars-eqs eqs' ∣}
+   → num-ops-eqs eqs' < num-ops-eqs eqs
+   → measure' eqs' θ' <₃ measure' eqs θ
+vars-≤-ops-< eqs θ eqs' θ' {x}{y} vars≤ {x≡}{y≡} ops<
+    with x ≟ y
+... | yes refl rewrite x≡ | y≡ = inj₂ ⟨ refl , inj₁ ops< ⟩
+... | no vars≢ rewrite x≡ | y≡ = inj₁ (≤∧≢⇒< vars≤ λ z → vars≢ (sym z))
+  
+vars-≤-ops-≤-eqs-< : ∀ eqs θ eqs' θ' {x y w z : ℕ}
+   → y ≤ x
+   → z ≤ w
+   → {x≡ : x ≡ ∣ vars-eqs eqs ∣} {y≡ : y ≡ ∣ vars-eqs eqs' ∣}
+   → {w≡ : w ≡ num-ops-eqs eqs } {z≡ : z ≡ num-ops-eqs eqs'}
+   → length eqs' < length eqs
+   → measure' eqs' θ' <₃ measure' eqs θ
+vars-≤-ops-≤-eqs-< eqs θ eqs' θ' {x}{y}{w}{z} vars≤ ops≤ {x≡}{y≡}{w≡}{z≡} eqs< 
+    with x ≟ y
+... | no vars≢ rewrite x≡ | y≡ = inj₁ (≤∧≢⇒< vars≤ λ z → vars≢ (sym z))
+... | yes refl rewrite x≡ | y≡
+    with w ≟ z
+... | no ops≢ rewrite w≡ | z≡  = inj₂ ⟨ refl , (inj₁ (≤∧≢⇒< ops≤ (λ z → ops≢ (sym z)))) ⟩
+... | yes refl rewrite w≡ | z≡ = {!!}
+
+unify : (eqs : Equations) → (θ : Equations) → Acc _<₃_ (measure' eqs θ) → Result
+unify [] θ rec = r-done θ
+unify (⟨ M , L ⟩ ∷ eqs) θ (acc rec)
+    with step (⟨ M , L ⟩ ∷ eqs) θ
 ... | done θ' = r-done θ'
 ... | error = r-error
--}
-
+... | middle eqs' θ' = unify eqs' θ' (rec _ decrease)
+    where
+    decrease : measure' eqs' θ' <₃ measure' (⟨ M , L ⟩ ∷  eqs) θ
+    decrease = {!!}
 ```

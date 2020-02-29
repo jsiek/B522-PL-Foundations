@@ -148,9 +148,9 @@ occurs-vec? x {suc n} (M ∷ Ms)
 
 ```
 data State : Set where
-  middle : Equations → Equations → State
-  done : Equations → State
-  error : State
+  s-in-progress : Equations → Equations → State
+  s-finished : Equations → State
+  s-no-solution : State
 ```
 
 
@@ -158,25 +158,25 @@ Martelli and Montanari's Algorithm 1.
 
 ```
 step : Equations → Equations → State
-step [] σ = done σ
+step [] σ = s-finished σ
 step (⟨ ` x , ` y ⟩ ∷ eqs) σ
     with x ≟ y
-... | yes xy = middle eqs σ
-... | no xy = middle ([ ` y / x ] eqs) (⟨ ` x , ` y ⟩ ∷ [ ` y / x ] σ)
+... | yes xy = s-in-progress eqs σ
+... | no xy = s-in-progress ([ ` y / x ] eqs) (⟨ ` x , ` y ⟩ ∷ [ ` y / x ] σ)
 step (⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ eqs) σ
     with occurs? x (op ⦅ Ms ⦆)
-... | yes x∈M = error
+... | yes x∈M = s-no-solution
 ... | no x∉M =
-    middle ([ op ⦅ Ms ⦆ / x ] eqs) (⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ [ op ⦅ Ms ⦆ / x ] σ)
+    s-in-progress ([ op ⦅ Ms ⦆ / x ] eqs) (⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ [ op ⦅ Ms ⦆ / x ] σ)
 step (⟨ op ⦅ Ms ⦆ , ` x ⟩ ∷ eqs) σ
     with occurs? x (op ⦅ Ms ⦆)
-... | yes x∈M = error
+... | yes x∈M = s-no-solution
 ... | no x∉M =
-    middle ([ op ⦅ Ms ⦆ / x ] eqs) (⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ [ op ⦅ Ms ⦆ / x ] σ)
+    s-in-progress ([ op ⦅ Ms ⦆ / x ] eqs) (⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ [ op ⦅ Ms ⦆ / x ] σ)
 step (⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs) σ
     with op-eq? op op'
-... | yes refl = middle (append-eqs Ms Ls eqs) σ
-... | no neq = error
+... | yes refl = s-in-progress (append-eqs Ms Ls eqs) σ
+... | no neq = s-no-solution
 ```
 
 ```
@@ -185,9 +185,9 @@ _unifies-eqs_ : Equations → Equations → Set
 θ unifies-eqs (⟨ M , L ⟩ ∷ eqs) = subst θ M ≡ subst θ L  ×  θ unifies-eqs eqs
 
 _unifies_ : Equations → State → Set
-θ unifies middle eqs σ = θ unifies-eqs eqs × θ unifies-eqs σ
-θ unifies done σ = θ unifies-eqs σ
-θ unifies error = ⊥
+θ unifies s-in-progress eqs σ = θ unifies-eqs eqs × θ unifies-eqs σ
+θ unifies s-finished σ = θ unifies-eqs σ
+θ unifies s-no-solution = ⊥
 ```
 
 ```
@@ -202,6 +202,8 @@ Ms≡-inversion refl = refl
    → x ≡ y  ×  xs ≡ ys
 ∷≡-inversion refl = ⟨ refl , refl ⟩
 ```
+
+## Failed occurs check implies no solutions
 
 ```
 num-ops-vec : ∀{n} → Vec AST n → ℕ
@@ -303,7 +305,12 @@ subst-vec-id-no-occurs {suc n} {N ∷ Ns} {x}{M} ¬x∈M
 ... | no x∉N | no x∉Ns
     rewrite subst-id-no-occurs {N}{x}{M} x∉N
     | subst-vec-id-no-occurs {n}{Ns}{x}{M} x∉Ns = refl
+```
 
+## Substitution Preserves Solutions
+
+
+```
 subst-vec-sub1 : ∀{n}{Ns : Vec AST n}{z}{θ}{M}
   → subst θ (` z) ≡ subst θ M
   → subst-vec θ Ns ≡ subst-vec θ ([ z ::= M ] Ns)
@@ -357,7 +364,7 @@ subst-vec-pres {suc n} {M ∷ Ms} {L ∷ Ls} θeqs θMLMsLs
 
 ```
 unifier-pres : ∀{eqs σ θ}
-   → θ unifies (middle eqs σ)
+   → θ unifies (s-in-progress eqs σ)
    → θ unifies (step eqs σ)
 unifier-pres {[]}{eqs'} {θ} ⟨ θeqs , θeqs' ⟩ = θeqs'
 unifier-pres {⟨ ` x , ` y ⟩ ∷ eqs}{eqs'} {θ} ⟨ ⟨ θxy , θeqs ⟩  , θeqs' ⟩
@@ -386,27 +393,48 @@ unifier-pres {⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs}{eqs'}
 
 ```
 measure : State → ℕ × ℕ × ℕ
-measure (middle eqs θ) = ⟨ ∣ vars-eqs eqs ∣ , ⟨ num-ops-eqs eqs , suc (length eqs) ⟩ ⟩
-measure (done θ) = ⟨ 0 , ⟨ 0 , 0 ⟩ ⟩
-measure error = ⟨ 0 , ⟨ 0 , 0 ⟩ ⟩
+measure (s-in-progress eqs θ) = ⟨ ∣ vars-eqs eqs ∣ , ⟨ num-ops-eqs eqs , suc (length eqs) ⟩ ⟩
+measure (s-finished θ) = ⟨ 0 , ⟨ 0 , 0 ⟩ ⟩
+measure s-no-solution = ⟨ 0 , ⟨ 0 , 0 ⟩ ⟩
 
-data _<<_ : ℕ × ℕ × ℕ → ℕ × ℕ × ℕ → Set where
-   first-less : ∀{n₁ n₂ n₃ k₁ k₂ k₃}
-     → n₁ < k₁
-     → ⟨ n₁ , ⟨ n₂ , n₃ ⟩ ⟩ << ⟨ k₁ , ⟨ k₂ , k₃ ⟩ ⟩ 
+measure-eqs : Equations → Equations → ℕ × ℕ × ℕ
+measure-eqs eqs θ = ⟨ ∣ vars-eqs eqs ∣ , ⟨ num-ops-eqs eqs , suc (length eqs) ⟩ ⟩
 
-   second-less : ∀{n₁ n₂ n₃ k₁ k₂ k₃}
-     → n₁ ≤ k₁ → n₂ < k₂
-     → ⟨ n₁ , ⟨ n₂ , n₃ ⟩ ⟩ << ⟨ k₁ , ⟨ k₂ , k₃ ⟩ ⟩ 
+open import Data.Nat.Induction using (Acc; acc; <-wellFounded)
+open import LexicographicOrdering {-using (×-Lex; ×-wellFounded)-}
+open import Induction.WellFounded using (WellFounded)
+open import Relation.Binary {-using (Rel)-}
 
-   third-less : ∀{n₁ n₂ n₃ k₁ k₂ k₃}
-     → n₁ ≤ k₁ → n₂ ≤ k₂ → n₃ < k₃
-     → ⟨ n₁ , ⟨ n₂ , n₃ ⟩ ⟩ << ⟨ k₁ , ⟨ k₂ , k₃ ⟩ ⟩ 
+_<₃_ : Rel (ℕ × ℕ × ℕ) _
+_<₃_ = ×-Lex _≡_ _<_ (×-Lex _≡_ _<_ _<_)
 
-middle? : State → Set
-middle? (middle x x₁) = ⊤
-middle? (done x) = ⊥
-middle? error = ⊥
+<₃-wellFounded : WellFounded _<₃_
+<₃-wellFounded = ×-wellFounded <-wellFounded
+                   (×-wellFounded <-wellFounded <-wellFounded)
+
+first-< : ∀ {k l m k' l' m'}
+        → k < k'
+        → ⟨ k , ⟨ l , m ⟩ ⟩ <₃ ⟨ k' , ⟨ l' , m' ⟩ ⟩
+first-< k<k' = inj₁ k<k'
+
+second-< : ∀ {k l m k' l' m'}
+        → k ≤ k' → l < l'
+        → ⟨ k , ⟨ l , m ⟩ ⟩ <₃ ⟨ k' , ⟨ l' , m' ⟩ ⟩
+second-< {k}{k' = k'} k≤k' l<l'
+    with k ≟ k'
+... | yes refl = inj₂ ⟨ refl , inj₁ l<l' ⟩
+... | no k≢k' = inj₁ (≤∧≢⇒< k≤k' k≢k')
+
+third-< : ∀ {k l m k' l' m'}
+        → k ≤ k' → l ≤ l' → m < m'
+        → ⟨ k , ⟨ l , m ⟩ ⟩ <₃ ⟨ k' , ⟨ l' , m' ⟩ ⟩
+third-< {k}{l}{k' = k'}{l'} k≤k' l≤l' m<m'
+    with k ≟ k'
+... | no k≢k' = inj₁ (≤∧≢⇒< k≤k' k≢k')
+... | yes refl
+    with l ≟ l'
+... | no l≢l' = inj₂ ⟨ refl , (inj₁ (≤∧≢⇒< l≤l' l≢l')) ⟩
+... | yes refl = inj₂ ⟨ refl , (inj₂ ⟨ refl , m<m' ⟩) ⟩
 
 length-union-LB2 : ∀{xs ys : FiniteSet} → ∣ ys ∣ ≤ ∣ xs ∪ ys ∣
 length-union-LB2 {xs}{ys} = p⊆q⇒∣p∣≤∣q∣ {ys}{xs ∪ ys} (q⊆p∪q xs ys)
@@ -529,11 +557,11 @@ num-ops-append {suc n} (M ∷ Ms) (L ∷ Ls) eqs
     G = solve 5 (λ nM nL nMs nLs neqs →
           (nM :+ nL) :+ ((nMs :+ nLs) :+ neqs) := ((nM :+ nMs) :+ (nL :+ nLs)) :+ neqs) refl
 
-step-down : ∀ eqs θ → (measure (step eqs θ)) << (measure (middle eqs θ))
-step-down [] θ = third-less z≤n z≤n (s≤s z≤n)
-step-down (⟨ ` x , ` y ⟩ ∷ eqs) θ 
+step-decrease : ∀ eqs θ → (measure (step eqs θ)) <₃ (measure-eqs eqs θ)
+step-decrease [] θ = third-< z≤n z≤n (s≤s z≤n)
+step-decrease (⟨ ` x , ` y ⟩ ∷ eqs) θ 
     with x ≟ y
-... | yes refl = third-less G1 ≤-refl (s≤s (s≤s ≤-refl))
+... | yes refl = third-< G1 ≤-refl (s≤s (s≤s ≤-refl))
     where
     G1 : ∣ vars-eqs eqs ∣ ≤ ∣ vars-eqs (⟨ ` x , ` x ⟩ ∷ eqs) ∣
     G1 = begin≤
@@ -541,7 +569,7 @@ step-down (⟨ ` x , ` y ⟩ ∷ eqs) θ
          ∣ ⁅ x ⁆ ∪ vars-eqs eqs ∣                 ≤⟨ length-union-LB2 {⁅ x ⁆} {⁅ x ⁆ ∪  vars-eqs eqs} ⟩
          ∣ ⁅ x ⁆ ∪ ⁅ x ⁆ ∪ vars-eqs eqs ∣         ≤⟨ ≤-refl ⟩
          ∣ vars-eqs (⟨ ` x , ` x ⟩ ∷ eqs) ∣       QED
-... | no xy = first-less G1
+... | no xy = first-< G1
     where
     G1 : ∣ vars-eqs ([ ` y / x ] eqs) ∣ < ∣ vars-eqs (⟨ ` x , ` y ⟩ ∷ eqs) ∣
     G1 = begin≤
@@ -551,14 +579,14 @@ step-down (⟨ ` x , ` y ⟩ ∷ eqs) θ
          ∣ (⁅ y ⁆ ∪ vars-eqs eqs) ∪ ⁅ x ⁆ ∣       ≤⟨ ≤-reflexive (cong ∣_∣ (∪-comm _ _)) ⟩
          ∣ ⁅ x ⁆ ∪ ⁅ y ⁆ ∪ vars-eqs eqs ∣         ≤⟨ ≤-reflexive refl ⟩
          ∣ vars-eqs (⟨ ` x , ` y ⟩ ∷ eqs) ∣       QED
-step-down (⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ eqs) θ
+step-decrease (⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ eqs) θ
     with occurs? x (op ⦅ Ms ⦆)
-... | yes x∈M = second-less z≤n (s≤s z≤n)
-... | no x∉M = first-less (vars-eqs-sub-less {op}{Ms}{x}{eqs} x∉M)
-step-down (⟨ op ⦅ Ms ⦆ , ` x ⟩ ∷ eqs) θ
+... | yes x∈M = second-< z≤n (s≤s z≤n)
+... | no x∉M = first-< (vars-eqs-sub-less {op}{Ms}{x}{eqs} x∉M)
+step-decrease (⟨ op ⦅ Ms ⦆ , ` x ⟩ ∷ eqs) θ
     with occurs? x (op ⦅ Ms ⦆)
-... | yes x∈M = second-less z≤n (s≤s z≤n)
-... | no x∉M = first-less G
+... | yes x∈M = second-< z≤n (s≤s z≤n)
+... | no x∉M = first-< G
     where
     G : ∣ vars-eqs ([ op ⦅ Ms ⦆ / x ] eqs) ∣ < ∣ vars-vec Ms ∪ ⁅ x ⁆ ∪ vars-eqs eqs ∣
     G = begin≤
@@ -568,10 +596,10 @@ step-down (⟨ op ⦅ Ms ⦆ , ` x ⟩ ∷ eqs) θ
         ∣ (vars-vec Ms ∪ ⁅ x ⁆) ∪ vars-eqs eqs ∣ ≤⟨ ≤-reflexive (cong (λ □ → ∣ □ ∣) (∪-assoc _ _ _)) ⟩
         ∣ vars-vec Ms ∪ ⁅ x ⁆ ∪ vars-eqs eqs ∣
         QED
-step-down (⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs) θ
+step-decrease (⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs) θ
     with op-eq? op op'
-... | no neq = second-less z≤n (s≤s z≤n)
-... | yes refl = second-less G1 G2
+... | no neq = second-< z≤n (s≤s z≤n)
+... | yes refl = second-< G1 G2
     where
     G1 : ∣ vars-eqs (append-eqs Ms Ls eqs) ∣ ≤ ∣ vars-vec Ms ∪ vars-vec Ls ∪ vars-eqs eqs ∣
     G1 = p⊆q⇒∣p∣≤∣q∣ (var-eqs-append-⊆ Ms Ls eqs)
@@ -579,72 +607,27 @@ step-down (⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs) θ
     G2 rewrite num-ops-append Ms Ls eqs
        | +-comm (num-ops-vec Ms) (suc (num-ops-vec Ls))
        | +-comm (num-ops-vec Ls) (num-ops-vec Ms) = s≤s (≤-step ≤-refl)
+```
 
+## Unify Function
+
+```
 data Result : Set where
-  r-done : Equations → Result
-  r-error : Result
+  finished : Equations → Result
+  no-solution : Result
 
-open import Data.Nat.Induction using (Acc; acc; <-wellFounded)
-open import LexicographicOrdering {-using (×-Lex; ×-wellFounded)-}
-open import Induction.WellFounded using (WellFounded)
-open import Relation.Binary {-using (Rel)-}
+unify-aux : (eqs : Equations) → (θ : Equations) → Acc _<₃_ (measure-eqs eqs θ) → Result
+unify-aux [] θ rec = finished θ
+unify-aux (⟨ M , L ⟩ ∷ eqs) θ (acc rec)
+    with step-decrease (⟨ M , L ⟩ ∷ eqs) θ
+    | step (⟨ M , L ⟩ ∷ eqs) θ
+    | inspect (step (⟨ M , L ⟩ ∷ eqs)) θ
+... | decrease | s-finished θ' | [ st ] = finished θ'
+... | decrease | s-no-solution | [ st ] = no-solution
+... | decrease | s-in-progress eqs' θ' | [ st ]
+    rewrite st =
+    unify-aux eqs' θ' (rec _ decrease)
 
-_<₃_ : Rel (ℕ × ℕ × ℕ) _
-_<₃_ = ×-Lex _≡_ _<_ (×-Lex _≡_ _<_ _<_)
-
-<₃-wellFounded : WellFounded _<₃_
-<₃-wellFounded = ×-wellFounded <-wellFounded
-                   (×-wellFounded <-wellFounded <-wellFounded)
-
-f-aux : ∀ (x : ℕ × ℕ × ℕ) → Acc _<₃_ x → ℕ
-f-aux ⟨ x , ⟨ zero  , z ⟩ ⟩ rec       = z
-f-aux ⟨ x , ⟨ suc y , z ⟩ ⟩ (acc rec) = f-aux ⟨ x , ⟨ y , suc z ⟩ ⟩
-  (rec _ (inj₂ ⟨ refl , inj₁ ≤-refl ⟩))  -- proof that the tuple is decreasing lexicographically
-
-f : ℕ × ℕ × ℕ → ℕ
-f xyz = f-aux xyz (<₃-wellFounded xyz)
-
-measure' : Equations → Equations → ℕ × ℕ × ℕ
-measure' eqs θ = ⟨ ∣ vars-eqs eqs ∣ , ⟨ num-ops-eqs eqs , suc (length eqs) ⟩ ⟩
-
-vars-< : ∀ eqs θ eqs' θ'
-   → ∣ vars-eqs eqs' ∣ < ∣ vars-eqs eqs ∣
-   → measure' eqs' θ' <₃ measure' eqs θ
-vars-< eqs θ eqs' θ' vars< = inj₁ vars<
-
-vars-≤-ops-< : ∀ eqs θ eqs' θ' {x y : ℕ}
-   → y ≤ x
-   → {x≡ : x ≡ ∣ vars-eqs eqs ∣} {y≡ : y ≡ ∣ vars-eqs eqs' ∣}
-   → num-ops-eqs eqs' < num-ops-eqs eqs
-   → measure' eqs' θ' <₃ measure' eqs θ
-vars-≤-ops-< eqs θ eqs' θ' {x}{y} vars≤ {x≡}{y≡} ops<
-    with x ≟ y
-... | yes refl rewrite x≡ | y≡ = inj₂ ⟨ refl , inj₁ ops< ⟩
-... | no vars≢ rewrite x≡ | y≡ = inj₁ (≤∧≢⇒< vars≤ λ z → vars≢ (sym z))
-  
-vars-≤-ops-≤-eqs-< : ∀ eqs θ eqs' θ' {x y w z : ℕ}
-   → y ≤ x
-   → z ≤ w
-   → {x≡ : x ≡ ∣ vars-eqs eqs ∣} {y≡ : y ≡ ∣ vars-eqs eqs' ∣}
-   → {w≡ : w ≡ num-ops-eqs eqs } {z≡ : z ≡ num-ops-eqs eqs'}
-   → length eqs' < length eqs
-   → measure' eqs' θ' <₃ measure' eqs θ
-vars-≤-ops-≤-eqs-< eqs θ eqs' θ' {x}{y}{w}{z} vars≤ ops≤ {x≡}{y≡}{w≡}{z≡} eqs< 
-    with x ≟ y
-... | no vars≢ rewrite x≡ | y≡ = inj₁ (≤∧≢⇒< vars≤ λ z → vars≢ (sym z))
-... | yes refl rewrite x≡ | y≡
-    with w ≟ z
-... | no ops≢ rewrite w≡ | z≡  = inj₂ ⟨ refl , (inj₁ (≤∧≢⇒< ops≤ (λ z → ops≢ (sym z)))) ⟩
-... | yes refl rewrite w≡ | z≡ = {!!}
-
-unify : (eqs : Equations) → (θ : Equations) → Acc _<₃_ (measure' eqs θ) → Result
-unify [] θ rec = r-done θ
-unify (⟨ M , L ⟩ ∷ eqs) θ (acc rec)
-    with step (⟨ M , L ⟩ ∷ eqs) θ
-... | done θ' = r-done θ'
-... | error = r-error
-... | middle eqs' θ' = unify eqs' θ' (rec _ decrease)
-    where
-    decrease : measure' eqs' θ' <₃ measure' (⟨ M , L ⟩ ∷  eqs) θ
-    decrease = {!!}
+unify : (eqs : Equations) → (θ : Equations) → Result
+unify eqs θ = unify-aux eqs θ (<₃-wellFounded (measure-eqs eqs θ))
 ```

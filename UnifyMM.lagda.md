@@ -584,7 +584,7 @@ data Result : Set where
   r-done : Equations → Result
   r-error : Result
 
-open import Data.Nat.Induction using (Acc; rec; acc; <-wellFounded)
+open import Data.Nat.Induction using (Acc; acc; <-wellFounded)
 open import LexicographicOrdering {-using (×-Lex; ×-wellFounded)-}
 open import Induction.WellFounded using (WellFounded)
 open import Relation.Binary {-using (Rel)-}

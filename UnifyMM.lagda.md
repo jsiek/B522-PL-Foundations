@@ -19,7 +19,7 @@ open import Data.Unit using (⊤; tt)
 open import Data.Vec using (Vec; []; _∷_)
 open import Relation.Nullary using (Dec; yes; no; ¬_)
 open import Relation.Binary.PropositionalEquality
-   using (_≡_; _≢_; refl; sym; inspect; [_]; cong)
+   using (_≡_; _≢_; refl; sym; inspect; [_]; cong; cong₂)
 open Relation.Binary.PropositionalEquality.≡-Reasoning
    using (begin_; _≡⟨⟩_; _≡⟨_⟩_; _∎)
 open import FiniteSet
@@ -185,8 +185,8 @@ _unifies-eqs_ : Equations → Equations → Set
 θ unifies-eqs (⟨ M , L ⟩ ∷ eqs) = subst θ M ≡ subst θ L  ×  θ unifies-eqs eqs
 
 _unifies_ : Equations → State → Set
-θ unifies s-in-progress eqs σ = θ unifies-eqs eqs × θ unifies-eqs σ
-θ unifies s-finished σ = θ unifies-eqs σ
+θ unifies (s-in-progress eqs σ) = θ unifies-eqs eqs × θ unifies-eqs σ
+θ unifies (s-finished σ) = θ unifies-eqs σ
 θ unifies s-no-solution = ⊥
 ```
 
@@ -307,8 +307,7 @@ subst-vec-id-no-occurs {suc n} {N ∷ Ns} {x}{M} ¬x∈M
     | subst-vec-id-no-occurs {n}{Ns}{x}{M} x∉Ns = refl
 ```
 
-## Substitution Preserves Solutions
-
+## Unification Step Preserves Unifiers
 
 ```
 subst-vec-sub1 : ∀{n}{Ns : Vec AST n}{z}{θ}{M}
@@ -329,7 +328,9 @@ subst-vec-sub1 {zero} {Ns} θzM = refl
 subst-vec-sub1 {suc n} {N ∷ Ns}{z}{θ}{M} θzM
     rewrite subst-sub1 {N}{z}{θ}{M} θzM
     | subst-vec-sub1 {n} {Ns}{z}{θ}{M} θzM = refl
+```
 
+```
 subst-sub : ∀{L}{N}{z}{θ}{M}
   → subst θ (` z) ≡ subst θ M
   → subst θ L ≡ subst θ N
@@ -363,30 +364,104 @@ subst-vec-pres {suc n} {M ∷ Ms} {L ∷ Ls} θeqs θMLMsLs
 ```
 
 ```
-unifier-pres : ∀{eqs σ θ}
+step-pres-unifier : ∀{eqs σ θ}
    → θ unifies (s-in-progress eqs σ)
    → θ unifies (step eqs σ)
-unifier-pres {[]}{eqs'} {θ} ⟨ θeqs , θeqs' ⟩ = θeqs'
-unifier-pres {⟨ ` x , ` y ⟩ ∷ eqs}{eqs'} {θ} ⟨ ⟨ θxy , θeqs ⟩  , θeqs' ⟩
+step-pres-unifier {[]}{eqs'} {θ} ⟨ θeqs , θeqs' ⟩ = θeqs'
+step-pres-unifier {⟨ ` x , ` y ⟩ ∷ eqs}{eqs'} {θ} ⟨ ⟨ θxy , θeqs ⟩  , θeqs' ⟩
     with x ≟ y
 ... | yes xy = ⟨ θeqs , θeqs' ⟩
 ... | no xy = ⟨ subst-pres θxy θeqs , ⟨ θxy , subst-pres θxy θeqs' ⟩ ⟩
-unifier-pres {⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ eqs}{eqs'}{θ} ⟨ ⟨ θxM , θeqs ⟩ , θeqs' ⟩ 
+step-pres-unifier {⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ eqs}{eqs'}{θ} ⟨ ⟨ θxM , θeqs ⟩ , θeqs' ⟩ 
     with occurs? x (op ⦅ Ms ⦆)
 ... | yes x∈M = soln-no-occurs {θ}{x}{op ⦅ Ms ⦆} θxM tt x∈M
 ... | no x∉M = 
     ⟨ subst-pres θxM θeqs , ⟨ θxM , subst-pres θxM θeqs' ⟩ ⟩
-unifier-pres {⟨ op ⦅ Ms ⦆ , ` x ⟩ ∷ eqs}{eqs'}{θ}
+step-pres-unifier {⟨ op ⦅ Ms ⦆ , ` x ⟩ ∷ eqs}{eqs'}{θ}
     ⟨ ⟨ θxM , θeqs ⟩ , θeqs' ⟩
     with occurs? x (op ⦅ Ms ⦆)
 ... | yes x∈M = soln-no-occurs {θ}{x}{op ⦅ Ms ⦆} (sym θxM) tt x∈M
 ... | no x∉M = 
     ⟨ subst-pres (sym θxM) θeqs , ⟨ sym θxM , subst-pres (sym θxM) θeqs' ⟩ ⟩
-unifier-pres {⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs}{eqs'}
+step-pres-unifier {⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs}{eqs'}
     ⟨ ⟨ θMsLs , θeqs ⟩ , θeqs' ⟩
     with op-eq? op op'
 ... | yes refl = ⟨ subst-vec-pres θeqs (Ms≡-inversion θMsLs) , θeqs' ⟩
 ... | no neq = ⊥-elim (neq (op≡-inversion θMsLs))
+```
+
+## Unification Step Reflects Unifiers
+
+```
+subst-ref : ∀{L}{N}{z}{θ}{M}
+  → subst θ (` z) ≡ subst θ M
+  → subst θ ([ z := M ] L) ≡ subst θ ([ z := M ] N)
+  → subst θ L ≡ subst θ N
+subst-ref {L}{N}{z}{θ}{M} θzM θLM = begin
+    subst θ L                ≡⟨ subst-sub1 {L} θzM ⟩
+    subst θ ([ z := M ] L)   ≡⟨ θLM ⟩
+    subst θ ([ z := M ] N)   ≡⟨ sym (subst-sub1 {N} θzM) ⟩
+    subst θ N   ∎
+```
+
+```
+subst-reflect : ∀{eqs θ x M}
+  → θ unifies-eqs ([ M / x ] eqs)
+  → subst θ (` x) ≡ subst θ M
+  → θ unifies-eqs eqs
+subst-reflect {[]} {θ} {x} {M} θ[M/x]eqs θx=θM = tt
+subst-reflect {⟨ L , N ⟩ ∷ eqs} {θ} {x} {M} ⟨ θ[x:=M]L=θ[x:=M]N , θ[M/x]eqs ⟩ θx=θM =
+    ⟨ subst-ref {L = L}{N} θx=θM θ[x:=M]L=θ[x:=M]N , subst-reflect {eqs}{θ}{x}{M} θ[M/x]eqs θx=θM ⟩
+```
+
+```
+subst-vec-reflect : ∀{n}{Ms Ls : Vec AST n}{eqs}{θ}
+   → θ unifies-eqs append-eqs Ms Ls eqs
+   → (subst-vec θ Ms ≡ subst-vec θ Ls)  × θ unifies-eqs eqs
+subst-vec-reflect {zero} {[]} {[]} {eqs} {θ} θMs,Ls,eqs = ⟨ refl , θMs,Ls,eqs ⟩
+subst-vec-reflect {suc n} {M ∷ Ms} {L ∷ Ls} {eqs} {θ} ⟨ θM=θL , θMs,Ls,eqs ⟩ 
+    with subst-vec-reflect {n} {Ms} {Ls} {eqs} {θ} θMs,Ls,eqs
+... | ⟨ θMs=θLs , θeqs ⟩ =     
+    ⟨ cong₂ _∷_ θM=θL θMs=θLs , θeqs ⟩
+```
+
+```
+step-reflects-unifier : ∀{eqs σ θ}
+   → θ unifies (step eqs σ)
+   → θ unifies (s-in-progress eqs σ)
+step-reflects-unifier {[]} {σ} {θ} θstep[eqs,σ] = ⟨ tt , θstep[eqs,σ] ⟩
+step-reflects-unifier {⟨ ` x , ` y ⟩ ∷ eqs} {σ} {θ} θstep[eqs,σ]
+    with x ≟ y
+... | yes refl
+    with θstep[eqs,σ]
+... | ⟨ θeqs , θσ ⟩ = ⟨ ⟨ refl , θeqs ⟩ , θσ ⟩
+step-reflects-unifier {⟨ ` x , ` y ⟩ ∷ eqs} {σ} {θ} θstep[eqs,σ]
+    | no xy 
+    with θstep[eqs,σ]
+... | ⟨ θ[y/x]eqs , ⟨ θx=θy , θ[y/x]σ ⟩ ⟩ =
+      ⟨ ⟨ θx=θy , subst-reflect θ[y/x]eqs θx=θy  ⟩ , subst-reflect θ[y/x]σ θx=θy ⟩
+step-reflects-unifier {⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ eqs} {σ} {θ} θstep[eqs,σ]
+    with occurs? x (op ⦅ Ms ⦆)
+... | yes x∈M = ⊥-elim θstep[eqs,σ]
+... | no x∉M
+    with θstep[eqs,σ]
+... | ⟨ θ[M/x]eqs , ⟨ θx=θM , θ[M/x]σ ⟩ ⟩ =
+    ⟨ ⟨ θx=θM , subst-reflect θ[M/x]eqs θx=θM ⟩ , subst-reflect θ[M/x]σ θx=θM ⟩
+step-reflects-unifier {⟨ op ⦅ Ms ⦆ , ` x ⟩ ∷ eqs} {σ} {θ} θstep[eqs,σ]
+    with occurs? x (op ⦅ Ms ⦆)
+... | yes x∈M = ⊥-elim θstep[eqs,σ]
+... | no x∉M
+    with θstep[eqs,σ]
+... | ⟨ θ[M/x]eqs , ⟨ θx=θM , θ[M/x]σ ⟩ ⟩ =
+    ⟨ ⟨ sym θx=θM , subst-reflect θ[M/x]eqs θx=θM ⟩ , subst-reflect θ[M/x]σ θx=θM ⟩
+step-reflects-unifier {⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs} {σ} {θ} θstep[eqs,σ]
+    with op-eq? op op'
+... | no neq = ⊥-elim θstep[eqs,σ]
+... | yes refl
+    with θstep[eqs,σ]
+... | ⟨ θMs,Ls,eqs , θσ ⟩
+    with subst-vec-reflect {Ms = Ms}{Ls} θMs,Ls,eqs
+... | ⟨ θMs=θLs , θeqs ⟩ = ⟨ ⟨ cong (λ □ → op ⦅ □ ⦆) θMs=θLs , θeqs ⟩ , θσ ⟩
 ```
 
 ## Proof of Termination
@@ -630,4 +705,21 @@ unify-aux (⟨ M , L ⟩ ∷ eqs) θ (acc rec)
 
 unify : (eqs : Equations) → (θ : Equations) → Result
 unify eqs θ = unify-aux eqs θ (<₃-wellFounded (measure-eqs eqs θ))
+```
+
+## Unify Correct
+
+```
+unify-sound : ∀{eqs}{σ}{θ}
+   → unify eqs σ ≡ finished θ
+   → θ unifies-eqs eqs
+unify-sound {[]} {σ}{θ} unify[eqs]≡θ = tt
+unify-sound {⟨ L , M ⟩ ∷ eqs} {σ}{θ} unify[eqs]≡θ
+    with step-decrease (⟨ M , L ⟩ ∷ eqs) θ
+    | step (⟨ M , L ⟩ ∷ eqs) θ
+    | inspect (step (⟨ M , L ⟩ ∷ eqs)) θ
+... | decrease | s-finished θ' | [ st ] = {!!}
+... | decrease | s-no-solution | [ st ] rewrite st = ⊥-elim {!!}
+... | decrease | s-in-progress eqs' θ' | [ st ]
+    rewrite st = {!!}
 ```

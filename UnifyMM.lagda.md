@@ -768,15 +768,15 @@ unify eqs θ = unify-aux eqs θ (<₃-wellFounded (measure-eqs eqs θ))
 ```
 unify-aux-sound : ∀{eqs}{σ}{θ}{ac}
    → unify-aux eqs σ ac ≡ finished θ
-   → θ unifies-eqs eqs
-unify-aux-sound {[]} {σ}{θ}{ac} refl = tt
+   → θ unifies-eqs eqs × θ unifies-eqs σ
+unify-aux-sound {[]} {σ}{θ}{ac} refl = ?
 unify-aux-sound {⟨ ` x , ` y ⟩ ∷ eqs} {σ} {θ} {acc rs} unify[eqs,σ]≡θ
     with x ≟ y 
 ... | yes refl  =
       let IH = unify-aux-sound {eqs}{σ}{θ}
                   {rs _ (third-< (measure1-vars≤{eqs}{x}) ≤-refl (s≤s (s≤s ≤-refl)))}
                   unify[eqs,σ]≡θ in
-      ⟨ refl , IH ⟩
+      ⟨ ? , ? ⟩
 ... | no xy =
       let IH = unify-aux-sound {[ ` y / x ] eqs}{(⟨ ` x , ` y ⟩ ∷ [ ` y / x ] σ)}{θ}
                 {rs _ {!!}} {!!} in

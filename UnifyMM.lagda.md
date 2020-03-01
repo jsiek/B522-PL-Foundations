@@ -2,7 +2,7 @@
 open import Agda.Primitive using (lzero)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Bool using (Bool; true; false; _∨_)
-open import Data.List using (List; []; _∷_; length)
+open import Data.List using (List; []; _∷_; length; _++_)
 open import Data.List.Relation.Unary.Any using (here; there)
 open import Data.Maybe
 open import Data.Nat using (ℕ; zero; suc; _+_; _<_; _≤_; z≤n; s≤s; _<?_){- ; _≤′_; ≤′-refl; ≤′-step; _<′_)-}
@@ -201,6 +201,28 @@ Ms≡-inversion refl = refl
    → _≡_ {a = Agda.Primitive.lzero}{A = Vec AST (suc n)} (x ∷ xs) (y ∷ ys)
    → x ≡ y  ×  xs ≡ ys
 ∷≡-inversion refl = ⟨ refl , refl ⟩
+```
+
+## Unifies is reflexive
+
+```
+data Subst : Equations → Set where
+  empty : Subst []
+  insert : ∀{eqs}{x}{M} → x ∉ vars M → Subst eqs → Subst (⟨ ` x , M ⟩ ∷ eqs)
+```
+
+```
+unifies-eqs-refl' : ∀{θ θ'} → Subst θ → Subst θ' → (θ' ++ θ) unifies-eqs θ
+unifies-eqs-refl' {.[]} {θ'} empty Sθ' = tt
+unifies-eqs-refl' {⟨ ` x , M ⟩ ∷ eqs} {θ'} (insert x∉M Sθ) Sθ' =
+    let IH = unifies-eqs-refl' {eqs} {⟨ ` x , M ⟩ ∷ θ'} Sθ (insert x∉M Sθ') in
+    ⟨ {!!} , {!!} ⟩
+
+unifies-eqs-refl : ∀{θ} → Subst θ → θ unifies-eqs θ
+unifies-eqs-refl {[]} empty = tt
+unifies-eqs-refl {⟨ ` x , M ⟩ ∷ θ} (insert x∉M SΘ) =
+  let IH = unifies-eqs-refl {θ} SΘ in
+  ⟨ {!!} , {!!} ⟩
 ```
 
 ## Failed occurs check implies no solutions
@@ -769,21 +791,52 @@ unify eqs θ = unify-aux eqs θ (<₃-wellFounded (measure-eqs eqs θ))
 unify-aux-sound : ∀{eqs}{σ}{θ}{ac}
    → unify-aux eqs σ ac ≡ finished θ
    → θ unifies-eqs eqs × θ unifies-eqs σ
-unify-aux-sound {[]} {σ}{θ}{ac} refl = ?
+unify-aux-sound {[]} {σ}{θ}{ac} refl = ⟨ tt , unifies-eqs-refl {!!} ⟩
 unify-aux-sound {⟨ ` x , ` y ⟩ ∷ eqs} {σ} {θ} {acc rs} unify[eqs,σ]≡θ
     with x ≟ y 
-... | yes refl  =
-      let IH = unify-aux-sound {eqs}{σ}{θ}
-                  {rs _ (third-< (measure1-vars≤{eqs}{x}) ≤-refl (s≤s (s≤s ≤-refl)))}
-                  unify[eqs,σ]≡θ in
-      ⟨ ? , ? ⟩
-... | no xy =
-      let IH = unify-aux-sound {[ ` y / x ] eqs}{(⟨ ` x , ` y ⟩ ∷ [ ` y / x ] σ)}{θ}
-                {rs _ {!!}} {!!} in
-       ⟨ {!!} , {!!} ⟩
-unify-aux-sound {⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ eqs} {σ} {θ} unify[eqs,σ]≡θ = {!!}
-unify-aux-sound {⟨ op ⦅ Ms ⦆ , ` x ⟩ ∷ eqs} {σ} {θ} unify[eqs,σ]≡θ = {!!}
-unify-aux-sound {⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs} {σ} {θ} unify[eqs,σ]≡θ = {!!}
+... | yes refl
+    with unify-aux-sound {eqs}{σ}{θ} {rs _ (third-< (measure1-vars≤{eqs}{x}) ≤-refl (s≤s (s≤s ≤-refl)))} unify[eqs,σ]≡θ
+... | ⟨ θeqs , θσ ⟩ =    
+      ⟨ ⟨ refl , θeqs ⟩ , θσ ⟩
+unify-aux-sound {⟨ ` x , ` y ⟩ ∷ eqs} {σ} {θ} {acc rs} unify[eqs,σ]≡θ
+    | no xy
+    with unify-aux-sound {[ ` y / x ] eqs}{(⟨ ` x , ` y ⟩ ∷ [ ` y / x ] σ)}{θ} {rs _ (first-< (measure2-vars<{eqs}{x}{y} xy))} unify[eqs,σ]≡θ
+... | ⟨ θeqs , ⟨ θx=θy , θσ ⟩ ⟩ =     
+       ⟨ ⟨ θx=θy , subst-reflect θeqs θx=θy ⟩ , subst-reflect θσ θx=θy ⟩
+unify-aux-sound {⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ eqs} {σ} {θ}{acc rs} unify[eqs,σ]≡θ
+    with occurs? x (op ⦅ Ms ⦆)
+... | yes x∈M
+    with unify[eqs,σ]≡θ
+... | ()    
+unify-aux-sound {⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ eqs} {σ} {θ}{acc rs} unify[eqs,σ]≡θ
+    | no x∉M 
+    with unify-aux-sound {([ op ⦅ Ms ⦆ / x ] eqs)} {(⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ [ op ⦅ Ms ⦆ / x ] σ)} {θ}
+             {rs _ (first-< (vars-eqs-sub-less {op}{Ms}{x}{eqs} x∉M))} unify[eqs,σ]≡θ
+... | ⟨ θeqs , ⟨ θxM , θσ ⟩ ⟩ =
+    ⟨ ⟨ θxM , subst-reflect θeqs θxM ⟩ , subst-reflect θσ θxM ⟩
+unify-aux-sound {⟨ op ⦅ Ms ⦆ , ` x ⟩ ∷ eqs} {σ} {θ}{acc rs} unify[eqs,σ]≡θ
+    with occurs? x (op ⦅ Ms ⦆)
+... | yes x∈M
+    with unify[eqs,σ]≡θ
+... | ()    
+unify-aux-sound {⟨ op ⦅ Ms ⦆ , ` x ⟩ ∷ eqs} {σ} {θ}{acc rs} unify[eqs,σ]≡θ
+    | no x∉M
+    with unify-aux-sound {([ op ⦅ Ms ⦆ / x ] eqs)} {(⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ [ op ⦅ Ms ⦆ / x ] σ)} {θ}
+             {rs _ (first-< (measure3-vars<{op}{Ms}{x}{eqs} x∉M))} unify[eqs,σ]≡θ
+... | ⟨ θeqs , ⟨ θxM , θσ ⟩ ⟩ =
+    ⟨ ⟨ sym θxM , subst-reflect θeqs θxM ⟩ , subst-reflect θσ θxM ⟩
+unify-aux-sound {⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs} {σ} {θ}{acc rs} unify[eqs,σ]≡θ
+    with op-eq? op op'
+... | yes refl
+    with unify-aux-sound {append-eqs Ms Ls eqs}{σ}{θ}{rs _ (second-< (p⊆q⇒∣p∣≤∣q∣ (var-eqs-append-⊆ Ms Ls eqs)) (measure4-ops<{Ms = Ms}{Ls}{eqs}))} unify[eqs,σ]≡θ
+... | ⟨ θMs,Ls,eqs , θσ ⟩
+    with subst-vec-reflect {Ms = Ms}{Ls} θMs,Ls,eqs
+... | ⟨ θMs=θLs , θeqs ⟩ =
+    ⟨ ⟨ cong (λ □ → op ⦅ □ ⦆) θMs=θLs  , θeqs ⟩ , θσ ⟩
+unify-aux-sound {⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs} {σ} {θ}{acc rs} unify[eqs,σ]≡θ
+    | no neq
+    with unify[eqs,σ]≡θ
+... | ()    
 
 {-
 unify-sound : ∀{eqs}{σ}{θ}

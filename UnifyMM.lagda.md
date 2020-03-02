@@ -110,20 +110,15 @@ vars-eqs (⟨ L , M ⟩ ∷ eqs) = vars L  ∪  vars M  ∪  vars-eqs eqs
 ```
 
 ```
-occurs-vec : Var → ∀{n} → Vec AST n → Set
-occurs : Var → AST → Set
-occurs x M = x ∈ vars M
-occurs-vec x {n} Ms = x ∈ vars-vec Ms
-
-occurs-eqs : Var → Equations → Set
-occurs-eqs x [] = ⊥
-occurs-eqs x (⟨ M , L ⟩ ∷ eqs) = occurs x M  ⊎  occurs x L  ⊎  occurs-eqs x eqs 
+dom : Equations → FiniteSet
+dom [] = ∅
+dom (⟨ M , L ⟩ ∷ eqs) = vars M  ∪ dom eqs 
 ```
 
 ```
-occurs-vec? : (x : Var) → ∀{n} → (Ms : Vec AST n) → Dec (occurs-vec x Ms)
+occurs-vec? : (x : Var) → ∀{n} → (Ms : Vec AST n) → Dec (x ∈ vars-vec Ms)
 
-occurs? : (x : Var) → (M : AST) → Dec (occurs x M)
+occurs? : (x : Var) → (M : AST) → Dec (x ∈ vars M)
 occurs? x (` y)
     with x ≟ y
 ... | yes refl = yes (x∈⁅x⁆ x)
@@ -155,8 +150,10 @@ data State : Set where
 
 
 Martelli and Montanari's Algorithm 1.
+(OBSOLETE, replaced by unify-aux) 
 
 ```
+{-
 step : Equations → Equations → State
 step [] σ = s-finished σ
 step (⟨ ` x , ` y ⟩ ∷ eqs) σ
@@ -177,6 +174,7 @@ step (⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs) σ
     with op-eq? op op'
 ... | yes refl = s-in-progress (append-eqs Ms Ls eqs) σ
 ... | no neq = s-no-solution
+-}
 ```
 
 ```
@@ -206,21 +204,85 @@ Ms≡-inversion refl = refl
 ## Unifies is reflexive
 
 ```
-data Subst : Equations → Set where
-  empty : Subst []
-  insert : ∀{eqs}{x}{M} → x ∉ vars M → Subst eqs → Subst (⟨ ` x , M ⟩ ∷ eqs)
+no-vars→subst-vec-id : ∀{n}{Ns : Vec AST n} {x M}
+  → ¬ x ∈ vars-vec Ns
+  → [ x ::= M ] Ns ≡ Ns
+  
+no-vars→subst-id : ∀{N x M}
+  → ¬ x ∈ vars N
+  → [ x := M ] N ≡ N
+no-vars→subst-id {` y}{x} ¬x∈M
+    with x ≟ y
+... | yes refl = ⊥-elim (¬x∈M (x∈⁅x⁆ y))
+... | no xy = refl
+no-vars→subst-id {op ⦅ Ns ⦆} ¬x∈M =
+    cong (λ □ → op ⦅ □ ⦆) (no-vars→subst-vec-id ¬x∈M)
+
+no-vars→subst-vec-id {zero} {[]} ¬x∈M = refl
+no-vars→subst-vec-id {suc n} {N ∷ Ns} {x}{M} ¬x∈M
+    with occurs? x N | occurs-vec? x Ns
+... | yes x∈N | _ =
+      ⊥-elim (¬x∈M (p⊆p∪q (vars N) (vars-vec Ns) x∈N))
+... | no x∉N | yes x∈Ns = ⊥-elim (¬x∈M ((q⊆p∪q (vars N) (vars-vec Ns) x∈Ns))) 
+... | no x∉N | no x∉Ns
+    rewrite no-vars→subst-id {N}{x}{M} x∉N
+    | no-vars→subst-vec-id {n}{Ns}{x}{M} x∉Ns = refl
 ```
 
 ```
-unifies-eqs-refl' : ∀{θ θ'} → Subst θ → Subst θ' → (θ' ++ θ) unifies-eqs θ
-unifies-eqs-refl' {.[]} {θ'} empty Sθ' = tt
-unifies-eqs-refl' {⟨ ` x , M ⟩ ∷ eqs} {θ'} (insert x∉M Sθ) Sθ' =
-    let IH = unifies-eqs-refl' {eqs} {⟨ ` x , M ⟩ ∷ θ'} Sθ (insert x∉M Sθ') in
+subst→no-vars : ∀{N}{x}{M}
+   → x ∉ vars M
+   → x ∉ vars ([ x := M ] N)
+subst-vec→no-vars : ∀{n}{Ns : Vec AST n}{x}{M}
+   → x ∉ vars M
+   → x ∉ vars-vec ([ x ::= M ] Ns)
+
+subst→no-vars {` y} {x} {M} x∉M
+    with x ≟ y
+... | yes refl = x∉M
+... | no xy = λ x∈[y] → x∉⁅y⁆ x y xy x∈[y]
+subst→no-vars {op ⦅ Ns ⦆} {x} {M} x∉M = subst-vec→no-vars {Ns = Ns} x∉M
+
+subst-vec→no-vars {zero} {Ns} {x} {M} x∉M = ∉∅ {x}
+subst-vec→no-vars {suc n} {N ∷ Ns} {x} {M} x∉M x∈N∪Ns
+    with ∈p∪q→∈p⊎∈q x∈N∪Ns
+... | inj₁ x∈N = 
+      let x∉N = subst→no-vars {N}{x}{M} x∉M in
+      x∉N x∈N
+... | inj₂ x∈Ns = 
+      let x∉Ns = subst-vec→no-vars {n}{Ns}{x}{M} x∉M in
+      x∉Ns x∈Ns
+```
+
+
+```
+data Subst : Equations → Set where
+  empty : Subst []
+  insert : ∀{eqs}{x}{M}
+     → x ∉ vars M → x ∉ vars-eqs eqs
+     → Subst eqs
+     → Subst (⟨ ` x , M ⟩ ∷ eqs)
+```
+
+```
+no-vars→ext-unifies : ∀{θ}{x}{M}{eqs}
+   → θ unifies-eqs eqs
+   → x ∉ vars-eqs eqs
+   → (⟨ ` x , M ⟩ ∷ θ) unifies-eqs eqs
+no-vars→ext-unifies {θ} {x} {M} {[]} θeqs x∉eqs = tt
+no-vars→ext-unifies {θ} {x} {M} {⟨ L , N ⟩ ∷ eqs} θeqs x∉eqs = {!!}
+
+
+unifies-eqs-refl' : ∀{θ θ'} → Subst θ → Subst θ' → dom θ' ∩ vars-eqs θ ≡ ∅ → (θ' ++ θ) unifies-eqs θ
+unifies-eqs-refl' {.[]} {θ'} empty Sθ' θ'∩θ=∅ = tt
+unifies-eqs-refl' {⟨ ` x , M ⟩ ∷ θ} {θ'} (insert x∉M x∉θ Sθ) Sθ' θ'∩θ=∅ =
+    let IH = unifies-eqs-refl' {θ} {θ'} Sθ Sθ' {!!} in
     ⟨ {!!} , {!!} ⟩
+
 
 unifies-eqs-refl : ∀{θ} → Subst θ → θ unifies-eqs θ
 unifies-eqs-refl {[]} empty = tt
-unifies-eqs-refl {⟨ ` x , M ⟩ ∷ θ} (insert x∉M SΘ) =
+unifies-eqs-refl {⟨ ` x , M ⟩ ∷ θ} (insert x∉M x∉θ SΘ) =
   let IH = unifies-eqs-refl {θ} SΘ in
   ⟨ {!!} , {!!} ⟩
 ```
@@ -246,11 +308,11 @@ is-op (` x) = ⊥
 is-op (op ⦅ Ms ⦆) = ⊤
 
 num-ops-less-vec : ∀ {n}{Ms : Vec AST n}{x θ}
-   → occurs-vec x Ms
+   → x ∈ vars-vec Ms
    → num-ops (subst θ (` x)) ≤ num-ops-vec (subst-vec θ Ms)
 
 num-ops-less : ∀ {M}{x θ}
-   → occurs x M
+   → x ∈ vars M
    → is-op M
    → num-ops (subst θ (` x)) < num-ops (subst θ M)
 num-ops-less {op ⦅ Ms ⦆}{x}{θ} x∈Ms opM =
@@ -291,7 +353,7 @@ num-ops-less-vec {suc n} {M ∷ Ms} {x} {θ} x∈MMs
     QED
 
 occurs-no-soln : ∀{θ x M}
-  → occurs x M → is-op M
+  → x ∈ vars M → is-op M
   → subst θ (` x) ≢ subst θ M
 occurs-no-soln {θ} x∈M opM θxM
     with num-ops-less {θ = θ} x∈M opM
@@ -301,32 +363,8 @@ occurs-no-soln {θ} x∈M opM θxM
 soln-no-occurs : ∀{θ x M}
    → subst θ (` x) ≡ subst θ M
    → is-op M
-   → ¬ (occurs x M)
+   → ¬ (x ∈ vars M)
 soln-no-occurs θxM opM x∈M = occurs-no-soln x∈M opM θxM
-
-subst-vec-id-no-occurs : ∀{n}{Ns : Vec AST n} {x M}
-  → ¬ occurs-vec x Ns
-  → [ x ::= M ] Ns ≡ Ns
-  
-subst-id-no-occurs : ∀{N x M}
-  → ¬ occurs x N
-  → [ x := M ] N ≡ N
-subst-id-no-occurs {` y}{x} ¬x∈M
-    with x ≟ y
-... | yes refl = ⊥-elim (¬x∈M (x∈⁅x⁆ y))
-... | no xy = refl
-subst-id-no-occurs {op ⦅ Ns ⦆} ¬x∈M =
-    cong (λ □ → op ⦅ □ ⦆) (subst-vec-id-no-occurs ¬x∈M)
-
-subst-vec-id-no-occurs {zero} {[]} ¬x∈M = refl
-subst-vec-id-no-occurs {suc n} {N ∷ Ns} {x}{M} ¬x∈M
-    with occurs? x N | occurs-vec? x Ns
-... | yes x∈N | _ =
-      ⊥-elim (¬x∈M (p⊆p∪q (vars N) (vars-vec Ns) x∈N))
-... | no x∉N | yes x∈Ns = ⊥-elim (¬x∈M ((q⊆p∪q (vars N) (vars-vec Ns) x∈Ns))) 
-... | no x∉N | no x∉Ns
-    rewrite subst-id-no-occurs {N}{x}{M} x∉N
-    | subst-vec-id-no-occurs {n}{Ns}{x}{M} x∉Ns = refl
 ```
 
 ## Unification Step Preserves Unifiers
@@ -386,6 +424,7 @@ subst-vec-pres {suc n} {M ∷ Ms} {L ∷ Ls} θeqs θMLMsLs
 ```
 
 ```
+{-
 step-pres-unifier : ∀{eqs σ θ}
    → θ unifies (s-in-progress eqs σ)
    → θ unifies (step eqs σ)
@@ -410,6 +449,7 @@ step-pres-unifier {⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs}{eqs'}
     with op-eq? op op'
 ... | yes refl = ⟨ subst-vec-pres θeqs (Ms≡-inversion θMsLs) , θeqs' ⟩
 ... | no neq = ⊥-elim (neq (op≡-inversion θMsLs))
+-}
 ```
 
 ## Unification Step Reflects Unifiers
@@ -448,6 +488,7 @@ subst-vec-reflect {suc n} {M ∷ Ms} {L ∷ Ls} {eqs} {θ} ⟨ θM=θL , θMs,Ls
 ```
 
 ```
+{-
 step-reflects-unifier : ∀{eqs σ θ}
    → θ unifies (step eqs σ)
    → θ unifies (s-in-progress eqs σ)
@@ -484,6 +525,7 @@ step-reflects-unifier {⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs} {σ} {θ}
 ... | ⟨ θMs,Ls,eqs , θσ ⟩
     with subst-vec-reflect {Ms = Ms}{Ls} θMs,Ls,eqs
 ... | ⟨ θMs=θLs , θeqs ⟩ = ⟨ ⟨ cong (λ □ → op ⦅ □ ⦆) θMs=θLs , θeqs ⟩ , θσ ⟩
+-}
 ```
 
 ## Proof of Termination
@@ -654,6 +696,7 @@ num-ops-append {suc n} (M ∷ Ms) (L ∷ Ls) eqs
     G = solve 5 (λ nM nL nMs nLs neqs →
           (nM :+ nL) :+ ((nMs :+ nLs) :+ neqs) := ((nM :+ nMs) :+ (nL :+ nLs)) :+ neqs) refl
 
+{-
 step-decrease : ∀ eqs θ → (measure (step eqs θ)) <₃ (measure-eqs eqs θ)
 step-decrease [] θ = third-< z≤n z≤n (s≤s z≤n)
 step-decrease (⟨ ` x , ` y ⟩ ∷ eqs) θ 
@@ -704,6 +747,7 @@ step-decrease (⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs) θ
     G2 rewrite num-ops-append Ms Ls eqs
        | +-comm (num-ops-vec Ms) (suc (num-ops-vec Ls))
        | +-comm (num-ops-vec Ls) (num-ops-vec Ms) = s≤s (≤-step ≤-refl)
+-}
 ```
 
 ```

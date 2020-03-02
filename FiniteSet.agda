@@ -300,6 +300,14 @@ abstract
       rewrite ∧-distribʳ-∨ z x y
       | ∪-distrib-∩ {A}{B}{C} = refl
 
+  ∪-distribˡ-∩ : ∀{A B C} → A ∩ (B ∪ C) ≡ (A ∩ B) ∪ (A ∩ C)
+  ∪-distribˡ-∩ {[]} {B} {C} = refl
+  ∪-distribˡ-∩ {x ∷ A} {[]} {C} = refl
+  ∪-distribˡ-∩ {x ∷ A} {x₁ ∷ B} {[]} = refl
+  ∪-distribˡ-∩ {x ∷ A} {y ∷ B} {z ∷ C}
+      rewrite ∧-distribˡ-∨ x y z
+      | ∪-distribˡ-∩ {A}{B}{C} = refl
+  
   distrib-∨-sub : ∀ a b c → subtract a c ∨ subtract b c ≡ subtract (a ∨ b) c
   distrib-∨-sub false b c = refl
   distrib-∨-sub true false false = refl
@@ -450,3 +458,18 @@ abstract
       rewrite p-∅≡p p = s≤s (p⊆q⇒∣p∣≤∣q∣ {p}{p ∪ ∅} (∪-identityʳ₁ p))  
   ∣p-x∣<∣p∪x∣ (false ∷ p) (suc x) = ∣p-x∣<∣p∪x∣ p x
   ∣p-x∣<∣p∪x∣ (true ∷ p) (suc x) = s≤s (∣p-x∣<∣p∪x∣ p x)
+
+  p∪q⊆∅→p⊆∅×q⊆∅ : ∀ p q → p ∪ q ⊆ ∅ → p ⊆ ∅ × q ⊆ ∅
+  p∪q⊆∅→p⊆∅×q⊆∅ [] q p∪q⊆∅ = ⟨ (λ {x} z → z) , p∪q⊆∅ ⟩
+  p∪q⊆∅→p⊆∅×q⊆∅ (b ∷ p) [] p∪q⊆∅ = ⟨ (λ {x} → p∪q⊆∅ {x}) , (λ {x} z → z) ⟩
+  p∪q⊆∅→p⊆∅×q⊆∅ (false ∷ p) (false ∷ q) p∪q⊆∅ =
+      ⟨ (λ {x} → G1 {x}) , (λ {x} → G2 {x}) ⟩
+      where
+      IH : p ⊆ ∅ × q ⊆ ∅
+      IH = p∪q⊆∅→p⊆∅×q⊆∅ p q λ {x} x∈pq → p∪q⊆∅ {suc x} x∈pq
+      G1 : false ∷ p ⊆ ∅
+      G1 {suc x} = proj₁ IH
+      G2 : false ∷ q ⊆ ∅
+      G2 {suc x} = proj₂ IH
+  p∪q⊆∅→p⊆∅×q⊆∅ (false ∷ p) (true ∷ q) p∪q⊆∅ = ⊥-elim (p∪q⊆∅ {0} tt)
+  p∪q⊆∅→p⊆∅×q⊆∅ (true ∷ p) (c ∷ q) p∪q⊆∅ = ⊥-elim (p∪q⊆∅ {0} tt)

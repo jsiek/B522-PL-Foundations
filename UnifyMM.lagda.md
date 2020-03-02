@@ -390,10 +390,12 @@ subst-var-eq {x}{M}{θ}
 ... | yes refl = refl
 ... | no xx = ⊥-elim (xx refl)
 
-unifies-eqs-refl' : ∀{θ θ'} → Subst θ → Subst θ' → dom θ' ∩ vars-eqs θ ≡ ∅ → (θ' ++ θ) unifies-eqs θ
+unifies-eqs-refl' : ∀{θ θ'} → Subst θ → Subst θ' → dom θ' ∩ vars-eqs θ ⊆ ∅ → (θ' ++ θ) unifies-eqs θ
 unifies-eqs-refl' {.[]} {θ'} empty Sθ' θ'∩θ=∅ = tt
-unifies-eqs-refl' {⟨ ` x , M ⟩ ∷ θ} {θ'} (insert x∉M x∉θ Sθ) Sθ' θ'∩θ=∅ =
-    let IH = unifies-eqs-refl' {θ} {θ'} Sθ Sθ' {!!} in
+unifies-eqs-refl' {⟨ ` x , M ⟩ ∷ θ} {θ'} (insert x∉M x∉θ Sθ) Sθ' θ'∩θ⊆∅
+    rewrite ∪-distribˡ-∩ {dom θ'}{⁅ x ⁆}{vars M ∪ vars-eqs θ}
+    | ∪-distribˡ-∩ {dom θ'}{vars M}{vars-eqs θ} =
+    let IH = unifies-eqs-refl' {θ} {θ'} Sθ Sθ' λ {x} x∈θ'θ → θ'∩θ⊆∅ {x} {!!}  in {- p∪q⊆∅→p⊆∅×q⊆∅ -}
     ⟨ {!!} , {!!} ⟩
 
 

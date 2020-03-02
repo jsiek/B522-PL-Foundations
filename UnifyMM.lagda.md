@@ -230,6 +230,69 @@ no-vars→subst-vec-id {suc n} {N ∷ Ns} {x}{M} ¬x∈M
 ```
 
 ```
+data Subst : Equations → Set where
+  empty : Subst []
+  insert : ∀{eqs}{x}{M}
+     → x ∉ vars M → x ∉ vars-eqs eqs
+     → Subst eqs
+     → Subst (⟨ ` x , M ⟩ ∷ eqs)
+```
+
+```
+x∉domθ→no-lookup : ∀{θ}{x}
+   → Subst θ
+   → x ∉ dom θ
+   → lookup θ x ≡ nothing
+x∉domθ→no-lookup {[]} {x} Sθ x∉θ = refl
+x∉domθ→no-lookup {⟨ ` y , M ⟩ ∷ θ} {x} (insert y∉M y∉θ Sθ) x∉θ
+    with x ≟ y
+... | yes refl = ⊥-elim (x∉θ (p⊆p∪q _ _ (x∈⁅x⁆ y)))
+... | no x≠y =
+    let IH = x∉domθ→no-lookup {θ}{x} Sθ λ x∈θ → x∉θ (q⊆p∪q _ _ x∈θ) in
+    IH
+```
+
+```
+x∉domθ→subst-id : ∀{θ}{x}
+   → Subst θ
+   → x ∉ dom θ
+   → subst θ (` x) ≡ ` x
+x∉domθ→subst-id {θ}{x} Sθ x∉θ
+    with lookup θ x | inspect (lookup θ) x
+... | nothing | [ θx ] = refl
+... | just M | [ θx ]
+    rewrite x∉domθ→no-lookup Sθ x∉θ
+    with θx
+... | ()    
+```
+
+
+```
+M∩domθ⊆∅→subst-id : ∀{M}{θ}
+   → Subst θ
+   → vars M ∩ dom θ ⊆ ∅
+   → subst θ M ≡ M
+
+M∩domθ⊆∅→subst-vec-id : ∀{n}{Ms : Vec AST n}{θ}
+   → Subst θ
+   → vars-vec Ms ∩ dom θ ⊆ ∅
+   → subst-vec θ Ms ≡ Ms
+M∩domθ⊆∅→subst-vec-id {zero} {[]} {θ} Sθ M∩domθ⊆∅ = refl
+M∩domθ⊆∅→subst-vec-id {suc n} {M ∷ Ms} {θ} Sθ M∩domθ⊆∅ =
+    cong₂ _∷_ (M∩domθ⊆∅→subst-id Sθ {!!}) (M∩domθ⊆∅→subst-vec-id {n}{Ms}{θ} Sθ {!!})
+
+M∩domθ⊆∅→subst-id {` x} {θ} Sθ M∩domθ⊆∅ = x∉domθ→subst-id Sθ G
+    where
+    G : x ∉ dom θ
+    G x∈domθ rewrite x∈p→⁅x⁆∩p≡⁅x⁆ x (dom θ) x∈domθ =
+       let x∈∅ = M∩domθ⊆∅ {x} (x∈⁅x⁆ x) in
+       ∉∅ {x} x∈∅
+M∩domθ⊆∅→subst-id {op ⦅ Ms ⦆} {θ} Sθ M∩domθ⊆∅ =
+    cong (λ □ → op ⦅ □ ⦆) (M∩domθ⊆∅→subst-vec-id {Ms = Ms} Sθ M∩domθ⊆∅)
+```
+
+
+```
 subst→no-vars : ∀{N}{x}{M}
    → x ∉ vars M
    → x ∉ vars ([ x := M ] N)
@@ -255,23 +318,70 @@ subst-vec→no-vars {suc n} {N ∷ Ns} {x} {M} x∉M x∈N∪Ns
 ```
 
 
+
 ```
-data Subst : Equations → Set where
-  empty : Subst []
-  insert : ∀{eqs}{x}{M}
-     → x ∉ vars M → x ∉ vars-eqs eqs
-     → Subst eqs
-     → Subst (⟨ ` x , M ⟩ ∷ eqs)
+ext-subst : ∀{θ}{x}{M}{L}
+   → x ∉ vars L
+   → x ∉ vars-eqs θ
+   → subst (⟨ ` x , M ⟩ ∷ θ) L ≡ subst θ L
+ext-subst-vec : ∀{θ}{x}{M}{n}{Ls : Vec AST n}
+   → x ∉ vars-vec Ls
+   → x ∉ vars-eqs θ
+   → subst-vec (⟨ ` x , M ⟩ ∷ θ) Ls ≡ subst-vec θ Ls
+
+ext-subst {θ} {x} {M} {` y} x∉L x∉θ
+    with x ≟ y
+... | yes refl = ⊥-elim (x∉L (x∈⁅x⁆ x))
+... | no xy = G
+    where
+    G : subst (⟨ ` x , M ⟩ ∷ θ) (` y)  ≡ subst θ (` y)
+    G
+        with y ≟ x
+    ... | yes refl = ⊥-elim (xy refl)
+    ... | no yx = refl
+ext-subst {θ} {x} {M} {op ⦅ Ls ⦆} x∉L x∉θ = cong (λ □ → op ⦅ □ ⦆) (ext-subst-vec {θ}{x}{M}{Ls = Ls} x∉L x∉θ)
+
+ext-subst-vec {θ} {x} {M} {zero} {Ls} x∉Ls x∉θ = refl
+ext-subst-vec {θ} {x} {M} {suc n} {L ∷ Ls} x∉L∪Ls x∉θ =
+    cong₂ _∷_ (ext-subst {θ}{x}{M}{L} (λ x∈L → x∉L∪Ls (p⊆p∪q (vars L) (vars-vec Ls) x∈L)) x∉θ)
+              (ext-subst-vec {θ} {x} {M} {n} {Ls} (λ x∈Ls → x∉L∪Ls (q⊆p∪q (vars L) (vars-vec Ls) x∈Ls)) x∉θ)
 ```
 
 ```
 no-vars→ext-unifies : ∀{θ}{x}{M}{eqs}
    → θ unifies-eqs eqs
    → x ∉ vars-eqs eqs
+   → x ∉ vars-eqs θ
    → (⟨ ` x , M ⟩ ∷ θ) unifies-eqs eqs
-no-vars→ext-unifies {θ} {x} {M} {[]} θeqs x∉eqs = tt
-no-vars→ext-unifies {θ} {x} {M} {⟨ L , N ⟩ ∷ eqs} θeqs x∉eqs = {!!}
+no-vars→ext-unifies {θ} {x} {M} {[]} θeqs x∉eqs x∉θ = tt
+no-vars→ext-unifies {θ} {x} {M} {⟨ L , N ⟩ ∷ eqs} ⟨ θL=θN , θeqs ⟩ x∉L∪N∪eqs x∉θ =
+  let IH = no-vars→ext-unifies {θ} {x} {M} {eqs} θeqs x∉eqs x∉θ in
+  ⟨ L=N , IH ⟩
+    where
+    x∉L : x ∉ vars L
+    x∉L = λ x∈L → x∉L∪N∪eqs (p⊆p∪q (vars L) (vars N ∪ vars-eqs eqs) x∈L ) 
+    x∉N : x ∉ vars N
+    x∉N = λ x∈N →
+        let x∈L∪N∪eqs = p⊆r→p⊆q∪r _ _ _ (p⊆p∪q _ _) x∈N in
+        x∉L∪N∪eqs x∈L∪N∪eqs
+    x∉eqs : x ∉ vars-eqs eqs
+    x∉eqs = λ x∈eqs →
+      let x∈L∪N∪eqs = p⊆r→p⊆q∪r _ _ _ (p⊆r→p⊆q∪r _ _ _ ⊆-refl) x∈eqs in
+      x∉L∪N∪eqs x∈L∪N∪eqs
+    L=N : subst (⟨ ` x , M ⟩ ∷ θ) L ≡ subst (⟨ ` x , M ⟩ ∷ θ) N
+    L=N = begin
+        subst (⟨ ` x , M ⟩ ∷ θ) L     ≡⟨ ext-subst {θ}{x}{M}{L} x∉L x∉θ ⟩
+        subst θ L                     ≡⟨ θL=θN ⟩
+        subst θ N                     ≡⟨ sym (ext-subst {θ}{x}{M}{N} x∉N x∉θ) ⟩
+        subst (⟨ ` x , M ⟩ ∷ θ) N
+        ∎
 
+subst-var-eq : ∀{x}{M}{θ}
+   → subst (⟨ ` x , M ⟩ ∷ θ) (` x) ≡ M
+subst-var-eq {x}{M}{θ}
+    with x ≟ x
+... | yes refl = refl
+... | no xx = ⊥-elim (xx refl)
 
 unifies-eqs-refl' : ∀{θ θ'} → Subst θ → Subst θ' → dom θ' ∩ vars-eqs θ ≡ ∅ → (θ' ++ θ) unifies-eqs θ
 unifies-eqs-refl' {.[]} {θ'} empty Sθ' θ'∩θ=∅ = tt
@@ -283,8 +393,16 @@ unifies-eqs-refl' {⟨ ` x , M ⟩ ∷ θ} {θ'} (insert x∉M x∉θ Sθ) Sθ' 
 unifies-eqs-refl : ∀{θ} → Subst θ → θ unifies-eqs θ
 unifies-eqs-refl {[]} empty = tt
 unifies-eqs-refl {⟨ ` x , M ⟩ ∷ θ} (insert x∉M x∉θ SΘ) =
-  let IH = unifies-eqs-refl {θ} SΘ in
-  ⟨ {!!} , {!!} ⟩
+    let IH = unifies-eqs-refl {θ} SΘ in
+    ⟨ {!!} , {!!} ⟩
+    where
+    G1 : subst (⟨ ` x , M ⟩ ∷ θ) (` x) ≡ subst (⟨ ` x , M ⟩ ∷ θ) M
+    G1 = begin
+        subst (⟨ ` x , M ⟩ ∷ θ) (` x)     ≡⟨ subst-var-eq {x}{M}{θ} ⟩
+        M                                 ≡⟨ {!!} ⟩
+        subst (⟨ ` x , M ⟩ ∷ θ) M
+        ∎
+
 ```
 
 ## Failed occurs check implies no solutions

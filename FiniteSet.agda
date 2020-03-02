@@ -18,7 +18,7 @@ open Data.Nat.Properties.≤-Reasoning
 open import Data.Bool
   using (Bool; true; false; T; _∨_; _∧_)
 open import Data.Bool.Properties
-  using (∨-comm; ∨-assoc)
+  using (∨-comm; ∨-assoc; ∧-distribʳ-∨; ∧-distribˡ-∨ )
 open import Data.List
 open import Data.Product
   using (_×_; Σ; Σ-syntax; ∃; ∃-syntax; proj₁; proj₂)
@@ -47,7 +47,8 @@ abstract
   ⁅ 0 ⁆ = true ∷ []
   ⁅ suc n ⁆ = false ∷ ⁅ n ⁆
 
-  infix 4 _∈_ _∉_ _⊆_ _⇔_
+  infix 1 _⇔_
+  infix 4 _∈_ _∉_ _⊆_
   infixr 8 _-_
   infixr 7 _∩_
   infixr 6 _∪_
@@ -63,8 +64,8 @@ x ∉ p = ¬ (x ∈ p)
 _⊆_ : FiniteSet → FiniteSet → Set
 p ⊆ q = ∀ {x} → x ∈ p → x ∈ q  
 
-_⇔_ : FiniteSet → FiniteSet → Set
-p ⇔ q = p ⊆ q × q ⊆ p
+_⇔_ : Set → Set → Set
+P ⇔ Q = (P → Q) × (Q → P)
 
 abstract
 
@@ -92,6 +93,50 @@ abstract
   ∣ [] ∣ = 0
   ∣ false ∷ p ∣ = ∣ p ∣
   ∣ true ∷ p ∣ = suc ∣ p ∣
+
+{----------------------------------------------------
+ Definitions of set operations in terms of membership
+ ----------------------------------------------------}
+
+  ⊥⇔⊥⊎⊥ : ⊥ ⇔ (⊥ ⊎ ⊥)
+  ⊥⇔⊥⊎⊥ = ⟨ (λ ()) , (λ { (inj₁ x) → x ; (inj₂ x ) → x }) ⟩
+  
+  ∈∪ : ∀ x (p q : FiniteSet) → (x ∈ p ∪ q)  ⇔  (x ∈ p ⊎ x ∈ q)
+  ∈∪ zero [] [] = ⊥⇔⊥⊎⊥
+  ∈∪ zero [] (x ∷ q) =
+      ⟨ inj₂ , (λ { (inj₁ x') → ⊥-elim x' ; (inj₂ x') → x' } ) ⟩
+  ∈∪ zero (x ∷ p) [] = ⟨ inj₁ , G ⟩
+      where
+      G : T x ⊎ ⊥ → T x
+      G (inj₁ x) = x
+  ∈∪ zero (false ∷ p) (false ∷ q) = ⊥⇔⊥⊎⊥
+  ∈∪ zero (false ∷ p) (true ∷ q) = ⟨ (λ x → inj₂ tt) , (λ x → tt) ⟩
+  ∈∪ zero (true ∷ p) (x₁ ∷ q) = ⟨ (λ x → inj₁ tt) , (λ x → tt) ⟩
+  ∈∪ (suc x) [] q =
+      ⟨ (λ x₁ → inj₂ x₁) , (λ { (inj₁ x₁) → ⊥-elim x₁ ; (inj₂ x) → x }) ⟩
+  ∈∪ (suc x) (x₁ ∷ p) [] =
+      ⟨ (λ x₂ → inj₁ x₂) , (λ { (inj₁ x₁) → x₁ ; (inj₂ x) → ⊥-elim x }) ⟩
+  ∈∪ (suc x) (x₁ ∷ p) (x₂ ∷ q) = ∈∪ x p q
+
+  ∈p∪q→∈p⊎∈q : ∀{p q x} → x ∈ p ∪ q → x ∈ p ⊎ x ∈ q
+  ∈p∪q→∈p⊎∈q {p}{q}{x} x∈pq = (proj₁ (∈∪ x p q)) x∈pq
+  
+  ∈∩ : ∀ x (p q : FiniteSet) → (x ∈ p ∩ q)  ⇔  (x ∈ p × x ∈ q)
+  ∈∩ zero [] [] = ⟨ (λ x → ⟨ x , x ⟩) , proj₁ ⟩
+  ∈∩ zero [] (x ∷ q) = ⟨ (λ ()) , proj₁ ⟩
+  ∈∩ zero (x ∷ p) [] = ⟨ (λ ()) , proj₂ ⟩
+  ∈∩ zero (false ∷ p) (x₁ ∷ q) = ⟨ (λ ()) , proj₁ ⟩
+  ∈∩ zero (true ∷ p) (x₁ ∷ q) = ⟨ ⟨_,_⟩ tt , proj₂ ⟩
+  ∈∩ (suc x) [] [] = ⟨ (λ x → ⟨ x , x ⟩) , proj₁ ⟩
+  ∈∩ (suc x) [] (x₁ ∷ q) = ⟨ (λ ()) , (λ x₂ → proj₁ x₂) ⟩
+  ∈∩ (suc x) (x₁ ∷ p) [] = ⟨ (λ x₂ → ⊥-elim x₂) , (λ x₂ → proj₂ x₂) ⟩
+  ∈∩ (suc x) (x₁ ∷ p) (x₂ ∷ q) = ∈∩ x p q 
+
+  ∈p∩q→∈p : ∀ {p q x} → x ∈ p ∩ q → x ∈ p
+  ∈p∩q→∈p {p}{q}{x} x∈pq = proj₁ (proj₁ (∈∩ x p q) x∈pq)
+  
+  ∈p∩q→∈q : ∀ {p q x} → x ∈ p ∩ q → x ∈ q
+  ∈p∩q→∈q {p}{q}{x} x∈pq = proj₂ (proj₁ (∈∩ x p q) x∈pq)
 
 {---------------------------------------------------
   Properties
@@ -158,12 +203,41 @@ abstract
       rewrite +-comm ∣ p ∣ (suc ∣ q ∣)
       | +-comm ∣ q ∣ ∣ p ∣ = s≤s (≤-step (∣p∪q∣≤∣p∣+∣q∣ {p} {q}))
 
+  {------------------------
+   Identity Laws
+   ------------------------}
+
+  {------------------------
+   Demonation Laws
+   ------------------------}
+
+  {------------------------
+   Idempotent Laws
+   ------------------------}
+
+  {------------------------
+   Complementation Laws
+   ------------------------}
+
+  {------------------------
+   Commutative Laws
+   ------------------------}
+
   ∪-comm : ∀ p q → p ∪ q ≡ q ∪ p
   ∪-comm [] [] = refl
   ∪-comm [] (x ∷ q) = refl
   ∪-comm (x ∷ p) [] = refl
   ∪-comm (b ∷ p) (c ∷ q) rewrite ∨-comm b c | ∪-comm p q = refl
-  
+
+{-
+  ∩-comm : ∀ p q → p ∩ q ≡ q ∩ p
+  ∩-comm p q = {!!}
+-}
+
+  {------------------------
+   Associative Laws
+   ------------------------}
+
   ∪-assoc : ∀ p q r → (p ∪ q) ∪ r ≡ p ∪ (q ∪ r)
   ∪-assoc [] q r = refl
   ∪-assoc (a ∷ p) [] r = refl
@@ -171,6 +245,27 @@ abstract
   ∪-assoc (a ∷ p) (b ∷ q) (c ∷ r)
       rewrite ∨-assoc a b c
       | ∪-assoc p q r = refl
+
+  {-------------------------
+   Distributive Laws
+   -------------------------}
+
+  
+  ∪-distrib-∩ : ∀{A B C} → (A ∪ B) ∩ C ≡ (A ∩ C) ∪ (B ∩ C)
+  ∪-distrib-∩ {[]} {[]} {[]} = refl
+  ∪-distrib-∩ {[]} {[]} {x ∷ C} = refl
+  ∪-distrib-∩ {[]} {x ∷ B} {C} = refl
+  ∪-distrib-∩ {x ∷ A} {[]} {[]} = refl
+  ∪-distrib-∩ {false ∷ A} {[]} {x₁ ∷ C} = refl
+  ∪-distrib-∩ {true ∷ A} {[]} {x₁ ∷ C} = refl
+  ∪-distrib-∩ {x ∷ A} {x₁ ∷ B} {[]} = refl
+  ∪-distrib-∩ {x ∷ A} {y ∷ B} {z ∷ C}
+      {- rewrite ∧-distribˡ-∨ x y z -} = {!!}
+
+
+  {-------------
+   Uncategorized
+   -------------}
 
   p⊆p∪q : (p q : FiniteSet) → p ⊆ p ∪ q
   p⊆p∪q p [] x∈p rewrite ∪-comm p [] = x∈p
@@ -189,21 +284,7 @@ abstract
   p⊆r→p⊆q∪r : ∀ p q r → p ⊆ r → p ⊆ q ∪ r
   p⊆r→p⊆q∪r p q r pr = ⊆-trans {p}{r}{q ∪ r} pr (q⊆p∪q q r)
 
-  ∈p∪q→∈p⊎∈q : ∀{p q x} → x ∈ p ∪ q → x ∈ p ⊎ x ∈ q
-  ∈p∪q→∈p⊎∈q {[]} {q} {x} x∈pq = inj₂ x∈pq
-  ∈p∪q→∈p⊎∈q {b ∷ p} {[]} {x} x∈pq = inj₁ x∈pq
-  ∈p∪q→∈p⊎∈q {false ∷ p} {c ∷ q} {zero} x∈pq = inj₂ x∈pq
-  ∈p∪q→∈p⊎∈q {true ∷ p} {c ∷ q} {zero} x∈pq = inj₁ tt
-  ∈p∪q→∈p⊎∈q {b ∷ p} {c ∷ q} {suc x} x∈pq = ∈p∪q→∈p⊎∈q {p} {q} {x} x∈pq
 
-  ∈p∩q→∈p : ∀{p q x} → x ∈ p ∩ q → x ∈ p
-  ∈p∩q→∈p {true ∷ p} {true ∷ q} {zero} x∈p∩q = tt
-  ∈p∩q→∈p {a ∷ p} {b ∷ q} {suc x} x∈p∩q = ∈p∩q→∈p {p} {q} {x} x∈p∩q
-
-  ∈p∩q→∈q : ∀{p q x} → x ∈ p ∩ q → x ∈ q
-  ∈p∩q→∈q {true ∷ p} {true ∷ q} {zero} x∈p∩q = tt
-  ∈p∩q→∈q {a ∷ p} {b ∷ q} {suc x} x∈p∩q = ∈p∩q→∈q {p} {q} {x} x∈p∩q
-  
   ∪-lub : ∀ {p q r } → p ⊆ r → q ⊆ r → p ∪ q ⊆ r
   ∪-lub {p}{q}{r} pr qr {x} x∈p∪q
       with ∈p∪q→∈p⊎∈q {p}{q}{x} x∈p∪q
@@ -276,7 +357,12 @@ abstract
   ⁅y⁆∩⁅x⁆⊆∅ (suc x) (suc y) xy {zero} = λ z → z
   ⁅y⁆∩⁅x⁆⊆∅ (suc x) (suc y) xy {suc z} =
       (⁅y⁆∩⁅x⁆⊆∅ x y λ z → xy (cong suc z)) {z}
-      
+
+  x∈p→⁅x⁆∩p≡⁅x⁆ : ∀ x p → x ∈ p → ⁅ x ⁆ ∩ p ≡ ⁅ x ⁆
+  x∈p→⁅x⁆∩p≡⁅x⁆ zero (true ∷ p) x∈p = refl
+  x∈p→⁅x⁆∩p≡⁅x⁆ (suc x) (_ ∷ p) x∈p =
+      cong (λ □ → false ∷ □) (x∈p→⁅x⁆∩p≡⁅x⁆ x p x∈p)
+
   ∪-identityʳ₁ : ∀ p → p ⊆ p ∪ ∅
   ∪-identityʳ₁ [] ()
   ∪-identityʳ₁ (b ∷ p) {x} x∈ = x∈

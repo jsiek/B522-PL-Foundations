@@ -18,7 +18,7 @@ open Data.Nat.Properties.≤-Reasoning
 open import Data.Bool
   using (Bool; true; false; T; _∨_; _∧_)
 open import Data.Bool.Properties
-  using (∨-comm; ∨-assoc; ∧-distribʳ-∨; ∧-distribˡ-∨ )
+  using (∨-comm; ∨-assoc; ∧-comm; ∧-assoc; ∧-distribʳ-∨; ∧-distribˡ-∨)
 open import Data.List
 open import Data.Product
   using (_×_; Σ; Σ-syntax; ∃; ∃-syntax; proj₁; proj₂)
@@ -206,19 +206,45 @@ abstract
   {------------------------
    Identity Laws
    ------------------------}
+   
+  p∪∅≡p : ∀ p → p ∪ ∅ ≡ p
+  p∪∅≡p [] = refl
+  p∪∅≡p (x ∷ p) = refl
+
+  ∅∪p≡p : ∀ p → ∅ ∪ p ≡ p
+  ∅∪p≡p [] = refl
+  ∅∪p≡p (x ∷ p) = refl
 
   {------------------------
-   Demonation Laws
+   Domination Laws
    ------------------------}
 
   {------------------------
    Idempotent Laws
    ------------------------}
 
+  ∪-idem : ∀ p → p ∪ p ≡ p
+  ∪-idem [] = refl
+  ∪-idem (false ∷ p) rewrite ∪-idem p = refl
+  ∪-idem (true ∷ p) rewrite ∪-idem p = refl
+
+  ∩-idem : ∀ p → p ∩ p ≡ p
+  ∩-idem [] = refl
+  ∩-idem (false ∷ p) rewrite ∩-idem p = refl
+  ∩-idem (true ∷ p) rewrite ∩-idem p = refl
+
   {------------------------
    Complementation Laws
    ------------------------}
 
+  p-p⊆∅ : ∀ p → p - p ⊆ ∅
+  p-p⊆∅ [] ()
+  p-p⊆∅ (false ∷ p) {suc x} x∈ = p-p⊆∅ p {x} x∈
+  p-p⊆∅ (true ∷ p) {suc x} x∈ = p-p⊆∅ p {x} x∈
+
+  ∅⊆p-p : ∀ p → ∅ ⊆ p - p
+  ∅⊆p-p p {x} ()
+  
   {------------------------
    Commutative Laws
    ------------------------}
@@ -227,12 +253,15 @@ abstract
   ∪-comm [] [] = refl
   ∪-comm [] (x ∷ q) = refl
   ∪-comm (x ∷ p) [] = refl
-  ∪-comm (b ∷ p) (c ∷ q) rewrite ∨-comm b c | ∪-comm p q = refl
+  ∪-comm (b ∷ p) (c ∷ q)
+      rewrite ∨-comm b c | ∪-comm p q = refl
 
-{-
   ∩-comm : ∀ p q → p ∩ q ≡ q ∩ p
-  ∩-comm p q = {!!}
--}
+  ∩-comm [] [] = refl
+  ∩-comm [] (b ∷ q) = refl
+  ∩-comm (b ∷ p) [] = refl
+  ∩-comm (b ∷ p) (c ∷ q)
+      rewrite ∧-comm b c | ∩-comm p q = refl
 
   {------------------------
    Associative Laws
@@ -245,6 +274,14 @@ abstract
   ∪-assoc (a ∷ p) (b ∷ q) (c ∷ r)
       rewrite ∨-assoc a b c
       | ∪-assoc p q r = refl
+
+  ∩-assoc : ∀ p q r → (p ∩ q) ∩ r ≡ p ∩ (q ∩ r)
+  ∩-assoc [] q r = refl
+  ∩-assoc (a ∷ p) [] r = refl
+  ∩-assoc (a ∷ p) (b ∷ q) [] = refl
+  ∩-assoc (a ∷ p) (b ∷ q) (c ∷ r)
+      rewrite ∧-assoc a b c
+      | ∩-assoc p q r = refl
 
   {-------------------------
    Distributive Laws
@@ -260,8 +297,23 @@ abstract
   ∪-distrib-∩ {true ∷ A} {[]} {x₁ ∷ C} = refl
   ∪-distrib-∩ {x ∷ A} {x₁ ∷ B} {[]} = refl
   ∪-distrib-∩ {x ∷ A} {y ∷ B} {z ∷ C}
-      {- rewrite ∧-distribˡ-∨ x y z -} = {!!}
+      rewrite ∧-distribʳ-∨ z x y
+      | ∪-distrib-∩ {A}{B}{C} = refl
 
+  distrib-∨-sub : ∀ a b c → subtract a c ∨ subtract b c ≡ subtract (a ∨ b) c
+  distrib-∨-sub false b c = refl
+  distrib-∨-sub true false false = refl
+  distrib-∨-sub true false true = refl
+  distrib-∨-sub true true false = refl
+  distrib-∨-sub true true true = refl
+
+  distrib-∪- : ∀ p q r → (p - r) ∪ (q - r) ≡ (p ∪ q) - r
+  distrib-∪- [] [] r = refl
+  distrib-∪- [] (x ∷ q) r = refl
+  distrib-∪- (x ∷ p) [] r = p∪∅≡p _
+  distrib-∪- (a ∷ p) (b ∷ q) [] = refl
+  distrib-∪- (a ∷ p) (b ∷ q) (c ∷ r)
+      rewrite distrib-∪- p q r | distrib-∨-sub a b c = refl
 
   {-------------
    Uncategorized
@@ -300,7 +352,9 @@ abstract
   ... | inj₁ x∈p = (p⊆p∪q r s) (pr x∈p)
   ... | inj₂ x∈q = (q⊆p∪q r s) (qs x∈q)
 
-
+  {-------------------------------
+    Inequational reasoning about ⊆ 
+   -------------------------------}
 
   infix  1 begin⊆_
   infixr 2 _⊆⟨_⟩_
@@ -318,18 +372,6 @@ abstract
   ⊆-reflexive : ∀ {p q} → p ≡ q → p ⊆ q
   ⊆-reflexive {p} refl = ⊆-refl {p}
 
-  ∪-idem : ∀ p → p ∪ p ≡ p
-  ∪-idem [] = refl
-  ∪-idem (false ∷ p) rewrite ∪-idem p = refl
-  ∪-idem (true ∷ p) rewrite ∪-idem p = refl
-
-  p-p⊆∅ : ∀ p → p - p ⊆ ∅
-  p-p⊆∅ [] ()
-  p-p⊆∅ (false ∷ p) {suc x} x∈ = p-p⊆∅ p {x} x∈
-  p-p⊆∅ (true ∷ p) {suc x} x∈ = p-p⊆∅ p {x} x∈
-
-  ∅⊆p-p : ∀ p → ∅ ⊆ p - p
-  ∅⊆p-p p {x} ()
 
   p-∅≡p : ∀ p → p - ∅ ≡ p
   p-∅≡p [] = refl
@@ -366,30 +408,7 @@ abstract
   ∪-identityʳ₁ : ∀ p → p ⊆ p ∪ ∅
   ∪-identityʳ₁ [] ()
   ∪-identityʳ₁ (b ∷ p) {x} x∈ = x∈
-
-  p∪∅≡p : ∀ p → p ∪ ∅ ≡ p
-  p∪∅≡p [] = refl
-  p∪∅≡p (x ∷ p) = refl
-
-  ∅∪p≡p : ∀ p → ∅ ∪ p ≡ p
-  ∅∪p≡p [] = refl
-  ∅∪p≡p (x ∷ p) = refl
   
-  distrib-∨-sub : ∀ a b c → subtract a c ∨ subtract b c ≡ subtract (a ∨ b) c
-  distrib-∨-sub false b c = refl
-  distrib-∨-sub true false false = refl
-  distrib-∨-sub true false true = refl
-  distrib-∨-sub true true false = refl
-  distrib-∨-sub true true true = refl
-
-  distrib-∪- : ∀ p q r → (p - r) ∪ (q - r) ≡ (p ∪ q) - r
-  distrib-∪- [] [] r = refl
-  distrib-∪- [] (x ∷ q) r = refl
-  distrib-∪- (x ∷ p) [] r = p∪∅≡p _
-  distrib-∪- (a ∷ p) (b ∷ q) [] = refl
-  distrib-∪- (a ∷ p) (b ∷ q) (c ∷ r)
-      rewrite distrib-∪- p q r | distrib-∨-sub a b c = refl
-
   p∩r⊆∅→p-r≡p : ∀ p r
      → p ∩ r ⊆ ∅
      → p - r ≡ p

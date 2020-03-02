@@ -278,8 +278,15 @@ M∩domθ⊆∅→subst-vec-id : ∀{n}{Ms : Vec AST n}{θ}
    → vars-vec Ms ∩ dom θ ⊆ ∅
    → subst-vec θ Ms ≡ Ms
 M∩domθ⊆∅→subst-vec-id {zero} {[]} {θ} Sθ M∩domθ⊆∅ = refl
-M∩domθ⊆∅→subst-vec-id {suc n} {M ∷ Ms} {θ} Sθ M∩domθ⊆∅ =
-    cong₂ _∷_ (M∩domθ⊆∅→subst-id Sθ {!!}) (M∩domθ⊆∅→subst-vec-id {n}{Ms}{θ} Sθ {!!})
+M∩domθ⊆∅→subst-vec-id {suc n} {M ∷ Ms} {θ} Sθ M∩domθ⊆∅
+    rewrite ∪-distrib-∩ {vars M} {vars-vec Ms} {dom θ} =
+    cong₂ _∷_ (M∩domθ⊆∅→subst-id Sθ Mθ⊆∅) (M∩domθ⊆∅→subst-vec-id {n}{Ms}{θ} Sθ Msθ⊆∅)
+    where
+    Mθ⊆∅ : vars M ∩ dom θ ⊆ ∅
+    Mθ⊆∅ {x} x∈M∩domθ = M∩domθ⊆∅ {x} (p⊆p∪q _ _ {x} x∈M∩domθ)
+
+    Msθ⊆∅ : vars-vec Ms ∩ dom θ ⊆ ∅
+    Msθ⊆∅ {x} x∈Ms∩domθ = M∩domθ⊆∅ {x} (q⊆p∪q _ _ {x} x∈Ms∩domθ)
 
 M∩domθ⊆∅→subst-id {` x} {θ} Sθ M∩domθ⊆∅ = x∉domθ→subst-id Sθ G
     where

@@ -227,6 +227,13 @@ no-vars→subst-vec-id {suc n} {N ∷ Ns} {x}{M} ¬x∈M
 ... | no x∉N | no x∉Ns
     rewrite no-vars→subst-id {N}{x}{M} x∉N
     | no-vars→subst-vec-id {n}{Ns}{x}{M} x∉Ns = refl
+
+{-
+no-vars→subst-eqs-id : ∀{eqs x M}
+  → ¬ x ∈ vars-eqs eqs
+  → [ M / x ] eqs ≡ eqs
+no-vars→subst-eqs-id x∉eqs = {!!}  
+-}
 ```
 
 ```
@@ -983,12 +990,65 @@ xx-eqs∩dom⊆∅ {x} sub {y} y∈
     with proj₁ (∈∩ y _ _) y∈
 ... | ⟨ y∈eqs , y∈σ ⟩ = sub (proj₂ (∈∩ _ _ _) ⟨ p⊆r→p⊆q∪r _ _ _ (p⊆r→p⊆q∪r _ _ _ ⊆-refl) y∈eqs , y∈σ ⟩)
 
+x∉p∪q→x∉p×x∉q : ∀ {p q x} → x ∉ p ∪ q → x ∉ p × x ∉ q
+x∉p∪q→x∉p×x∉q {p}{q}{x} x∉pq = ⟨ x∉p , x∉q ⟩
+    where
+    x∉p : x ∉ p
+    x∉p x∈p = x∉pq (p⊆p∪q _ _ x∈p)
+    x∉q : x ∉ q
+    x∉q x∈q = x∉pq (q⊆p∪q _ _ x∈q)
+
+subst-dom : ∀{x}{M}{σ}
+   → x ∉ dom σ
+   → dom ([ M / x ] σ) ≡ dom σ
+subst-dom {x} {M} {[]} x∉σ = refl
+subst-dom {x} {M} {⟨ L , N ⟩ ∷ σ} x∉Lσ
+    with x∉p∪q→x∉p×x∉q x∉Lσ
+... | ⟨ x∉L , x∉σ ⟩
+    rewrite no-vars→subst-id {L}{x}{M} x∉L
+    | subst-dom {x} {M} {σ} x∉σ = refl
+
 M∩domσ⊆∅ : ∀{x}{M}{σ}{eqs}
    → Subst σ
    → (⁅ x ⁆ ∪ vars M ∪ vars-eqs eqs) ∩ dom σ ⊆ ∅
    → vars M ∩ dom ([ M / x ] σ) ⊆ ∅
-M∩domσ⊆∅ {x} {M} {[]} {eqs} empty sub = ? 
-M∩domσ⊆∅ {x} {M} {(⟨ ` y , N ⟩ ∷ σ)} {eqs} (insert x₁ x₂ x₃ Sσ) sub = {!!}
+M∩domσ⊆∅ {x} {M} {[]} {eqs} empty sub {y} y∈
+    with proj₁ (∈∩ y _ _) y∈
+... | ⟨ y∈M , y∈∅ ⟩ = y∈∅ 
+M∩domσ⊆∅ {x} {M} {(⟨ ` y , N ⟩ ∷ σ)} {eqs} (insert x₁ x₂ x₃ Sσ) sub =
+    G
+    where
+    sub' : (⁅ x ⁆ ∪ vars M ∪ vars-eqs eqs) ∩ dom σ ⊆ ∅
+    sub' {y} y∈
+        with proj₁ (∈∩ y _ _) y∈
+    ... | ⟨ y∈[x]Meqs , y∈domσ ⟩ = sub {y} (proj₂ (∈∩ y _ _) ⟨ y∈[x]Meqs , (p⊆r→p⊆q∪r _ _ _ ⊆-refl y∈domσ) ⟩)
+    
+    IH : vars M ∩ dom ([ M / x ] σ) ⊆ ∅
+    IH = M∩domσ⊆∅ {x} {M} {σ} {eqs} Sσ sub'
+    x≢y : x ≢ y
+    x≢y refl rewrite ∪-distrib-∩ {⁅ y ⁆} {vars M ∪ vars-eqs eqs} {⁅ y ⁆ ∪ dom σ} =
+        ∉∅ (sub {y} K)
+        where
+        K : y ∈ (⁅ y ⁆ ∩ (⁅ y ⁆ ∪ dom σ)) ∪ ((vars M ∪ vars-eqs eqs) ∩ (⁅ y ⁆ ∪ dom σ))
+        K = p⊆p∪q _ _ (proj₂ (∈∩ y _ _) ⟨ (x∈⁅x⁆ y) , (p⊆p∪q _ _ (x∈⁅x⁆ y)) ⟩)
+
+    x∉domσ : x ∉ dom σ
+    x∉domσ x∈domσ = ∉∅ (sub {x} J)
+        where
+        J : x ∈ (⁅ x ⁆ ∪ vars M ∪ vars-eqs eqs) ∩ (⁅ y ⁆ ∪ dom σ)
+        J = proj₂ (∈∩ x _ _ ) ⟨ (p⊆p∪q _ _ (x∈⁅x⁆ x)) , (q⊆p∪q _ _ x∈domσ) ⟩
+    H : vars M ∩ (⁅ y ⁆ ∪ dom ([ M / x ] σ)) ⊆ ∅
+    H {z} z∈
+        with proj₁ (∈∩ z _ _) z∈
+    ... | ⟨ z∈M , z∈[y]∪domσ ⟩
+        rewrite subst-dom{x}{M}{σ} x∉domσ =
+        sub {z} ((proj₂ (∈∩ z _ _) ⟨ (p⊆r→p⊆q∪r _ _ _ ⊆-refl (p⊆q→p⊆q∪r _ _ _ ⊆-refl z∈M)) ,
+                                     z∈[y]∪domσ ⟩))
+    G : vars M ∩ dom ([ M / x ] (⟨ ` y , N ⟩ ∷ σ)) ⊆ ∅
+    G
+        with x ≟ y
+    ... | yes refl = ⊥-elim (x≢y refl)
+    ... | no xy = H
 
 M∪x∪eqs : ∀ {M}{x}{eqs}{σ}
    → (vars M ∪ ⁅ x ⁆ ∪ vars-eqs eqs) ∩ dom σ ⊆ ∅

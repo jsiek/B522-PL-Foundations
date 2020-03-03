@@ -999,6 +999,19 @@ M∪x∪eqs {M}{x}{eqs}{σ} sub {y} y∈
     | ∪-assoc ⁅ x ⁆ (vars M) (vars-eqs eqs)
     = sub {y} (proj₂ (∈∩ y _ _) ⟨ y∈[x]Meqs , y∈σ ⟩ )
 
+subst-subst : ∀{x}{M}{σ}
+   → Subst σ
+   → Subst ([ M / x ] σ)
+subst-subst {x}{M}{σ} Sσ = {!!}
+
+insert-subst : ∀{x}{M}{σ}{eqs}
+   → x ∉ vars M
+   → (⁅ x ⁆ ∪ vars M ∪ vars-eqs eqs) ∩ dom σ ⊆ ∅
+   → Subst σ
+   → Subst (⟨ ` x , M ⟩ ∷ ([ M / x ] σ))
+insert-subst {x}{M}{σ}{eqs} x∉M eqs∩domσ⊆∅ Sσ =
+    insert x∉M (subst-eqs→no-vars {σ}{x}{M} x∉M) (M∩domσ⊆∅ {x}{M}{σ}{eqs} eqs∩domσ⊆∅) (subst-subst Sσ)
+
 unify-aux-sound : ∀{eqs}{σ}{θ}{ac}
    → Subst σ
    → vars-eqs eqs ∩ dom σ ⊆ ∅
@@ -1016,8 +1029,9 @@ unify-aux-sound {⟨ ` x , ` y ⟩ ∷ eqs} {σ} {θ} {acc rs} Sσ eqs∩domσ�
     | no xy
     with unify-aux-sound {[ ` y / x ] eqs}{(⟨ ` x , ` y ⟩ ∷ [ ` y / x ] σ)}{θ}
              {rs _ (first-< (measure2-vars<{eqs}{x}{y} xy))}
-             (insert (x∉⁅y⁆ x y xy)
-             (subst-eqs→no-vars {σ}{x}{` y}(x∉⁅y⁆ x y xy)) (M∩domσ⊆∅ {x}{` y}{σ}{eqs} eqs∩domσ⊆∅) {!!}) {!!} unify[eqs,σ]≡θ
+             (insert-subst {x}{` y}{σ}{eqs} (x∉⁅y⁆ x y xy) eqs∩domσ⊆∅ Sσ)
+             {!!}
+             unify[eqs,σ]≡θ
 ... | ⟨ θeqs , ⟨ θx=θy , θσ ⟩ ⟩ =     
        ⟨ ⟨ θx=θy , subst-reflect θeqs θx=θy ⟩ , subst-reflect θσ θx=θy ⟩
 unify-aux-sound {⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ eqs} {σ} {θ}{acc rs} Sσ eqs∩domσ⊆∅ unify[eqs,σ]≡θ
@@ -1028,7 +1042,10 @@ unify-aux-sound {⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ eqs} {σ} {θ}{acc rs} Sσ eqs�
 unify-aux-sound {⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ eqs} {σ} {θ}{acc rs} Sσ eqs∩domσ⊆∅ unify[eqs,σ]≡θ
     | no x∉M 
     with unify-aux-sound {([ op ⦅ Ms ⦆ / x ] eqs)} {(⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ [ op ⦅ Ms ⦆ / x ] σ)} {θ}
-             {rs _ (first-< (vars-eqs-sub-less {op}{Ms}{x}{eqs} x∉M))} (insert x∉M (subst-eqs→no-vars {σ}{x}{op ⦅ Ms ⦆} x∉M) (M∩domσ⊆∅ {x}{op ⦅ Ms ⦆}{σ}{eqs} eqs∩domσ⊆∅) {!!}) {!!} unify[eqs,σ]≡θ
+             {rs _ (first-< (vars-eqs-sub-less {op}{Ms}{x}{eqs} x∉M))}
+             (insert-subst {x}{op ⦅ Ms ⦆}{σ}{eqs} x∉M eqs∩domσ⊆∅ Sσ)
+             {!!}
+             unify[eqs,σ]≡θ
 ... | ⟨ θeqs , ⟨ θxM , θσ ⟩ ⟩ =
     ⟨ ⟨ θxM , subst-reflect θeqs θxM ⟩ , subst-reflect θσ θxM ⟩
 unify-aux-sound {⟨ op ⦅ Ms ⦆ , ` x ⟩ ∷ eqs} {σ} {θ}{acc rs} Sσ eqs∩domσ⊆∅ unify[eqs,σ]≡θ
@@ -1039,7 +1056,10 @@ unify-aux-sound {⟨ op ⦅ Ms ⦆ , ` x ⟩ ∷ eqs} {σ} {θ}{acc rs} Sσ eqs�
 unify-aux-sound {⟨ op ⦅ Ms ⦆ , ` x ⟩ ∷ eqs} {σ} {θ}{acc rs} Sσ eqs∩domσ⊆∅ unify[eqs,σ]≡θ
     | no x∉M
     with unify-aux-sound {([ op ⦅ Ms ⦆ / x ] eqs)} {(⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ [ op ⦅ Ms ⦆ / x ] σ)} {θ}
-             {rs _ (first-< (measure3-vars<{op}{Ms}{x}{eqs} x∉M))} (insert x∉M ((subst-eqs→no-vars {σ}{x}{op ⦅ Ms ⦆} x∉M)) (M∩domσ⊆∅ {x}{op ⦅ Ms ⦆}{σ}{eqs} (M∪x∪eqs {op ⦅ Ms ⦆}{x}{eqs}{σ} eqs∩domσ⊆∅)) {!!}) {!!} unify[eqs,σ]≡θ
+             {rs _ (first-< (measure3-vars<{op}{Ms}{x}{eqs} x∉M))}
+             ((insert-subst {x}{op ⦅ Ms ⦆}{σ}{eqs} x∉M (M∪x∪eqs {op ⦅ Ms ⦆}{x}{eqs}{σ} eqs∩domσ⊆∅) Sσ))
+             {!!}
+             unify[eqs,σ]≡θ
 ... | ⟨ θeqs , ⟨ θxM , θσ ⟩ ⟩ =
     ⟨ ⟨ sym θxM , subst-reflect θeqs θxM ⟩ , subst-reflect θσ θxM ⟩
 unify-aux-sound {⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs} {σ} {θ}{acc rs} Sσ eqs∩domσ⊆∅ unify[eqs,σ]≡θ

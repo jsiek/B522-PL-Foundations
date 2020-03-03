@@ -57,7 +57,7 @@ abstract
   _`∈_ : ℕ → FiniteSetNE → Set
   x ∈ ∅ = ⊥
   x ∈ ne p = x `∈ p
-  zero `∈ (b ∷ p) = ⊤
+  zero `∈ (b ∷ p) = T b
   suc x `∈ (true ∷ p) = x ∈ p
   suc x `∈ (false ∷ p) = x `∈ p
 
@@ -101,10 +101,44 @@ abstract
       G : ne p ≡ ne q → (ne p ⊆ ne q) × (ne q ⊆ ne p)
       G refl = ⟨ (λ x → x) , (λ x → x) ⟩
       
-  finite-set-ne-ext (b ∷ p) (c ∷ q) = ⟨ G , {!!} ⟩
+  finite-set-ne-ext (false ∷ p) (false ∷ q) = ⟨ G , H ⟩
       where
-      G : (b ∷ p) ≡ (c ∷ q) → ((b ∷ p) `⊆ (c ∷ q)) × ((c ∷ q) `⊆ (b ∷ p))
-      G = {!!}
+      G : (false ∷ p) ≡ (false ∷ q)
+        → ((false ∷ p) `⊆ (false ∷ q)) × ((false ∷ q) `⊆ (false ∷ p))
+      G refl = ⟨ (λ {x} x∈ → x∈) , (λ {x} x∈ → x∈) ⟩
+      H : ((false ∷ p) `⊆ (false ∷ q)) × ((false ∷ q) `⊆ (false ∷ p)) →
+          (false ∷ p) ≡ (false ∷ q)
+      H ⟨ pq , qp ⟩ =
+        let IH = finite-set-ne-ext p q in
+        cong (λ □ → false ∷ □)
+            (proj₂ IH ⟨ (λ {x} x∈ → pq {suc x} x∈) ,
+                        (λ {x} x∈ → qp {suc x} x∈) ⟩)
+  finite-set-ne-ext (false ∷ p) (true ∷ q) =
+      ⟨ (λ ()) , (λ { ⟨ pq , qp ⟩ → ⊥-elim (qp {0} tt) }) ⟩
+  finite-set-ne-ext (true ∷ p) (false ∷ q) =
+      ⟨ (λ ()) , (λ { ⟨ pq , qp ⟩ → ⊥-elim (pq {0} tt) }) ⟩
+  finite-set-ne-ext (true ∷ p) (true ∷ q) = ⟨ G , H ⟩
+      where
+      G : (true ∷ p) ≡ (true ∷ q) →
+          ((true ∷ p) `⊆ (true ∷ q)) × ((true ∷ q) `⊆ (true ∷ p))
+      G refl = ⟨ (λ x → x) , (λ x → x) ⟩
+      H : ((true ∷ p) `⊆ (true ∷ q)) × ((true ∷ q) `⊆ (true ∷ p)) →
+          (true ∷ p) ≡ (true ∷ q)
+      H ⟨ pq , qp ⟩ =
+          let IH = finite-set-ext p q in
+          cong (λ □ → true ∷ □) ( proj₂ IH ⟨ (λ {x} x∈ → pq {suc x} x∈) ,
+                                             (λ {x} x∈ → qp {suc x} x∈) ⟩)
+
+  _∪_ : FiniteSet → FiniteSet → FiniteSet
+  _∪'_ : FiniteSetNE → FiniteSetNE → FiniteSetNE
+  ∅ ∪ q = q
+  ne p ∪ ∅ = ne p
+  ne p ∪ ne q = ne (p ∪' q)
+
+  (true ∷ p) ∪' (true ∷ q) = {!!}
+  (true ∷ p) ∪' (false ∷ q) = {!!}
+  (false ∷ p) ∪' (true ∷ q) = {!!}
+  (false ∷ p) ∪' (false ∷ q) = {!!}
 
 {-
   infix 1 _⇔_

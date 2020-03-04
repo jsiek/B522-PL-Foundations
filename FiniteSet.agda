@@ -251,6 +251,30 @@ abstract
   p-q⊆p (true ∷ p) (false ∷ q) {zero} x∈ = tt
   p-q⊆p (b ∷ p) (c ∷ q) {suc x} x∈ = p-q⊆p p q {x} x∈
 
+  p∩q⊆∅→p-q≡p : ∀ p q → p ∩ q ⊆ ∅ → p - q ≡ p
+  p∩q⊆∅→p-q≡p [] [] pq = refl
+  p∩q⊆∅→p-q≡p [] (x ∷ q) pq = refl
+  p∩q⊆∅→p-q≡p (x ∷ p) [] pq = refl
+  p∩q⊆∅→p-q≡p (false ∷ p) (c ∷ q) pq = cong (λ □ → false ∷ □) (p∩q⊆∅→p-q≡p p q λ {x} x∈ → pq {suc x} x∈)
+  p∩q⊆∅→p-q≡p (true ∷ p) (false ∷ q) pq = cong (λ □ → true ∷ □) (p∩q⊆∅→p-q≡p p q λ {x} x∈ → pq {suc x} x∈)
+  p∩q⊆∅→p-q≡p (true ∷ p) (true ∷ q) pq = ⊥-elim (∉∅ {0} (pq {0} tt))
+
+  x∉p→p∩⁅x⁆⊆∅ : ∀ p x → x ∉ p → p ∩ ⁅ x ⁆ ⊆ ∅
+  x∉p→p∩⁅x⁆⊆∅ (false ∷ []) zero x∉p {suc y} y∈ = y∈
+  x∉p→p∩⁅x⁆⊆∅ (false ∷ x ∷ p) zero x∉p {suc y} y∈ = y∈
+  x∉p→p∩⁅x⁆⊆∅ (true ∷ p) zero x∉p {zero} y∈ = ⊥-elim (x∉p tt)
+  x∉p→p∩⁅x⁆⊆∅ (true ∷ []) zero x∉p {suc y} y∈ = y∈
+  x∉p→p∩⁅x⁆⊆∅ (true ∷ x ∷ p) zero x∉p {suc y} y∈ = y∈
+  x∉p→p∩⁅x⁆⊆∅ (false ∷ p) (suc x) x∉p {zero} y∈ = y∈
+  x∉p→p∩⁅x⁆⊆∅ (true ∷ p) (suc x) x∉p {zero} y∈ = y∈
+  x∉p→p∩⁅x⁆⊆∅ (a ∷ p) (suc x) x∉p {suc y} y∈ = x∉p→p∩⁅x⁆⊆∅ p x x∉p {y} y∈
+
+  x∉p-⁅x⁆ : ∀ x p → x ∉ p - ⁅ x ⁆
+  x∉p-⁅x⁆ x [] = λ z → z
+  x∉p-⁅x⁆ zero (false ∷ p) = λ z → z
+  x∉p-⁅x⁆ zero (true ∷ p) = λ z → z
+  x∉p-⁅x⁆ (suc x) (x₁ ∷ p) = x∉p-⁅x⁆ x p
+
   {------------------------
    Commutative Laws
    ------------------------}
@@ -366,6 +390,11 @@ abstract
   ... | inj₁ x∈p = (p⊆p∪q r s) (pr x∈p)
   ... | inj₂ x∈q = (q⊆p∪q r s) (qs x∈q)
 
+  p⊆r→q⊆s→p∩q⊆r∩s : ∀ p q r s → p ⊆ r → q ⊆ s → p ∩ q ⊆ r ∩ s
+  p⊆r→q⊆s→p∩q⊆r∩s p q r s pr qs {x} x∈pq
+      with proj₁ (∈∩ x p q) x∈pq
+  ... | ⟨ x∈p , x∈q ⟩ = proj₂ (∈∩ x r s) ⟨ (pr x∈p) , (qs x∈q) ⟩
+
   {-------------------------------
     Inequational reasoning about ⊆ 
    -------------------------------}
@@ -479,3 +508,4 @@ abstract
       G2 {suc x} = proj₂ IH
   p∪q⊆∅→p⊆∅×q⊆∅ (false ∷ p) (true ∷ q) p∪q⊆∅ = ⊥-elim (p∪q⊆∅ {0} tt)
   p∪q⊆∅→p⊆∅×q⊆∅ (true ∷ p) (c ∷ q) p∪q⊆∅ = ⊥-elim (p∪q⊆∅ {0} tt)
+

@@ -1065,15 +1065,30 @@ M∪x∪eqs {M}{x}{eqs}{σ} sub {y} y∈
 eqs∩x∪σ⊆∅ : ∀{x}{M}{σ}{eqs}
    → (⁅ x ⁆ ∪ vars M ∪ vars-eqs eqs) ∩ dom σ ⊆ ∅
    → vars-eqs ([ M / x ] eqs) ∩ (⁅ x ⁆ ∪ dom ([ M / x ] σ)) ⊆ ∅
-eqs∩x∪σ⊆∅ {x}{M}{σ}{eqs} eqs∩domσ⊆∅ {y} y∈
-    with proj₁ (∈∩ y _ _) y∈
-... | ⟨ y∈eqs , y∈[x]∪σ ⟩
-    with proj₁ (∈∪ y _ _) (vars-eqs-subst-∪ {eqs}{x}{M} y∈eqs)
-... | inj₁ xx = {!!}    
+eqs∩x∪σ⊆∅ {x}{M}{σ}{eqs} eqs∩domσ⊆∅ {y} y∈ = {!!}
+    where
+    x∉σ : x ∉ dom σ
+    x∉σ x∈σ =
+       let x∈∅ = eqs∩domσ⊆∅ {x} (proj₂ (∈∩ _ _ _) ⟨ (p⊆p∪q {!!} {!!} {!x∈⁅x⁆ )!}) , {!!} ⟩) in
+       ⊥-elim (∉∅ x∈∅)
 {-
-      eqs∩domσ⊆∅ {y} (proj₂ (∈∩ y _ _) ⟨ {!!} , {!!} ⟩)
+    with proj₁ (∈∩ y _ _) y∈
+... | ⟨ y∈eqs , y∈[x]∪dom[M/x]σ ⟩
+    with proj₁ (∈∪ y _ _) (vars-eqs-subst-∪ {eqs}{x}{M} y∈eqs)
+... | inj₂ y∈eqs-x = {!!}
+... | inj₁ y∈M
+    with proj₁ (∈∪ y _ _) y∈[x]∪dom[M/x]σ
+... | inj₁ y∈[x] rewrite x∈⁅y⁆→x≡y _ _ y∈[x] = {!!}
+... | inj₂ y∈[M/x]domσ =
+    eqs∩domσ⊆∅ {y} (proj₂ (∈∩ y _ _) ⟨ G2 , G1 ⟩)
+    where
+    x≢y : x ≢ y
+    x≢y = {!!}
+    G1 : y ∈ dom σ
+    G1 = {!!}
+    G2 : y ∈ ⁅ x ⁆ ∪ vars M ∪ vars-eqs eqs
+    G2 = p⊆r→p⊆q∪r _ _ _ (p⊆p∪q _ _) y∈M
 -}
-... | inj₂ xx = {!!}
 
 MsLseqs∩domσ⊆∅ : ∀{n}{Ms Ls : Vec AST n}{eqs}{σ}
    → (vars-vec Ms ∪ vars-vec Ls ∪ vars-eqs eqs) ∩ dom σ ⊆ ∅

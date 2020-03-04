@@ -1075,16 +1075,43 @@ MsLseqs∩domσ⊆∅ {n}{Ms}{Ls}{eqs}{σ} = {!!}
 
 subst-subst : ∀{x}{M}{σ}
    → Subst σ
+   → x ∉ dom σ
+   → vars M ∩ dom σ ⊆ ∅
    → Subst ([ M / x ] σ)
-subst-subst {x}{M}{σ} Sσ = {!!}
-
+subst-subst {x} {M} {[]} empty x∉σ M∩σ⊆∅ = empty
+subst-subst {x} {M} {(⟨ ` y , N ⟩ ∷ σ)} (insert y∉N x₂ N∩domσ⊆∅ Sσ) x∉σ M∩σ⊆∅
+    with x ≟ y
+... | yes refl = ⊥-elim (x∉σ (p⊆p∪q _ _ (x∈⁅x⁆ y)))
+... | no xy = insert G1 G2 G3 G4
+    where
+    G1 : y ∉ vars ([ x := M ] N)
+    G1 y∈[x:=M]N 
+        with proj₁ (∈∪ _ _ _) (vars-subst-∪ {N}{x}{M} y∈[x:=M]N)
+    ... | inj₁ y∈M =
+          let y∈M∩[y]∪σ = proj₂ (∈∩ _ _ _) ⟨ y∈M , p⊆p∪q _ (dom σ) (x∈⁅x⁆ y) ⟩ in
+          ⊥-elim (∉∅ (M∩σ⊆∅ y∈M∩[y]∪σ))
+    ... | inj₂ y∈N-x =
+          let y∈N = p-q⊆p _ _ y∈N-x in
+          ⊥-elim (y∉N y∈N)
+    G2 : y ∉ vars-eqs ([ M / x ] σ)
+    G2 = {!!}
+    G3 : vars ([ x := M ] N) ∩ dom ([ M / x ] σ) ⊆ ∅
+    G3 = {!!}
+    G5 : vars M ∩ dom σ ⊆ ∅
+    G5 {z} z∈
+        with proj₁ (∈∩ _ _ _) z∈
+    ... | ⟨ z∈M , z∈σ ⟩ = {!!}
+    G4 : Subst ([ M / x ] σ)
+    G4 = subst-subst {x} {M}{σ} Sσ (λ x∈σ → x∉σ (q⊆p∪q _ _ x∈σ)) G5
+    
 insert-subst : ∀{x}{M}{σ}{eqs}
    → x ∉ vars M
    → (⁅ x ⁆ ∪ vars M ∪ vars-eqs eqs) ∩ dom σ ⊆ ∅
    → Subst σ
    → Subst (⟨ ` x , M ⟩ ∷ ([ M / x ] σ))
 insert-subst {x}{M}{σ}{eqs} x∉M eqs∩domσ⊆∅ Sσ =
-    insert x∉M (subst-eqs→no-vars {σ}{x}{M} x∉M) (M∩domσ⊆∅ {x}{M}{σ}{eqs} Sσ eqs∩domσ⊆∅) (subst-subst Sσ)
+    insert x∉M (subst-eqs→no-vars {σ}{x}{M} x∉M) (M∩domσ⊆∅ {x}{M}{σ}{eqs} Sσ eqs∩domσ⊆∅)
+        (subst-subst Sσ {!!} {!!})
 
 unify-aux-sound : ∀{eqs}{σ}{θ}{ac}
    → Subst σ

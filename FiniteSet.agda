@@ -244,7 +244,13 @@ abstract
 
   ∅⊆p-p : ∀ p → ∅ ⊆ p - p
   ∅⊆p-p p {x} ()
-  
+
+  p-q⊆p : ∀ p q → p - q ⊆ p
+  p-q⊆p [] q ()
+  p-q⊆p (x ∷ p) [] = λ z → z
+  p-q⊆p (true ∷ p) (false ∷ q) {zero} x∈ = tt
+  p-q⊆p (b ∷ p) (c ∷ q) {suc x} x∈ = p-q⊆p p q {x} x∈
+
   {------------------------
    Commutative Laws
    ------------------------}

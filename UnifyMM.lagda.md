@@ -833,24 +833,6 @@ measure1 {eqs}{θ}{x} = third-< (measure1-vars≤{eqs}) ≤-refl (s≤s (s≤s �
 ```
 
 ```
-measure2-vars< : ∀{eqs}{x}{y}
-   → x ≢ y
-   → ∣ vars-eqs ([ ` y / x ] eqs) ∣ < ∣ vars-eqs (⟨ ` x , ` y ⟩ ∷ eqs) ∣
-measure2-vars<{eqs}{x}{y} xy =               begin≤
-     suc ∣ vars-eqs ([ ` y / x ] eqs) ∣       ≤⟨ s≤s (p⊆q⇒∣p∣≤∣q∣ (vars-eqs-subst-∪ {eqs} {x} {` y})) ⟩
-     suc ∣ ⁅ y ⁆ ∪ (vars-eqs eqs - ⁅ x ⁆) ∣   ≤⟨ ≤-reflexive (cong (λ □ → suc ∣ □ ∣)
-                                                   (distrib-∪-2 ⁅ y ⁆ (vars-eqs eqs) ⁅ x ⁆ (⁅y⁆∩⁅x⁆⊆∅ x y xy))) ⟩
-     suc ∣ (⁅ y ⁆ ∪ vars-eqs eqs) - ⁅ x ⁆ ∣   ≤⟨ ∣p-x∣<∣p∪x∣ (⁅ y ⁆ ∪ vars-eqs eqs) x ⟩
-     ∣ (⁅ y ⁆ ∪ vars-eqs eqs) ∪ ⁅ x ⁆ ∣       ≤⟨ ≤-reflexive (cong ∣_∣ (∪-comm _ _)) ⟩
-     ∣ ⁅ x ⁆ ∪ ⁅ y ⁆ ∪ vars-eqs eqs ∣         ≤⟨ ≤-reflexive refl ⟩
-     ∣ vars-eqs (⟨ ` x , ` y ⟩ ∷ eqs) ∣       QED
-measure2 : ∀{eqs}{θ}{x}{y}
-   → x ≢ y
-   → measure-eqs ([ ` y / x ] eqs) (⟨ ` x , ` y ⟩ ∷ [ ` y / x ] θ) <₃ measure-eqs (⟨ ` x , ` y ⟩ ∷ eqs) θ
-measure2{eqs}{θ}{x}{y} xy = first-< (measure2-vars<{eqs}{x}{y} xy)
-```
-
-```
 measure3-vars< : ∀{op}{Ms}{x}{eqs} → x ∉ vars (op ⦅ Ms ⦆)
    → ∣ vars-eqs ([ op ⦅ Ms ⦆ / x ] eqs) ∣ < ∣ vars-vec Ms ∪ ⁅ x ⁆ ∪ vars-eqs eqs ∣
 measure3-vars< {op}{Ms}{x}{eqs} x∉M = begin≤
@@ -874,14 +856,40 @@ measure4{eqs}{θ}{op}{Ms}{x} x∉M = (first-< (vars-eqs-sub-less {op}{Ms}{x}{eqs
 ```
 
 ```
+measure2-vars< : ∀{eqs}{x}{y}
+   → x ≢ y
+   → ∣ vars-eqs ([ ` y / x ] eqs) ∣ < ∣ vars-eqs (⟨ ` x , ` y ⟩ ∷ eqs) ∣
+measure2-vars<{eqs}{x}{y} xy =               begin≤
+     suc ∣ vars-eqs ([ ` y / x ] eqs) ∣       ≤⟨ s≤s (p⊆q⇒∣p∣≤∣q∣ (vars-eqs-subst-∪ {eqs} {x} {` y})) ⟩
+     suc ∣ ⁅ y ⁆ ∪ (vars-eqs eqs - ⁅ x ⁆) ∣   ≤⟨ ≤-reflexive (cong (λ □ → suc ∣ □ ∣)
+                                                   (distrib-∪-2 ⁅ y ⁆ (vars-eqs eqs) ⁅ x ⁆ (⁅y⁆∩⁅x⁆⊆∅ x y xy))) ⟩
+     suc ∣ (⁅ y ⁆ ∪ vars-eqs eqs) - ⁅ x ⁆ ∣   ≤⟨ ∣p-x∣<∣p∪x∣ (⁅ y ⁆ ∪ vars-eqs eqs) x ⟩
+     ∣ (⁅ y ⁆ ∪ vars-eqs eqs) ∪ ⁅ x ⁆ ∣       ≤⟨ ≤-reflexive (cong ∣_∣ (∪-comm _ _)) ⟩
+     ∣ ⁅ x ⁆ ∪ ⁅ y ⁆ ∪ vars-eqs eqs ∣         ≤⟨ ≤-reflexive refl ⟩
+     ∣ vars-eqs (⟨ ` x , ` y ⟩ ∷ eqs) ∣       QED
+measure2 : ∀{eqs}{θ}{x}{y}
+   → x ≢ y
+   → measure-eqs ([ ` y / x ] eqs) (⟨ ` x , ` y ⟩ ∷ [ ` y / x ] θ) <₃ measure-eqs (⟨ ` x , ` y ⟩ ∷ eqs) θ
+measure2{eqs}{θ}{x}{y} xy = first-< (measure2-vars<{eqs}{x}{y} xy)
+```
+
+```
 measure4-ops< : ∀{n}{Ms Ls : Vec AST n}{eqs}
    → num-ops-eqs (append-eqs Ms Ls eqs) < suc (num-ops-vec Ms + suc (num-ops-vec Ls) + num-ops-eqs eqs)
 measure4-ops< {n}{Ms}{Ls}{eqs} rewrite num-ops-append Ms Ls eqs
        | +-comm (num-ops-vec Ms) (suc (num-ops-vec Ls))
        | +-comm (num-ops-vec Ls) (num-ops-vec Ms) = s≤s (≤-step ≤-refl)
+
+measure5 : ∀{eqs}{θ}{op}{Ms Ls : Vec AST (arity op)}
+   → measure-eqs (append-eqs Ms Ls eqs) θ
+     <₃ measure-eqs (⟨ op ⦅ Ms ⦆ , op ⦅ Ls ⦆ ⟩ ∷ eqs) θ
+measure5 {eqs}{θ}{op}{Ms}{Ls} = (second-< vars≤ (measure4-ops<{Ms = Ms}{Ls}{eqs}))
+    where
+    vars≤ : ∣ vars-eqs (append-eqs Ms Ls eqs) ∣ ≤ ∣ vars-vec Ms ∪ vars-vec Ls ∪ vars-eqs eqs ∣
+    vars≤ = p⊆q⇒∣p∣≤∣q∣ (var-eqs-append-⊆ Ms Ls eqs)
 ```
 
-## Unify Function
+## The Unify Function
 
 Martelli and Montanari's Algorithm 1.
 
@@ -890,37 +898,40 @@ data Result : Set where
   finished : Equations → Result
   no-solution : Result
 
-unify-aux : (eqs : Equations) → (θ : Equations) → Acc _<₃_ (measure-eqs eqs θ) → Result
+unify-aux : (eqs : Equations) → (θ : Equations)
+          → Acc _<₃_ (measure-eqs eqs θ) → Result
 unify-aux [] θ rec = finished θ
 unify-aux (⟨ ` x , ` y ⟩ ∷ eqs) θ (acc rec)
     with x ≟ y
 ... | yes refl = unify-aux eqs θ (rec _ (measure1 {eqs}{θ}))
-... | no xy = unify-aux ([ ` y / x ] eqs) (⟨ ` x , ` y ⟩ ∷ [ ` y / x ] θ) (rec _ (measure2{eqs}{θ} xy))
+... | no xy =
+    let eqs' = [ ` y / x ] eqs in
+    let θ' = ⟨ ` x , ` y ⟩ ∷ [ ` y / x ] θ in
+    unify-aux eqs' θ' (rec _ (measure2{eqs}{θ} xy))
 unify-aux (⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ eqs) θ (acc rec)
     with occurs? x (op ⦅ Ms ⦆)
 ... | yes x∈M = no-solution
-... | no x∉M = unify-aux ([ op ⦅ Ms ⦆ / x ] eqs)
-                         (⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ [ op ⦅ Ms ⦆ / x ] θ)
-                         (rec _ (measure4{eqs}{θ} x∉M))
+... | no x∉M =
+    let eqs' = [ op ⦅ Ms ⦆ / x ] eqs in
+    let θ' = ⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ [ op ⦅ Ms ⦆ / x ] θ in
+    unify-aux eqs' θ' (rec _ (measure4{eqs}{θ} x∉M))
 unify-aux (⟨ op ⦅ Ms ⦆ , ` x ⟩ ∷ eqs) θ (acc rec)
     with occurs? x (op ⦅ Ms ⦆)
 ... | yes x∈M = no-solution
-... | no x∉M = unify-aux ([ op ⦅ Ms ⦆ / x ] eqs)
-                         (⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ [ op ⦅ Ms ⦆ / x ] θ)
-                         (rec _ (measure3{eqs}{θ} x∉M))
+... | no x∉M =
+    let eqs' = [ op ⦅ Ms ⦆ / x ] eqs in
+    let θ' = ⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ [ op ⦅ Ms ⦆ / x ] θ in
+    unify-aux eqs' θ' (rec _ (measure3{eqs}{θ} x∉M))
 unify-aux (⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs) θ (acc rec)
     with op-eq? op op'
-... | yes refl = unify-aux (append-eqs Ms Ls eqs) θ (rec _ (second-< vars≤ (measure4-ops<{Ms = Ms}{Ls}{eqs})))
-    where
-    vars≤ : ∣ vars-eqs (append-eqs Ms Ls eqs) ∣ ≤ ∣ vars-vec Ms ∪ vars-vec Ls ∪ vars-eqs eqs ∣
-    vars≤ = p⊆q⇒∣p∣≤∣q∣ (var-eqs-append-⊆ Ms Ls eqs)
+... | yes refl = unify-aux (append-eqs Ms Ls eqs) θ (rec _ (measure5 {eqs}{θ}))
 ... | no neq = no-solution
 
 unify : (eqs : Equations) → Result
 unify eqs = unify-aux eqs [] (<₃-wellFounded (measure-eqs eqs []))
 ```
 
-## Unify Correct
+## Proof that Unify is Correct
 
 ```
 xx-eqs∩dom⊆∅ : ∀ {x eqs σ}
@@ -1139,7 +1150,7 @@ unify-aux-sound {⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ eqs} {σ} {θ}{acc rs} Sσ eqs�
 unify-aux-sound {⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ eqs} {σ} {θ}{acc rs} Sσ eqs∩domσ⊆∅ unify[eqs,σ]≡θ
     | no x∉M 
     with unify-aux-sound {([ op ⦅ Ms ⦆ / x ] eqs)} {(⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ [ op ⦅ Ms ⦆ / x ] σ)} {θ}
-             {rs _ (first-< (vars-eqs-sub-less {op}{Ms}{x}{eqs} x∉M))}
+             {rs _ (measure4{eqs}{σ} x∉M)}
              (insert-subst {x}{op ⦅ Ms ⦆}{σ}{eqs} x∉M eqs∩domσ⊆∅ Sσ)
              (eqs∩x∪σ⊆∅ {x}{op ⦅ Ms ⦆}{σ}{eqs} x∉M eqs∩domσ⊆∅)
              unify[eqs,σ]≡θ
@@ -1153,7 +1164,7 @@ unify-aux-sound {⟨ op ⦅ Ms ⦆ , ` x ⟩ ∷ eqs} {σ} {θ}{acc rs} Sσ eqs�
 unify-aux-sound {⟨ op ⦅ Ms ⦆ , ` x ⟩ ∷ eqs} {σ} {θ}{acc rs} Sσ eqs∩domσ⊆∅ unify[eqs,σ]≡θ
     | no x∉M
     with unify-aux-sound {([ op ⦅ Ms ⦆ / x ] eqs)} {(⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ [ op ⦅ Ms ⦆ / x ] σ)} {θ}
-             {rs _ (first-< (measure3-vars<{op}{Ms}{x}{eqs} x∉M))}
+             {rs _ (measure3{eqs}{θ} x∉M)}
              ((insert-subst {x}{op ⦅ Ms ⦆}{σ}{eqs} x∉M (M∪x∪eqs {op ⦅ Ms ⦆}{x}{eqs}{σ} eqs∩domσ⊆∅) Sσ))
              (eqs∩x∪σ⊆∅ {x}{op ⦅ Ms ⦆}{σ}{eqs} x∉M (M∪x∪eqs {op ⦅ Ms ⦆}{x}{eqs}{σ} eqs∩domσ⊆∅))
              unify[eqs,σ]≡θ
@@ -1162,7 +1173,7 @@ unify-aux-sound {⟨ op ⦅ Ms ⦆ , ` x ⟩ ∷ eqs} {σ} {θ}{acc rs} Sσ eqs�
 unify-aux-sound {⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs} {σ} {θ}{acc rs} Sσ eqs∩domσ⊆∅ unify[eqs,σ]≡θ
     with op-eq? op op'
 ... | yes refl
-    with unify-aux-sound {append-eqs Ms Ls eqs}{σ}{θ}{rs _ (second-< (p⊆q⇒∣p∣≤∣q∣ (var-eqs-append-⊆ Ms Ls eqs)) (measure4-ops<{Ms = Ms}{Ls}{eqs}))} Sσ (MsLseqs∩domσ⊆∅ {Ms = Ms}{Ls = Ls}{σ = σ} eqs∩domσ⊆∅) unify[eqs,σ]≡θ
+    with unify-aux-sound {append-eqs Ms Ls eqs}{σ}{θ}{rs _ (measure5{eqs}{θ})} Sσ (MsLseqs∩domσ⊆∅ {Ms = Ms}{Ls = Ls}{σ = σ} eqs∩domσ⊆∅) unify[eqs,σ]≡θ
 ... | ⟨ θMs,Ls,eqs , θσ ⟩
     with subst-vec-reflect {Ms = Ms}{Ls} θMs,Ls,eqs
 ... | ⟨ θMs=θLs , θeqs ⟩ =
@@ -1190,11 +1201,54 @@ unify-aux-complete : ∀{eqs}{σ}{ac}
    → vars-eqs eqs ∩ dom σ ⊆ ∅
    → unify-aux eqs σ ac ≡ no-solution
    → ∀ θ → ¬ (θ unifies-eqs eqs × θ unifies-eqs σ)
-unify-aux-complete {⟨ ` x , ` y ⟩ ∷ eqs} {σ} {acc ac} Sσ eqs∩domσ⊆∅ unify-eqsσ≡no
+unify-aux-complete {⟨ ` x , ` y ⟩ ∷ eqs} {σ} {acc rs} Sσ eqs∩domσ⊆∅ unify[eqs,σ]≡no θ ⟨ ⟨ θxy , θeqs ⟩ , θσ ⟩
     with x ≟ y
-... | yes refl = {!!}
-... | no xy = {!!}
-unify-aux-complete {⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ eqs} {σ} {ac} Sσ eqs∩domσ⊆∅ unify-eqsσ≡no = {!!}
-unify-aux-complete {⟨ op ⦅ Ms ⦆ , ` x ⟩ ∷ eqs} {σ} {ac} Sσ eqs∩domσ⊆∅ unify-eqsσ≡no = {!!}
-unify-aux-complete {⟨ op ⦅ Ms ⦆ , op₁ ⦅ Ls ⦆ ⟩ ∷ eqs} {σ} {ac} Sσ eqs∩domσ⊆∅ unify-eqsσ≡no = {!!}
+... | yes refl =
+    unify-aux-complete {eqs}{σ} {rs _ (measure1 {eqs}{θ})}
+        Sσ (xx-eqs∩dom⊆∅ {x}{eqs}{σ} eqs∩domσ⊆∅) unify[eqs,σ]≡no θ ⟨ θeqs , θσ ⟩ 
+... | no xy =
+    let eqs' = [ ` y / x ] eqs in
+    let σ' = ⟨ ` x , ` y ⟩ ∷ [ ` y / x ] σ in
+    unify-aux-complete {eqs'}{σ'}{rs _ (measure2{eqs}{θ} xy)}
+        (insert-subst {x}{` y}{σ}{eqs} (x∉⁅y⁆ x y xy) eqs∩domσ⊆∅ Sσ)
+        (eqs∩x∪σ⊆∅ {x}{` y}{σ}{eqs} (x∉⁅y⁆ x y xy) eqs∩domσ⊆∅)
+        unify[eqs,σ]≡no θ ⟨ subst-pres θxy θeqs , ⟨ θxy , (subst-pres θxy θσ) ⟩ ⟩
+unify-aux-complete {⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ eqs} {σ} {acc rs} Sσ eqs∩domσ⊆∅ unify[eqs,σ]≡no θ ⟨ ⟨ θxM , θeqs ⟩ , θσ ⟩
+    with occurs? x (op ⦅ Ms ⦆)
+... | yes x∈M = occurs-no-soln {M = op ⦅ Ms ⦆} x∈M tt θxM
+... | no x∉M =
+    let eqs' = [ op ⦅ Ms ⦆ / x ] eqs in
+    let σ' = ⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ [ op ⦅ Ms ⦆ / x ] σ in
+    unify-aux-complete {eqs'}{σ'}{rs _ (measure4{eqs}{θ} x∉M)}
+        (insert-subst {x}{op ⦅ Ms ⦆}{σ}{eqs} x∉M eqs∩domσ⊆∅ Sσ)
+        (eqs∩x∪σ⊆∅ {x}{op ⦅ Ms ⦆}{σ}{eqs} x∉M eqs∩domσ⊆∅)
+        unify[eqs,σ]≡no θ ⟨ subst-pres θxM θeqs , ⟨ θxM , (subst-pres θxM θσ) ⟩ ⟩
+unify-aux-complete {⟨ op ⦅ Ms ⦆ , ` x ⟩ ∷ eqs} {σ} {acc rs} Sσ eqs∩domσ⊆∅ unify[eqs,σ]≡no θ ⟨ ⟨ θMx , θeqs ⟩ , θσ ⟩
+    with occurs? x (op ⦅ Ms ⦆)
+... | yes x∈M = occurs-no-soln {M = op ⦅ Ms ⦆} x∈M tt (sym θMx)
+... | no x∉M =
+    let eqs' = [ op ⦅ Ms ⦆ / x ] eqs in
+    let σ' = ⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ [ op ⦅ Ms ⦆ / x ] σ in
+    unify-aux-complete {eqs'}{σ'}{rs _ (measure3{eqs}{θ} x∉M)}
+        (insert-subst {x}{op ⦅ Ms ⦆}{σ}{eqs} x∉M (M∪x∪eqs {op ⦅ Ms ⦆}{x}{eqs}{σ} eqs∩domσ⊆∅) Sσ)
+        (eqs∩x∪σ⊆∅ {x}{op ⦅ Ms ⦆}{σ}{eqs} x∉M (M∪x∪eqs {op ⦅ Ms ⦆}{x}{eqs}{σ} eqs∩domσ⊆∅))
+        unify[eqs,σ]≡no θ ⟨ subst-pres (sym θMx) θeqs , ⟨ (sym θMx) , (subst-pres (sym θMx) θσ) ⟩ ⟩
+unify-aux-complete {⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs} {σ} {acc rs} Sσ eqs∩domσ⊆∅ unify[eqs,σ]≡no θ ⟨ ⟨ θML , θeqs ⟩ , θσ ⟩
+    with op-eq? op op'
+... | yes refl =    
+    unify-aux-complete {append-eqs Ms Ls eqs}{σ}{rs _ (measure5{eqs}{θ})} Sσ
+        (MsLseqs∩domσ⊆∅ {Ms = Ms}{Ls = Ls}{σ = σ} eqs∩domσ⊆∅) unify[eqs,σ]≡no θ
+        ⟨ subst-vec-pres {Ms = Ms}{Ls = Ls} θeqs (Ms≡-inversion θML) , θσ ⟩
+unify-aux-complete {⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs} {σ} {acc rs} Sσ eqs∩domσ⊆∅ unify[eqs,σ]≡no θ ⟨ ⟨ θML , θeqs ⟩ , θσ ⟩
+    | no neq = neq (op≡-inversion θML)
+
+unify-complete :  ∀{eqs}
+   → unify eqs ≡ no-solution
+   → ∀ θ → ¬ θ unifies-eqs eqs
+unify-complete {eqs} unify[eqs]=no θ θeqs =
+    let m = (<₃-wellFounded (measure-eqs eqs [])) in
+    unify-aux-complete {eqs}{[]}{m} empty G unify[eqs]=no θ ⟨ θeqs , tt ⟩
+    where
+    G : vars-eqs eqs ∩ ∅ ⊆ ∅
+    G rewrite p∩∅≡∅ (vars-eqs eqs) = λ z → z
 ```

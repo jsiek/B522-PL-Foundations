@@ -278,6 +278,31 @@ M∩domθ⊆∅→subst-id {op ⦅ Ms ⦆} {θ} Sθ M∩domθ⊆∅ =
     cong (λ □ → op ⦅ □ ⦆) (M∩domθ⊆∅→subst-vec-id {Ms = Ms} Sθ M∩domθ⊆∅)
 ```
 
+Special case for dom of a list of equations.
+
+```
+x∉p∪q→x∉p×x∉q : ∀ {p q x} → x ∉ p ∪ q → x ∉ p × x ∉ q
+x∉p∪q→x∉p×x∉q {p}{q}{x} x∉pq = ⟨ x∉p , x∉q ⟩
+    where
+    x∉p : x ∉ p
+    x∉p x∈p = x∉pq (p⊆p∪q _ _ x∈p)
+    x∉q : x ∉ q
+    x∉q x∈q = x∉pq (q⊆p∪q _ _ x∈q)
+
+```
+
+```
+subst-dom : ∀{x}{M}{σ}
+   → x ∉ dom σ
+   → dom ([ M / x ] σ) ≡ dom σ
+subst-dom {x} {M} {[]} x∉σ = refl
+subst-dom {x} {M} {⟨ L , N ⟩ ∷ σ} x∉Lσ
+    with x∉p∪q→x∉p×x∉q x∉Lσ
+... | ⟨ x∉L , x∉σ ⟩
+    rewrite no-vars→subst-id {L}{x}{M} x∉L
+    | subst-dom {x} {M} {σ} x∉σ = refl
+```
+
 Substitution removes variables from terms.
 
 ```
@@ -345,45 +370,6 @@ vars-eqs-subst-∪ {⟨ L , N ⟩ ∷ eqs} {x} {M} =
       | sym (∪-assoc (vars M) (vars M) (((vars L ∪ vars N) ∪ vars-eqs eqs) - ⁅ x ⁆))
       | ∪-idem (vars M)
       | ∪-assoc (vars L) (vars N) (vars-eqs eqs) = refl
-```
-
-
-```
-{-
-subst→no-vars : ∀{N}{x}{M}
-   → x ∉ vars M
-   → x ∉ vars ([ x := M ] N)
-subst-vec→no-vars : ∀{n}{Ns : Vec AST n}{x}{M}
-   → x ∉ vars M
-   → x ∉ vars-vec ([ x ::= M ] Ns)
-
-subst→no-vars {` y} {x} {M} x∉M
-    with x ≟ y
-... | yes refl = x∉M
-... | no xy = λ x∈[y] → x∉⁅y⁆ x y xy x∈[y]
-subst→no-vars {op ⦅ Ns ⦆} {x} {M} x∉M = subst-vec→no-vars {Ns = Ns} x∉M
-subst-vec→no-vars {zero} {Ns} {x} {M} x∉M = ∉∅ {x}
-subst-vec→no-vars {suc n} {N ∷ Ns} {x} {M} x∉M x∈N∪Ns
-    with ∈p∪q→∈p⊎∈q x∈N∪Ns
-... | inj₁ x∈N = 
-      let x∉N = subst→no-vars {N}{x}{M} x∉M in
-      x∉N x∈N
-... | inj₂ x∈Ns = 
-      let x∉Ns = subst-vec→no-vars {n}{Ns}{x}{M} x∉M in
-      x∉Ns x∈Ns
-
-subst-eqs→no-vars : ∀{eqs}{x}{M}
-    → x ∉ vars M
-    → x ∉ vars-eqs ([ M / x ] eqs)
-subst-eqs→no-vars {[]} {x} {M} x∉M = ∉∅
-subst-eqs→no-vars {⟨ L , N ⟩ ∷ eqs} {x} {M} x∉M x∈L∪N∪eqs
-    with ∈p∪q→∈p⊎∈q x∈L∪N∪eqs
-... | inj₁ x∈L = subst→no-vars {L}{x}{M} x∉M x∈L
-... | inj₂ x∈N∪eqs
-    with ∈p∪q→∈p⊎∈q x∈N∪eqs
-... | inj₁ x∈N = subst→no-vars {N}{x}{M} x∉M x∈N
-... | inj₂ x∈eqs = subst-eqs→no-vars {eqs}{x}{M} x∉M x∈eqs
--}
 ```
 
 ## Unifies is reflexive
@@ -646,3 +632,123 @@ subst-vec-reflect {suc n} {M ∷ Ms} {L ∷ Ls} {eqs} {θ} ⟨ θM=θL , θMs,Ls
     ⟨ cong₂ _∷_ θM=θL θMs=θLs , θeqs ⟩
 ```
 
+## Substitution preserves idempotent substitutions
+
+
+```
+subst-pres-idem : ∀{x}{M}{σ}
+   → IdemSubst σ
+   → x ∉ dom σ
+   → vars M ∩ dom σ ⊆ ∅
+   → IdemSubst ([ M / x ] σ)
+subst-pres-idem {x} {M} {[]} empty x∉σ M∩σ⊆∅ = empty
+subst-pres-idem {x} {M} {(⟨ ` y , N ⟩ ∷ σ)} (insert y∉N y∉σ N∩domσ⊆∅ Sσ) x∉σ M∩σ⊆∅
+    with x ≟ y
+... | yes refl = ⊥-elim (x∉σ (p⊆p∪q _ _ (x∈⁅x⁆ y)))
+... | no xy = insert G1 G2 G3 G4
+    where
+    G1 : y ∉ vars ([ x := M ] N)
+    G1 y∈[x:=M]N 
+        with proj₁ (∈∪ _ _ _) (vars-subst-∪ {N}{x}{M} y∈[x:=M]N)
+    ... | inj₁ y∈M =
+          let y∈M∩[y]∪σ = proj₂ (∈∩ _ _ _) ⟨ y∈M , p⊆p∪q _ (dom σ) (x∈⁅x⁆ y) ⟩ in
+          ⊥-elim (∉∅ (M∩σ⊆∅ y∈M∩[y]∪σ))
+    ... | inj₂ y∈N-x =
+          let y∈N = p-q⊆p _ _ y∈N-x in
+          ⊥-elim (y∉N y∈N)
+    G5 : vars M ∩ dom σ ⊆ ∅
+    G5 {z} z∈
+        with proj₁ (∈∩ _ _ _) z∈
+    ... | ⟨ z∈M , z∈σ ⟩ =
+        M∩σ⊆∅ {z} (proj₂ (∈∩ _ _ _) ⟨ z∈M , (q⊆p∪q _ _ z∈σ) ⟩)
+    G2 : y ∉ vars-eqs ([ M / x ] σ)
+    G2 y∈[M/x]σ 
+        with proj₁ (∈∪ _ _ _) (vars-eqs-subst-∪ {σ}{x}{M} y∈[M/x]σ)
+    ... | inj₁ y∈M = ∉∅ (M∩σ⊆∅ {y} (proj₂ (∈∩ _ _ _) ⟨ y∈M , (p⊆p∪q _ _ (x∈⁅x⁆ y)) ⟩))
+    ... | inj₂ y∈σ-[x] = ⊥-elim (y∉σ (p-q⊆p _ _ y∈σ-[x]))
+
+    G3 : vars ([ x := M ] N) ∩ dom ([ M / x ] σ) ⊆ ∅
+    G3 = begin⊆
+         vars ([ x := M ] N) ∩ dom ([ M / x ] σ)  ⊆⟨ p⊆r→q⊆s→p∩q⊆r∩s _ _ _ _ (vars-subst-∪ {N}{x}{M}) (⊆-reflexive (subst-dom{x}{M}{σ} λ x∈σ → (x∉σ (q⊆p∪q _ _ x∈σ)))) ⟩
+         (vars M ∪ (vars N - ⁅ x ⁆)) ∩ dom σ      ⊆⟨ p⊆r→q⊆s→p∩q⊆r∩s _ _ _ _ (p⊆r→q⊆s→p∪q⊆r∪s ⊆-refl (p-q⊆p _ _)) ⊆-refl ⟩
+         (vars M ∪ vars N) ∩ dom σ                ⊆⟨ ⊆-reflexive ∪-distrib-∩ ⟩
+         (vars M ∩ dom σ) ∪ (vars N ∩ dom σ)      ⊆⟨ p⊆r→q⊆s→p∪q⊆r∪s G5 N∩domσ⊆∅ ⟩
+         ∅ ∪ ∅                                    ⊆⟨ ⊆-reflexive (∅∪p≡p _) ⟩
+         ∅
+         ■
+      
+    G4 : IdemSubst ([ M / x ] σ)
+    G4 = subst-pres-idem {x} {M}{σ} Sσ (λ x∈σ → x∉σ (q⊆p∪q _ _ x∈σ)) G5
+```
+
+```
+M∩domσ⊆∅ : ∀{x}{M}{σ}{eqs}
+   → IdemSubst σ
+   → (⁅ x ⁆ ∪ vars M ∪ vars-eqs eqs) ∩ dom σ ⊆ ∅
+   → vars M ∩ dom ([ M / x ] σ) ⊆ ∅
+M∩domσ⊆∅ {x} {M} {[]} {eqs} empty sub {y} y∈
+    with proj₁ (∈∩ y _ _) y∈
+... | ⟨ y∈M , y∈∅ ⟩ = y∈∅ 
+M∩domσ⊆∅ {x} {M} {(⟨ ` y , N ⟩ ∷ σ)} {eqs} (insert x₁ x₂ x₃ Sσ) sub =
+    G
+    where
+    sub' : (⁅ x ⁆ ∪ vars M ∪ vars-eqs eqs) ∩ dom σ ⊆ ∅
+    sub' {y} y∈
+        with proj₁ (∈∩ y _ _) y∈
+    ... | ⟨ y∈[x]Meqs , y∈domσ ⟩ = sub {y} (proj₂ (∈∩ y _ _) ⟨ y∈[x]Meqs , (p⊆r→p⊆q∪r _ _ _ ⊆-refl y∈domσ) ⟩)
+    
+    IH : vars M ∩ dom ([ M / x ] σ) ⊆ ∅
+    IH = M∩domσ⊆∅ {x} {M} {σ} {eqs} Sσ sub'
+    x≢y : x ≢ y
+    x≢y refl rewrite ∪-distrib-∩ {⁅ y ⁆} {vars M ∪ vars-eqs eqs} {⁅ y ⁆ ∪ dom σ} =
+        ∉∅ (sub {y} K)
+        where
+        K : y ∈ (⁅ y ⁆ ∩ (⁅ y ⁆ ∪ dom σ)) ∪ ((vars M ∪ vars-eqs eqs) ∩ (⁅ y ⁆ ∪ dom σ))
+        K = p⊆p∪q _ _ (proj₂ (∈∩ y _ _) ⟨ (x∈⁅x⁆ y) , (p⊆p∪q _ _ (x∈⁅x⁆ y)) ⟩)
+
+    x∉domσ : x ∉ dom σ
+    x∉domσ x∈domσ = ∉∅ (sub {x} J)
+        where
+        J : x ∈ (⁅ x ⁆ ∪ vars M ∪ vars-eqs eqs) ∩ (⁅ y ⁆ ∪ dom σ)
+        J = proj₂ (∈∩ x _ _ ) ⟨ (p⊆p∪q _ _ (x∈⁅x⁆ x)) , (q⊆p∪q _ _ x∈domσ) ⟩
+    H : vars M ∩ (⁅ y ⁆ ∪ dom ([ M / x ] σ)) ⊆ ∅
+    H {z} z∈
+        with proj₁ (∈∩ z _ _) z∈
+    ... | ⟨ z∈M , z∈[y]∪domσ ⟩
+        rewrite subst-dom{x}{M}{σ} x∉domσ =
+        sub {z} ((proj₂ (∈∩ z _ _) ⟨ (p⊆r→p⊆q∪r _ _ _ ⊆-refl (p⊆q→p⊆q∪r _ _ _ ⊆-refl z∈M)) ,
+                                     z∈[y]∪domσ ⟩))
+    G : vars M ∩ dom ([ M / x ] (⟨ ` y , N ⟩ ∷ σ)) ⊆ ∅
+    G
+        with x ≟ y
+    ... | yes refl = ⊥-elim (x≢y refl)
+    ... | no xy = H
+
+```
+
+```
+insert-subst : ∀{x}{M}{σ}{eqs}
+   → x ∉ vars M
+   → (⁅ x ⁆ ∪ vars M ∪ vars-eqs eqs) ∩ dom σ ⊆ ∅
+   → IdemSubst σ
+   → IdemSubst (⟨ ` x , M ⟩ ∷ ([ M / x ] σ))
+insert-subst {x}{M}{σ}{eqs} x∉M eqs∩domσ⊆∅ Sσ =
+    insert x∉M K (M∩domσ⊆∅ {x}{M}{σ}{eqs} Sσ eqs∩domσ⊆∅)
+        (subst-pres-idem Sσ H G)
+    where
+    K : x ∉ vars-eqs ([ M / x ] σ)
+    K x∈[M/x]σ
+        with proj₁ (∈∪ _ _ _) (vars-eqs-subst-∪ {σ}{x}{M} x∈[M/x]σ)
+    ... | inj₁ x∈M = x∉M x∈M
+    ... | inj₂ x∈σ-x = x∉p-⁅x⁆ _ _ x∈σ-x
+    
+    H : x ∉ dom σ
+    H x∈domσ =
+       let x∈∅ = eqs∩domσ⊆∅ {x} (proj₂ (∈∩ _ _ _) ⟨ (p⊆p∪q _ _ (x∈⁅x⁆ x)) , x∈domσ ⟩) in
+       ∉∅ x∈∅
+    G : vars M ∩ dom σ ⊆ ∅
+    G {y} y∈
+        with proj₁ (∈∩ _ _ _) y∈
+    ... | ⟨ y∈M , y∈domσ ⟩ =
+        eqs∩domσ⊆∅ {y} (proj₂ (∈∩ _ _ _) ⟨ (q⊆p∪q _ _ (p⊆p∪q _ _ y∈M) ) , y∈domσ ⟩)
+```

@@ -898,8 +898,8 @@ unify-aux (⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs) θ (acc rec)
     vars≤ = p⊆q⇒∣p∣≤∣q∣ (var-eqs-append-⊆ Ms Ls eqs)
 ... | no neq = no-solution
 
-unify : (eqs : Equations) → (θ : Equations) → Result
-unify eqs θ = unify-aux eqs θ (<₃-wellFounded (measure-eqs eqs θ))
+unify : (eqs : Equations) → Result
+unify eqs = unify-aux eqs [] (<₃-wellFounded (measure-eqs eqs []))
 ```
 
 ## Unify Correct
@@ -1153,6 +1153,14 @@ unify-aux-sound {⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs} {σ} {θ}{acc r
     | no neq
     with unify[eqs,σ]≡θ
 ... | ()    
+
+unify-sound : ∀{eqs}{θ}
+   → unify eqs ≡ finished θ
+   → θ unifies-eqs eqs
+unify-sound {eqs}{θ} unify-eqs-θ =
+   let m = (<₃-wellFounded (measure-eqs eqs [])) in
+   let xx = unify-aux-sound {eqs}{[]}{[]}{m} empty {!!} {!!} in
+   {!!}
 
 {-
 unify-sound : ∀{eqs}{σ}{θ}

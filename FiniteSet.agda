@@ -398,8 +398,8 @@ abstract
   ... | inj₁ x∈p = (p⊆p∪q r s) (pr x∈p)
   ... | inj₂ x∈q = (q⊆p∪q r s) (qs x∈q)
 
-  p⊆r→q⊆s→p∩q⊆r∩s : ∀ p q r s → p ⊆ r → q ⊆ s → p ∩ q ⊆ r ∩ s
-  p⊆r→q⊆s→p∩q⊆r∩s p q r s pr qs {x} x∈pq
+  p⊆r→q⊆s→p∩q⊆r∩s : ∀ {p q r s} → p ⊆ r → q ⊆ s → p ∩ q ⊆ r ∩ s
+  p⊆r→q⊆s→p∩q⊆r∩s {p}{q}{r}{s} pr qs {x} x∈pq
       with proj₁ (∈∩ x p q) x∈pq
   ... | ⟨ x∈p , x∈q ⟩ = proj₂ (∈∩ x r s) ⟨ (pr x∈p) , (qs x∈q) ⟩
 

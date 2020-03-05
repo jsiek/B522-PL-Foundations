@@ -669,8 +669,8 @@ subst-pres-idem {x} {M} {(⟨ ` y , N ⟩ ∷ σ)} (insert y∉N y∉σ N∩dom�
 
     G3 : vars ([ x := M ] N) ∩ dom ([ M / x ] σ) ⊆ ∅
     G3 = begin⊆
-         vars ([ x := M ] N) ∩ dom ([ M / x ] σ)  ⊆⟨ p⊆r→q⊆s→p∩q⊆r∩s _ _ _ _ (vars-subst-∪ {N}{x}{M}) (⊆-reflexive (subst-dom{x}{M}{σ} λ x∈σ → (x∉σ (q⊆p∪q _ _ x∈σ)))) ⟩
-         (vars M ∪ (vars N - ⁅ x ⁆)) ∩ dom σ      ⊆⟨ p⊆r→q⊆s→p∩q⊆r∩s _ _ _ _ (p⊆r→q⊆s→p∪q⊆r∪s ⊆-refl (p-q⊆p _ _)) ⊆-refl ⟩
+         vars ([ x := M ] N) ∩ dom ([ M / x ] σ)  ⊆⟨ p⊆r→q⊆s→p∩q⊆r∩s (vars-subst-∪ {N}{x}{M}) (⊆-reflexive (subst-dom{x}{M}{σ} λ x∈σ → (x∉σ (q⊆p∪q _ _ x∈σ)))) ⟩
+         (vars M ∪ (vars N - ⁅ x ⁆)) ∩ dom σ      ⊆⟨ p⊆r→q⊆s→p∩q⊆r∩s (p⊆r→q⊆s→p∪q⊆r∪s ⊆-refl (p-q⊆p _ _)) ⊆-refl ⟩
          (vars M ∪ vars N) ∩ dom σ                ⊆⟨ ⊆-reflexive ∪-distrib-∩ ⟩
          (vars M ∩ dom σ) ∪ (vars N ∩ dom σ)      ⊆⟨ p⊆r→q⊆s→p∪q⊆r∪s G5 N∩domσ⊆∅ ⟩
          ∅ ∪ ∅                                    ⊆⟨ ⊆-reflexive (∅∪p≡p _) ⟩

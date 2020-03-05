@@ -1050,9 +1050,14 @@ subst-subst {x} {M} {(⟨ ` y , N ⟩ ∷ σ)} (insert y∉N y∉σ N∩domσ⊆
     G5 : vars M ∩ dom σ ⊆ ∅
     G5 {z} z∈
         with proj₁ (∈∩ _ _ _) z∈
-    ... | ⟨ z∈M , z∈σ ⟩ = {!!}
+    ... | ⟨ z∈M , z∈σ ⟩ =
+        M∩σ⊆∅ {z} (proj₂ (∈∩ _ _ _) ⟨ z∈M , (q⊆p∪q _ _ z∈σ) ⟩)
     G2 : y ∉ vars-eqs ([ M / x ] σ)
-    G2 y∈[M/x]σ = {!!}
+    G2 y∈[M/x]σ 
+        with proj₁ (∈∪ _ _ _) (vars-eqs-subst-∪ {σ}{x}{M} y∈[M/x]σ)
+    ... | inj₁ y∈M = ∉∅ (M∩σ⊆∅ {y} (proj₂ (∈∩ _ _ _) ⟨ y∈M , (p⊆p∪q _ _ (x∈⁅x⁆ y)) ⟩))
+    ... | inj₂ y∈σ-[x] = ⊥-elim (y∉σ (p-q⊆p _ _ y∈σ-[x]))
+
     G3 : vars ([ x := M ] N) ∩ dom ([ M / x ] σ) ⊆ ∅
     G3 = begin⊆
          vars ([ x := M ] N) ∩ dom ([ M / x ] σ)  ⊆⟨ p⊆r→q⊆s→p∩q⊆r∩s _ _ _ _ (vars-subst-∪ {N}{x}{M}) (⊆-reflexive (subst-dom{x}{M}{σ} λ x∈σ → (x∉σ (q⊆p∪q _ _ x∈σ)))) ⟩

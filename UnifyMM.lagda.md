@@ -1158,22 +1158,9 @@ unify-sound : ∀{eqs}{θ}
    → unify eqs ≡ finished θ
    → θ unifies-eqs eqs
 unify-sound {eqs}{θ} unify-eqs-θ =
-   let m = (<₃-wellFounded (measure-eqs eqs [])) in
-   let xx = unify-aux-sound {eqs}{[]}{[]}{m} empty {!!} {!!} in
-   {!!}
-
-{-
-unify-sound : ∀{eqs}{σ}{θ}
-   → unify eqs σ ≡ finished θ
-   → θ unifies-eqs eqs
-unify-sound {[]} {σ}{θ} unify[eqs]≡θ = tt
-unify-sound {⟨ L , M ⟩ ∷ eqs} {σ}{θ} unify[eqs]≡θ
-    with step-decrease (⟨ M , L ⟩ ∷ eqs) θ
-    | step (⟨ M , L ⟩ ∷ eqs) θ
-    | inspect (step (⟨ M , L ⟩ ∷ eqs)) θ
-... | decrease | s-finished θ' | [ st ] = {!!}
-... | decrease | s-no-solution | [ st ] rewrite st = ⊥-elim {!!}
-... | decrease | s-in-progress eqs' θ' | [ st ]
-    rewrite st = {!!}
--}
+    let m = (<₃-wellFounded (measure-eqs eqs [])) in
+    proj₁ (unify-aux-sound {eqs}{[]}{θ}{m} empty G unify-eqs-θ)
+    where
+    G : vars-eqs eqs ∩ ∅ ⊆ ∅
+    G rewrite p∩∅≡∅ (vars-eqs eqs) = λ z → z
 ```

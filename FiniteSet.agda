@@ -215,6 +215,11 @@ abstract
   ∅∪p≡p [] = refl
   ∅∪p≡p (x ∷ p) = refl
 
+  {- correct location? -}
+  p∩∅≡∅ : ∀ p → p ∩ ∅ ≡ ∅
+  p∩∅≡∅ [] = refl
+  p∩∅≡∅ (x ∷ p) = refl
+
   {------------------------
    Domination Laws
    ------------------------}

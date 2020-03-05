@@ -373,6 +373,9 @@ abstract
   q⊆p∪q (true ∷ p) (true ∷ q) {zero} x∈q = tt
   q⊆p∪q (b ∷ p) (c ∷ q) {suc x} x∈q = q⊆p∪q p q {x} x∈q
 
+  ∣q∣≤∣p∪q∣ : ∀{p q} → ∣ q ∣ ≤ ∣ p ∪ q ∣
+  ∣q∣≤∣p∪q∣ {p}{q} = p⊆q⇒∣p∣≤∣q∣ {q}{p ∪ q} (q⊆p∪q p q)
+
   p⊆q→p⊆q∪r : ∀ p q r → p ⊆ q → p ⊆ q ∪ r
   p⊆q→p⊆q∪r p q r pq = ⊆-trans {p}{q}{q ∪ r} pq (p⊆p∪q q r)
 

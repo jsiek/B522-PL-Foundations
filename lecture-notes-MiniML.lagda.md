@@ -131,7 +131,8 @@ tyop-eq op-fun op-bool = no (λ ())
 tyop-eq op-fun op-fun = yes refl
 
 open UnifyMM TyOp tyop-eq arity
-  renaming (AST to Type; _⦅_⦆ to _❨_❩; subst to subst-ty; `_ to tyvar)
+  renaming (AST to Type; _⦅_⦆ to _❨_❩; subst to subst-ty; `_ to tyvar;
+            subst-compose to subst-ty-compose)
 
 Nat = op-nat ❨ [] ❩
 Bool = op-bool ❨ [] ❩
@@ -534,44 +535,6 @@ len (Γ , x) = suc (len Γ)
 ```
 
 ```
-sub-sub : Equations → Equations → Equations
-sub-sub θ [] = []
-sub-sub θ (⟨ L , M ⟩ ∷ σ) = ⟨ L , subst-ty θ M ⟩ ∷ sub-sub θ σ
-
-_∘_ : Equations → Equations → Equations
-τ ∘ σ = sub-sub τ σ ++ τ
-```
-
-```
-subst-compose : ∀ σ' σ α
-   → subst-ty (σ' ∘ σ) (tyvar α) ≡ subst-ty σ' (subst-ty σ (tyvar α))
-subst-compose σ' [] α = refl
-subst-compose σ' (⟨ A , B ⟩ ∷ σ) α = G A
-    where
-    IH : subst-ty (σ' ∘ σ) (tyvar α) ≡ subst-ty σ' (subst-ty σ (tyvar α))
-    IH = subst-compose σ' σ α
-    G : ∀ A → subst-ty (σ' ∘ (⟨ A , B ⟩ ∷ σ)) (tyvar α)
-            ≡ subst-ty σ' (subst-ty (⟨ A , B ⟩ ∷ σ) (tyvar α))
-    G (tyvar β)
-        with α ≟ β
-    ... | yes refl = refl
-    G (tyvar β) | no α≠β = IH
-    G (op ❨ Ts ❩) = IH
-```
-
-```
-subst-ty-compose : ∀ σ σ' A
-   → subst-ty (σ' ∘ σ) A ≡ subst-ty σ' (subst-ty σ A)
-subst-ty-vec-compose : ∀ σ σ' {n} (As : Vec Type n)
-   → subst-vec (σ' ∘ σ) As ≡ subst-vec σ' (subst-vec σ As)
-subst-ty-compose σ σ' (tyvar α) = subst-compose σ' σ α
-subst-ty-compose σ σ' (op ❨ Ts ❩)
-    rewrite subst-ty-vec-compose σ σ' Ts = refl
-subst-ty-vec-compose σ σ' {zero} [] = refl
-subst-ty-vec-compose σ σ' {suc n} (T ∷ Ts)
-    rewrite subst-ty-compose σ σ' T 
-    | subst-ty-vec-compose σ σ' {n} Ts = refl
-
 subst-env-compose : ∀ σ σ' Γ
    → subst-env (σ' ∘ σ) Γ ≡ subst-env σ' (subst-env σ Γ)
 subst-env-compose σ σ' ∅ = refl

@@ -94,6 +94,13 @@ subst σ (op ⦅ Ms ⦆) = op ⦅ subst-vec σ Ms ⦆
 
 subst-vec σ {zero} Ms = []
 subst-vec σ {suc n} (M ∷ Ms) = subst σ M ∷ subst-vec σ Ms
+
+sub-sub : Equations → Equations → Equations
+sub-sub θ [] = []
+sub-sub θ (⟨ L , M ⟩ ∷ σ) = ⟨ L , subst θ M ⟩ ∷ sub-sub θ σ
+
+_∘_ : Equations → Equations → Equations
+τ ∘ σ = sub-sub τ σ ++ τ
 ```
 
 Definition of what it means to unify a list of equations.
@@ -764,4 +771,37 @@ insert-subst {x}{M}{σ}{eqs} x∉M eqs∩domσ⊆∅ Sσ =
         with proj₁ (∈∩ _ _ _) y∈
     ... | ⟨ y∈M , y∈domσ ⟩ =
         eqs∩domσ⊆∅ {y} (proj₂ (∈∩ _ _ _) ⟨ (q⊆p∪q _ _ (p⊆p∪q _ _ y∈M) ) , y∈domσ ⟩)
+```
+
+## Substitution Composition
+
+```
+subst-compose-var : ∀ σ' σ α
+   → subst (σ' ∘ σ) (` α) ≡ subst σ' (subst σ (` α))
+subst-compose-var σ' [] α = refl
+subst-compose-var σ' (⟨ A , B ⟩ ∷ σ) α = G A
+    where
+    IH : subst (σ' ∘ σ) (` α) ≡ subst σ' (subst σ (` α))
+    IH = subst-compose-var σ' σ α
+    G : ∀ A → subst (σ' ∘ (⟨ A , B ⟩ ∷ σ)) (` α)
+            ≡ subst σ' (subst (⟨ A , B ⟩ ∷ σ) (` α))
+    G (` β)
+        with α ≟ β
+    ... | yes refl = refl
+    G (` β) | no α≠β = IH
+    G (op ⦅ Ts ⦆) = IH
+```
+
+```
+subst-compose : ∀ σ σ' A
+   → subst (σ' ∘ σ) A ≡ subst σ' (subst σ A)
+subst-vec-compose : ∀ σ σ' {n} (As : Vec AST n)
+   → subst-vec (σ' ∘ σ) As ≡ subst-vec σ' (subst-vec σ As)
+subst-compose σ σ' (` α) = subst-compose-var σ' σ α
+subst-compose σ σ' (op ⦅ Ts ⦆)
+    rewrite subst-vec-compose σ σ' Ts = refl
+subst-vec-compose σ σ' {zero} [] = refl
+subst-vec-compose σ σ' {suc n} (T ∷ Ts)
+    rewrite subst-compose σ σ' T 
+    | subst-vec-compose σ σ' {n} Ts = refl
 ```

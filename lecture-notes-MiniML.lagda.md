@@ -10,7 +10,7 @@ module lecture-notes-MiniML where
 ```
 import Syntax
 open import Data.Bool using () renaming (Bool to 𝔹)
-open import Data.List using (List; []; _∷_; length)
+open import Data.List using (List; []; _∷_; length; _++_)
 open import Data.Maybe
 open import Data.Vec using (Vec; []; _∷_)
 open import Data.Nat using (ℕ; zero; suc; _<_; s≤s)
@@ -19,6 +19,9 @@ open import Data.Product using (_×_; Σ; Σ-syntax; ∃; ∃-syntax; proj₁; p
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; sym; cong; cong₂; inspect)
   renaming ([_] to ⟅_⟆)
+open Relation.Binary.PropositionalEquality.≡-Reasoning
+   using (_≡⟨⟩_; _≡⟨_⟩_)
+   renaming (begin_ to begin≡_; _∎ to _QED)
 open import Relation.Nullary using (Dec; yes; no)
 
 import UnifyMM
@@ -531,22 +534,69 @@ len (Γ , x) = suc (len Γ)
 ```
 
 ```
+sub-sub : Equations → Equations → Equations
+sub-sub θ [] = []
+sub-sub θ (⟨ L , M ⟩ ∷ σ) = ⟨ L , subst-ty θ M ⟩ ∷ sub-sub θ σ
+
+_∘_ : Equations → Equations → Equations
+τ ∘ σ = sub-sub τ σ ++ τ
+```
+
+```
+subst-compose : ∀ σ' σ α
+   → subst-ty (σ' ∘ σ) (tyvar α) ≡ subst-ty σ' (subst-ty σ (tyvar α))
+subst-compose σ' [] α = refl
+subst-compose σ' (⟨ A , B ⟩ ∷ σ) α = G A
+    where
+    IH : subst-ty (σ' ∘ σ) (tyvar α) ≡ subst-ty σ' (subst-ty σ (tyvar α))
+    IH = subst-compose σ' σ α
+    G : ∀ A → subst-ty (σ' ∘ (⟨ A , B ⟩ ∷ σ)) (tyvar α)
+            ≡ subst-ty σ' (subst-ty (⟨ A , B ⟩ ∷ σ) (tyvar α))
+    G (tyvar β)
+        with α ≟ β
+    ... | yes refl = refl
+    G (tyvar β) | no α≠β = IH
+    G (op ❨ Ts ❩) = IH
+```
+
+```
+subst-ty-compose : ∀ σ σ' A
+   → subst-ty (σ' ∘ σ) A ≡ subst-ty σ' (subst-ty σ A)
+subst-ty-vec-compose : ∀ σ σ' {n} (As : Vec Type n)
+   → subst-vec (σ' ∘ σ) As ≡ subst-vec σ' (subst-vec σ As)
+subst-ty-compose σ σ' (tyvar α) = subst-compose σ' σ α
+subst-ty-compose σ σ' (op ❨ Ts ❩)
+    rewrite subst-ty-vec-compose σ σ' Ts = refl
+subst-ty-vec-compose σ σ' {zero} [] = refl
+subst-ty-vec-compose σ σ' {suc n} (T ∷ Ts)
+    rewrite subst-ty-compose σ σ' T 
+    | subst-ty-vec-compose σ σ' {n} Ts = refl
+
 subst-env-compose : ∀ σ σ' Γ
-   → subst-env (subst-eqs σ' σ) Γ ≡ subst-env σ' (subst-env σ Γ)
-subst-env-compose σ σ' Γ = {!!}   
+   → subst-env (σ' ∘ σ) Γ ≡ subst-env σ' (subst-env σ Γ)
+subst-env-compose σ σ' ∅ = refl
+subst-env-compose σ σ' (Γ , A)
+    rewrite subst-ty-compose σ σ' A
+    | subst-env-compose σ σ' Γ = refl
 ```
 
 ```
 subst-pres-∋ : ∀{x Γ A σ}
    → Γ ∋ x ⦂ A
    → subst-env σ Γ ∋ x ⦂ subst-ty σ A
-subst-pres-∋ {x}{Γ}{A} Γ∋x = {!!}   
+subst-pres-∋ {.0} {.(_ , A)} {A} Z = Z
+subst-pres-∋ {.(suc _)} {.(_ , _)} {A} (S Γ∋x) = S (subst-pres-∋ Γ∋x)   
 ```
 
 ```
 subst-id-prim : ∀{σ p}
    → subst-ty σ (typeof p) ≡ typeof p
-subst-id-prim {σ}{p} = {!!}
+subst-id-prim {σ} {base B-Nat} = refl
+subst-id-prim {σ} {base B-Bool} = refl
+subst-id-prim {σ} {pfun B-Nat p}
+    rewrite subst-id-prim {σ} {p} = refl
+subst-id-prim {σ} {pfun B-Bool p}
+    rewrite subst-id-prim {σ} {p} = refl
 ```
 
 ```
@@ -572,7 +622,9 @@ len-subst-env ∅ σ = refl
 len-subst-env (Γ , A) σ = cong suc (len-subst-env Γ σ)
 ```
 
-## Type Inferece
+## Type Inference
+
+Milner's Algorithm 𝒲.
 
 ```
 𝒲 : (Γ : Context) → (M : Term) → WF (len Γ) M → ℕ 
@@ -597,9 +649,9 @@ len-subst-env (Γ , A) σ = cong suc (len-subst-env Γ σ)
 ... | no-solution | ⟅ uni ⟆ = nothing
 ... | finished σ' | ⟅ uni ⟆ =
       let α' = subst-ty σ' (subst-ty σ (tyvar α)) in
-      just ⟨ subst-eqs σ' σ , ⟨ α' , ⟨ ⊢μ G , β ⟩ ⟩ ⟩
+      just ⟨ σ' ∘ σ , ⟨ α' , ⟨ ⊢μ G , β ⟩ ⟩ ⟩
     where
-    G : subst-env (subst-eqs σ' σ) Γ , subst-ty σ' (subst-ty σ (tyvar α))
+    G : subst-env (σ' ∘ σ) Γ , subst-ty σ' (subst-ty σ (tyvar α))
         ⊢ N ⦂ subst-ty σ' (subst-ty σ (tyvar α))
     G   with subst-pres-types {σ'} ⊢N:A
     ... | σ'σΓ⊢N:σA
@@ -610,18 +662,37 @@ len-subst-env (Γ , A) σ = cong suc (len-subst-env Γ σ)
 𝒲 Γ (L · M) (WF-op (WF-cons (WF-ast wfL) (WF-cons (WF-ast wfM) WF-nil))) α
     with 𝒲 Γ L wfL α
 ... | nothing = nothing
-... | just ⟨ σ , ⟨ A , ⟨ σΓ⊢N:A , β ⟩ ⟩ ⟩
+... | just ⟨ σ , ⟨ A , ⟨ σΓ⊢L:A , β ⟩ ⟩ ⟩
     rewrite cong (λ □ → WF □ M) (sym (len-subst-env Γ σ))
     with 𝒲 (subst-env σ Γ) M wfM β
 ... | nothing = nothing
 ... | just ⟨ σ' , ⟨ B , ⟨ σ'σΓ⊢M:B , γ ⟩ ⟩ ⟩ 
     with unify (⟨ subst-ty σ' A , B ⇒ tyvar γ ⟩ ∷ []) | inspect unify (⟨ subst-ty σ' A , B ⇒ tyvar γ ⟩ ∷ [])
 ... | no-solution | ⟅ uni ⟆ = nothing
-... | finished θ | ⟅ uni ⟆ = 
-    just ⟨ subst-eqs θ (subst-eqs σ' σ) ,
+... | finished θ | ⟅ uni ⟆
+    with subst-pres-types {σ'} σΓ⊢L:A
+... | σ'σΓ⊢L:σ'A
+    with subst-pres-types {θ} σ'σΓ⊢L:σ'A | subst-pres-types {θ} σ'σΓ⊢M:B
+... | θσ'σΓ⊢L:θσ'A | θσ'σΓ⊢M:θB
+    with unify-sound {⟨ subst-ty σ' A , B ⇒ tyvar γ ⟩ ∷ []} uni
+... | ⟨ θσ'A=θB⇒γ , _ ⟩
+    rewrite sym (subst-env-compose σ σ' Γ)
+    | sym (subst-env-compose (σ' ∘ σ) θ Γ)
+    | θσ'A=θB⇒γ =
+    just ⟨ θ ∘ (σ' ∘ σ) ,
          ⟨ (subst-ty θ (tyvar γ)) ,
-         ⟨ {!!} ,
+         ⟨ ⊢·  θσ'σΓ⊢L:θσ'A  θσ'σΓ⊢M:θB ,
            (suc γ) ⟩ ⟩ ⟩
-
-𝒲 Γ (`let L M) wfm α = {!!}
+𝒲 Γ (`let L M) (WF-op (WF-cons (WF-ast wfL) (WF-cons (WF-bind (WF-ast wfM)) WF-nil))) α
+    with 𝒲 Γ L wfL α
+... | nothing = nothing
+... | just ⟨ σ , ⟨ A , ⟨ σΓ⊢L:A , β ⟩ ⟩ ⟩
+    rewrite cong (λ □ → WF (suc □) M) (sym (len-subst-env Γ σ))
+    with 𝒲 (subst-env σ Γ , A) M wfM β
+... | nothing = nothing
+... | just ⟨ σ' , ⟨ B , ⟨ σ'σΓ⊢M:B , γ ⟩ ⟩ ⟩
+    with subst-pres-types {σ'} σΓ⊢L:A
+... | σ'σΓ⊢L:σ'A
+    rewrite sym (subst-env-compose σ σ' Γ) =
+    just ⟨ σ' ∘ σ , ⟨ B , ⟨ (⊢let σ'σΓ⊢L:σ'A σ'σΓ⊢M:B) , γ ⟩ ⟩ ⟩
 ```

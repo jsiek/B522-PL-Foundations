@@ -17,7 +17,8 @@ open import Data.Nat using (ℕ; zero; suc; _<_; s≤s)
 open import Data.Product using (_×_; Σ; Σ-syntax; ∃; ∃-syntax; proj₁; proj₂)
    renaming (_,_ to ⟨_,_⟩)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; _≢_; refl; sym; cong; cong₂)
+  using (_≡_; _≢_; refl; sym; cong; cong₂; inspect)
+  renaming ([_] to ⟅_⟆)
 open import Relation.Nullary using (Dec; yes; no)
 
 import UnifyMM
@@ -565,6 +566,11 @@ subst-pres-types {σ} {Γ} {A} {.(`let _ _)} (⊢let Γ⊢N:A Γ⊢N:A₁) =
     ⊢let (subst-pres-types Γ⊢N:A) (subst-pres-types Γ⊢N:A₁)
 ```
 
+```
+len-subst-env : ∀ Γ σ → len (subst-env σ Γ) ≡ len Γ
+len-subst-env ∅ σ = refl
+len-subst-env (Γ , A) σ = cong suc (len-subst-env Γ σ)
+```
 
 ## Type Inferece
 
@@ -587,18 +593,35 @@ subst-pres-types {σ} {Γ} {A} {.(`let _ _)} (⊢let Γ⊢N:A Γ⊢N:A₁) =
     with 𝒲 (Γ , (tyvar α)) N wfN (suc α)
 ... | nothing = nothing
 ... | just ⟨ σ , ⟨ A , ⟨ ⊢N:A , β ⟩ ⟩ ⟩
-    with unify (⟨ subst-ty σ (tyvar α) , A ⟩ ∷ [])
-... | no-solution = nothing
-... | finished σ' =
+    with unify (⟨ subst-ty σ (tyvar α) , A ⟩ ∷ []) | inspect unify (⟨ subst-ty σ (tyvar α) , A ⟩ ∷ [])
+... | no-solution | ⟅ uni ⟆ = nothing
+... | finished σ' | ⟅ uni ⟆ =
       let α' = subst-ty σ' (subst-ty σ (tyvar α)) in
       just ⟨ subst-eqs σ' σ , ⟨ α' , ⟨ ⊢μ G , β ⟩ ⟩ ⟩
     where
     G : subst-env (subst-eqs σ' σ) Γ , subst-ty σ' (subst-ty σ (tyvar α))
         ⊢ N ⦂ subst-ty σ' (subst-ty σ (tyvar α))
-    G rewrite subst-env-compose σ σ' Γ =
-        let ⊢N:σA = subst-pres-types {σ} ⊢N:A in
-        {!!}
+    G   with subst-pres-types {σ'} ⊢N:A
+    ... | σ'σΓ⊢N:σA
+        with unify-sound {⟨ subst-ty σ (tyvar α) , A ⟩ ∷ []}{σ'} uni
+    ... | ⟨ σ'σα=σ'A , _ ⟩ 
+        rewrite subst-env-compose σ σ' Γ
+        | σ'σα=σ'A = σ'σΓ⊢N:σA
+𝒲 Γ (L · M) (WF-op (WF-cons (WF-ast wfL) (WF-cons (WF-ast wfM) WF-nil))) α
+    with 𝒲 Γ L wfL α
+... | nothing = nothing
+... | just ⟨ σ , ⟨ A , ⟨ σΓ⊢N:A , β ⟩ ⟩ ⟩
+    rewrite cong (λ □ → WF □ M) (sym (len-subst-env Γ σ))
+    with 𝒲 (subst-env σ Γ) M wfM β
+... | nothing = nothing
+... | just ⟨ σ' , ⟨ B , ⟨ σ'σΓ⊢M:B , γ ⟩ ⟩ ⟩ 
+    with unify (⟨ subst-ty σ' A , B ⇒ tyvar γ ⟩ ∷ []) | inspect unify (⟨ subst-ty σ' A , B ⇒ tyvar γ ⟩ ∷ [])
+... | no-solution | ⟅ uni ⟆ = nothing
+... | finished θ | ⟅ uni ⟆ = 
+    just ⟨ subst-eqs θ (subst-eqs σ' σ) ,
+         ⟨ (subst-ty θ (tyvar γ)) ,
+         ⟨ {!!} ,
+           (suc γ) ⟩ ⟩ ⟩
 
-𝒲 Γ (L · M) wfm α = {!!}
 𝒲 Γ (`let L M) wfm α = {!!}
 ```

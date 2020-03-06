@@ -1,3 +1,7 @@
+
+This is unfinished work... I decided to first do Martelli and
+Montanari's algorithm, which is in the `UnifyMM.lagda.md` file.
+
 ```
 open import Data.Maybe
 open import Data.Nat using (ℕ; zero; suc)

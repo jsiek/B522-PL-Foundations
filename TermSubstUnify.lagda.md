@@ -187,6 +187,19 @@ Ms≡-inversion refl = refl
 
 ## Properties of substitution
 
+
+```
+subst-empty : ∀ M → subst [] M ≡ M
+subst-vec-empty : ∀ {n} (Ms : Vec AST n) → subst-vec [] Ms ≡ Ms
+subst-empty (` x) = refl
+subst-empty (op ⦅ Ms ⦆)
+    rewrite subst-vec-empty Ms = refl
+subst-vec-empty {.0} [] = refl
+subst-vec-empty {.(suc _)} (M ∷ Ms)
+    rewrite subst-empty M
+    | subst-vec-empty Ms = refl
+```
+
 Single substitution is the identity when the variable being
 substituted does not occur in the term.
 

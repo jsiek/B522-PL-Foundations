@@ -20,6 +20,7 @@ open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; sym; cong; cong₂)
 open import Relation.Nullary using (Dec; yes; no)
 
+import UnifyMM
 ```
 
 ## Primitives
@@ -125,8 +126,8 @@ tyop-eq op-fun op-nat = no (λ ())
 tyop-eq op-fun op-bool = no (λ ())
 tyop-eq op-fun op-fun = yes refl
 
-open import Unification TyOp tyop-eq arity
-  renaming (AST to Type; _⦅_⦆ to _❨_❩)
+open UnifyMM TyOp tyop-eq arity
+  renaming (AST to Type; _⦅_⦆ to _❨_❩; subst to subst-ty)
 
 Nat = op-nat ❨ [] ❩
 Bool = op-bool ❨ [] ❩
@@ -504,21 +505,28 @@ preserve (⊢let ⊢M ⊢N) (β-let vV) = substitution ⊢M ⊢N
 ## Type Substitution
 
 ```
-sub-env : Solution → Context → Context
-sub-env σ ∅ = ∅
-sub-env σ (Γ , A) = sub-env σ Γ , sub-ty σ A
+subst-env : Equations → Context → Context
+subst-env σ ∅ = ∅
+subst-env σ (Γ , A) = subst-env σ Γ , subst-ty σ A
+
+subst-env-empty : ∀ Γ → subst-env [] Γ ≡ Γ
+subst-env-empty ∅ = refl
+subst-env-empty (Γ , A)
+    rewrite subst-env-empty Γ
+    | subst-empty A = refl
 
 len : Context → ℕ
 len ∅ = 0
 len (Γ , x) = suc (len Γ)
 
-less-mem : ∀{Γ : Context}{x}
+<-∋ : ∀{Γ : Context}{x}
    → x < (len Γ)
    → Σ[ A ∈ Type ] Γ ∋ x ⦂ A
-less-mem {Γ , A} {zero} x<Γ = ⟨ A , Z ⟩
-less-mem {Γ , A} {suc x} (s≤s x<Γ) =
-  let IH = less-mem {Γ} {x} x<Γ in
-  {!!}
+<-∋ {Γ , A} {zero} x<Γ = ⟨ A , Z ⟩
+<-∋ {Γ , A} {suc x} (s≤s x<Γ) 
+    with <-∋ {Γ} {x} x<Γ
+... | ⟨ B , x:B ⟩ =
+    ⟨ B , S x:B ⟩
 
 ```
 
@@ -526,9 +534,12 @@ less-mem {Γ , A} {suc x} (s≤s x<Γ) =
 
 ```
 𝒲 : (Γ : Context) → (M : Term) → WF (len Γ) M → ℕ 
-   → Maybe (Σ[ σ ∈ Solution ] Σ[ A ∈ Type ] sub-env σ Γ ⊢ M ⦂ A × ℕ)
-𝒲 Γ (` x) (WF-var .x x<Γ) n = {!!}
-  {- just ⟨ init-soln , ⟨ ? , ⟨ ? , ? ⟩ ⟩ ⟩ , ⟨ {!!} , {!!} ⟩ ⟩ ⟩ -}
+   → Maybe (Σ[ σ ∈ Equations ] Σ[ A ∈ Type ] subst-env σ Γ ⊢ M ⦂ A × ℕ)
+𝒲 Γ (` x) (WF-var .x x<Γ) n
+    with <-∋ x<Γ
+... | ⟨ A , Γ∋x ⟩ =
+    just ⟨ [] , ⟨ A , ⟨ (⊢` G) , n ⟩ ⟩ ⟩
+    where G : subst-env [] Γ ∋ x ⦂ A
+          G rewrite subst-env-empty Γ = Γ∋x
 𝒲 Γ (op Syntax.⦅ x ⦆) wfm n = {!!}
-
 ```

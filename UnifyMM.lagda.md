@@ -32,6 +32,10 @@ module UnifyMM
 open import TermSubstUnify Op op-eq? arity public
 ```
 
+## Introduction to Unification
+
+
+
 ## Proof of Termination
 
 We use well-founded recursion to define the unification function.  We

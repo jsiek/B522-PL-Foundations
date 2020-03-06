@@ -94,6 +94,10 @@ subst σ (op ⦅ Ms ⦆) = op ⦅ subst-vec σ Ms ⦆
 
 subst-vec σ {zero} Ms = []
 subst-vec σ {suc n} (M ∷ Ms) = subst σ M ∷ subst-vec σ Ms
+
+subst-eqs : Equations → Equations → Equations
+subst-eqs θ [] = []
+subst-eqs θ (⟨ L , M ⟩ ∷ σ) = ⟨ subst θ L , subst θ M ⟩ ∷ subst-eqs θ σ
 ```
 
 Definition of what it means to unify a list of equations.

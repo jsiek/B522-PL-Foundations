@@ -79,7 +79,7 @@ open Syntax Op sig
   using (`_; _⦅_⦆; cons; nil; bind; ast; _[_];
          Rename; Subst; ⟪_⟫; ⟦_⟧; exts; _•_; 
          ↑; _⨟_; exts-0; exts-suc-rename; rename; ext; ⦉_⦊;
-         ext-0; ext-suc; WF; WF-var)
+         ext-0; ext-suc; WF; WF-var; WF-op; WF-cons; WF-bind; WF-ast; WF-nil)
   renaming (ABT to Term)
 
 pattern $ p k = (op-const p k) ⦅ nil ⦆
@@ -127,13 +127,13 @@ tyop-eq op-fun op-bool = no (λ ())
 tyop-eq op-fun op-fun = yes refl
 
 open UnifyMM TyOp tyop-eq arity
-  renaming (AST to Type; _⦅_⦆ to _❨_❩; subst to subst-ty)
+  renaming (AST to Type; _⦅_⦆ to _❨_❩; subst to subst-ty; `_ to tyvar)
 
 Nat = op-nat ❨ [] ❩
 Bool = op-bool ❨ [] ❩
 
-_⇒_ : Type → Type → Type
-A ⇒ B = op-fun ❨ A ∷ B ∷ [] ❩
+infixl 8 _⇒_
+pattern _⇒_ A B = op-fun ❨ A ∷ B ∷ [] ❩
 ```
 
 ## Type of a primitive
@@ -527,19 +527,78 @@ len (Γ , x) = suc (len Γ)
     with <-∋ {Γ} {x} x<Γ
 ... | ⟨ B , x:B ⟩ =
     ⟨ B , S x:B ⟩
+```
 
 ```
+subst-env-compose : ∀ σ σ' Γ
+   → subst-env (subst-eqs σ' σ) Γ ≡ subst-env σ' (subst-env σ Γ)
+subst-env-compose σ σ' Γ = {!!}   
+```
+
+```
+subst-pres-∋ : ∀{x Γ A σ}
+   → Γ ∋ x ⦂ A
+   → subst-env σ Γ ∋ x ⦂ subst-ty σ A
+subst-pres-∋ {x}{Γ}{A} Γ∋x = {!!}   
+```
+
+```
+subst-id-prim : ∀{σ p}
+   → subst-ty σ (typeof p) ≡ typeof p
+subst-id-prim {σ}{p} = {!!}
+```
+
+```
+subst-pres-types : ∀ {σ Γ A N}
+   → Γ ⊢ N ⦂ A
+   → subst-env σ Γ ⊢ N ⦂ subst-ty σ A
+subst-pres-types {σ} {Γ} {A} {` x} (⊢` Γ∋x) = ⊢` (subst-pres-∋ Γ∋x)
+subst-pres-types {σ} {Γ} {A ⇒ B} {ƛ N} (⊢ƛ Γ⊢N:B) = ⊢ƛ (subst-pres-types Γ⊢N:B)
+subst-pres-types {σ} {Γ} {B} {.(_ · _)} (⊢· Γ⊢L:A→B Γ⊢M:A) =
+    let ⊢L = subst-pres-types {σ} Γ⊢L:A→B in
+    let ⊢M = subst-pres-types {σ} Γ⊢M:A in
+    ⊢· ⊢L ⊢M
+subst-pres-types {σ} {Γ} {A} {.(μ _)} (⊢μ Γ⊢N:A) = ⊢μ (subst-pres-types Γ⊢N:A)
+subst-pres-types {σ} {Γ} {A} {$ p k} (⊢$ eq)
+    rewrite eq = ⊢$ (subst-id-prim{σ}{p})
+subst-pres-types {σ} {Γ} {A} {.(`let _ _)} (⊢let Γ⊢N:A Γ⊢N:A₁) =
+    ⊢let (subst-pres-types Γ⊢N:A) (subst-pres-types Γ⊢N:A₁)
+```
+
 
 ## Type Inferece
 
 ```
 𝒲 : (Γ : Context) → (M : Term) → WF (len Γ) M → ℕ 
    → Maybe (Σ[ σ ∈ Equations ] Σ[ A ∈ Type ] subst-env σ Γ ⊢ M ⦂ A × ℕ)
-𝒲 Γ (` x) (WF-var .x x<Γ) n
+𝒲 Γ (` x) (WF-var .x x<Γ) α
     with <-∋ x<Γ
 ... | ⟨ A , Γ∋x ⟩ =
-    just ⟨ [] , ⟨ A , ⟨ (⊢` G) , n ⟩ ⟩ ⟩
+    just ⟨ [] , ⟨ A , ⟨ (⊢` G) , α ⟩ ⟩ ⟩
     where G : subst-env [] Γ ∋ x ⦂ A
           G rewrite subst-env-empty Γ = Γ∋x
-𝒲 Γ (op Syntax.⦅ x ⦆) wfm n = {!!}
+𝒲 Γ ($ p k) wfm α = just ⟨ [] , ⟨ (typeof p) , ⟨ (⊢$ refl) , α ⟩ ⟩ ⟩
+𝒲 Γ (ƛ N) (WF-op (WF-cons (WF-bind (WF-ast wfN)) WF-nil)) α
+    with 𝒲 (Γ , (tyvar α)) N wfN (suc α)
+... | nothing = nothing
+... | just ⟨ σ , ⟨ B , ⟨ ⊢N:B , β ⟩ ⟩ ⟩ =
+      just ⟨ σ , ⟨ (subst-ty σ (tyvar α) ⇒ B) , ⟨ ⊢ƛ ⊢N:B , β ⟩ ⟩ ⟩
+𝒲 Γ (μ N) (WF-op (WF-cons (WF-bind (WF-ast wfN)) WF-nil)) α
+    with 𝒲 (Γ , (tyvar α)) N wfN (suc α)
+... | nothing = nothing
+... | just ⟨ σ , ⟨ A , ⟨ ⊢N:A , β ⟩ ⟩ ⟩
+    with unify (⟨ subst-ty σ (tyvar α) , A ⟩ ∷ [])
+... | no-solution = nothing
+... | finished σ' =
+      let α' = subst-ty σ' (subst-ty σ (tyvar α)) in
+      just ⟨ subst-eqs σ' σ , ⟨ α' , ⟨ ⊢μ G , β ⟩ ⟩ ⟩
+    where
+    G : subst-env (subst-eqs σ' σ) Γ , subst-ty σ' (subst-ty σ (tyvar α))
+        ⊢ N ⦂ subst-ty σ' (subst-ty σ (tyvar α))
+    G rewrite subst-env-compose σ σ' Γ =
+        let ⊢N:σA = subst-pres-types {σ} ⊢N:A in
+        {!!}
+
+𝒲 Γ (L · M) wfm α = {!!}
+𝒲 Γ (`let L M) wfm α = {!!}
 ```

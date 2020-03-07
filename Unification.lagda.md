@@ -37,7 +37,7 @@ open import FirstOrderTerms Op op-eq? arity public
 ## Introduction to Unification
 
 This chapter lays the groundwork for Chapter
-[HM-TypeInference](https://plfa.github.io/HM-TypeInference)
+[HM-TypeInference](./HM-TypeInference.lagda.md)
 on Hindley-Milner type inference. In that chapter,
 we produce equations over types, such as
 
@@ -45,30 +45,92 @@ we produce equations over types, such as
     Nat = β
 
 where the α and β are _unknown type variables_ that need to be solved
-for.  For the above example, a solution is
+for. For the above example, a solution is
 
     α = Nat ⇒ Nat
     β = Nat
 
-In general, equations over syntactic structures can be solved using
-unification algorithms. In this chapter we study a particularly lucid
-algorithm by Martelli and Montanari. It is not the most efficient
-algorithm for unification; see the Chapter Notes for pointers to those
-algorithms.
+From a syntactic point of view, types are an instance of a more
+general construction known as _first-order terms_, which are
+recursively defined to include constants, variables, and function
+symbols applied to first-order terms.  We define first-order terms,
+substitution, and properties about them in the file
+[FirstOrderTerms.lagda.md](./FirstOrderTerms.lagda.md).  Equations
+over first-order terms can be solved using a unification algorithm. In
+this chapter we study a particularly lucid unification algorithm by
+Martelli and Montanari (TOPLAS 1982).
 
+We represent an equation as a pair of terms, and a set of equations as
+a list of pairs of terms.
 
 ```
 Equations : Set
-Equations = List (AST × AST)
+Equations = List (Term × Term)
 ```
 
-Definition of what it means to unify a list of equations.
+The goal of a unification algorithm is to find a substitution σ that,
+when applied to both sides of each equation, makes the two sides
+syntacticaly equal. In such case we say that the substitution σ
+_unifies_ the equation.
 
 ```
 _unifies_ : Equations → Equations → Set
-θ unifies [] = ⊤
-θ unifies (⟨ M , L ⟩ ∷ eqs) = subst θ M ≡ subst θ L  ×  θ unifies eqs
+σ unifies [] = ⊤
+σ unifies (⟨ M , L ⟩ ∷ eqs) = subst σ M ≡ subst σ L  ×  σ unifies eqs
 ```
+
+The unification of algorithm Martelli and Montanari considers one
+equation at a time from the list of equations `eqs`, performing one of
+the following actions depending on the form of the equation. In the
+process, the algorithm accumulates the solution, a substitution σ.
+
+1. Remove trivial equations:
+
+    ⟨ ` x , ` x ⟩ ∷ eqs , σ
+    
+   becomes
+   
+    eqs , σ
+
+2. Eliminate variables via substiution:
+
+    ⟨ ` x , M ⟩ ∷ eqs , σ
+    
+   becomes
+   
+    [ M / x] eqs , ⟨ ` x , M ⟩ ∷ [ M / x] σ
+    
+   and
+   
+    ⟨ M , ` x ⟩ ∷ eqs , σ
+    
+   becomes
+   
+    [ M / x] eqs , ⟨ ` x , M ⟩ ∷ [ M / x] σ
+
+   provided that x ∉ M. Otherwise report that there are no solutions.
+
+3. Decompose equalities on function symbols
+
+    ⟨ f ⦅ M₁ ... Mᵤ ⦆ , f' ⦅ L₁ ... Lᵤ ⦆  ⟩ ∷ eqs , σ
+    
+   becomes
+   
+    ⟨ M₁ , L₁ ⟩ ∷ ... ∷ ⟨ Mᵤ , Lᵤ ⟩ ∷ eqs , σ
+
+   provided that f ≡ f'. Otherwise report that there are no solutions.
+
+
+The rest of this Chapter is organized as follows.  We first prove some
+properties of `unifies`, in particular, that `unifies` is reflexive,
+that `unifies` is preserved and reflected by substitution, and that
+there are no unifiers for an equation of the form `⟨ x , M ⟩` when `x`
+occurs in `M`. Next we turn to the proof of termination of Martelli
+and Montanari's unification algorithm, defining a measure function and
+proving lemmas that show the measure decreases in each of the
+recursive calls. We then define the `unify` function by well-founded
+recursion on the measure and prove that `unify` is correct, which is
+to say that it returns a unifier for the equations iff one exists.
 
 ## Properties of Unifiers
 
@@ -80,7 +142,7 @@ ext-subst : ∀{θ}{x}{M}{L}
    → x ∉ vars L
    → x ∉ vars-eqs θ
    → subst (⟨ ` x , M ⟩ ∷ θ) L ≡ subst θ L
-ext-subst-vec : ∀{θ}{x}{M}{n}{Ls : Vec AST n}
+ext-subst-vec : ∀{θ}{x}{M}{n}{Ls : Vec Term n}
    → x ∉ vars-vec Ls
    → x ∉ vars-eqs θ
    → subst-vec (⟨ ` x , M ⟩ ∷ θ) Ls ≡ subst-vec θ Ls
@@ -167,7 +229,7 @@ unifies-refl {⟨ ` x , M ⟩ ∷ θ} (insert x∉M x∉θ M∩θ⊆∅ SΘ) =
 ### Substitution preserves unifiers
 
 ```
-subst-vec-sub1 : ∀{n}{Ns : Vec AST n}{z}{θ}{M}
+subst-vec-sub1 : ∀{n}{Ns : Vec Term n}{z}{θ}{M}
   → subst θ (` z) ≡ subst θ M
   → subst-vec θ Ns ≡ subst-vec θ ([ z ::= M ] Ns)
 
@@ -210,7 +272,7 @@ subst-pres {⟨ L , N ⟩ ∷ eqs} {θ}{x}{M} eq ⟨ θLM , θeqs ⟩ =
 ```
 
 ```
-subst-vec-pres : ∀{n}{Ms Ls : Vec AST n}{eqs}{θ}
+subst-vec-pres : ∀{n}{Ms Ls : Vec Term n}{eqs}{θ}
    → θ unifies eqs
    → subst-vec θ Ms ≡ subst-vec θ Ls
    → θ unifies append-eqs Ms Ls eqs
@@ -245,7 +307,7 @@ subst-reflect {⟨ L , N ⟩ ∷ eqs} {θ} {x} {M} ⟨ θ[x:=M]L=θ[x:=M]N , θ[
 ```
 
 ```
-subst-vec-reflect : ∀{n}{Ms Ls : Vec AST n}{eqs}{θ}
+subst-vec-reflect : ∀{n}{Ms Ls : Vec Term n}{eqs}{θ}
    → θ unifies append-eqs Ms Ls eqs
    → (subst-vec θ Ms ≡ subst-vec θ Ls)  × θ unifies eqs
 subst-vec-reflect {zero} {[]} {[]} {eqs} {θ} θMs,Ls,eqs = ⟨ refl , θMs,Ls,eqs ⟩
@@ -258,9 +320,9 @@ subst-vec-reflect {suc n} {M ∷ Ms} {L ∷ Ls} {eqs} {θ} ⟨ θM=θL , θMs,Ls
 ### A failed occurs-check implies no solutions
 
 ```
-num-ops-vec : ∀{n} → Vec AST n → ℕ
+num-ops-vec : ∀{n} → Vec Term n → ℕ
 
-num-ops : AST → ℕ
+num-ops : Term → ℕ
 num-ops (` x) = 0
 num-ops (op ⦅ Ms ⦆) = suc (num-ops-vec Ms)
 
@@ -271,11 +333,11 @@ num-ops-eqs : Equations → ℕ
 num-ops-eqs [] = 0
 num-ops-eqs (⟨ L , M ⟩ ∷ eqs) = num-ops L + num-ops M + num-ops-eqs eqs
 
-is-op : AST → Set
+is-op : Term → Set
 is-op (` x) = ⊥
 is-op (op ⦅ Ms ⦆) = ⊤
 
-num-ops-less-vec : ∀ {n}{Ms : Vec AST n}{x θ}
+num-ops-less-vec : ∀ {n}{Ms : Vec Term n}{x θ}
    → x ∈ vars-vec Ms
    → num-ops (subst θ (` x)) ≤ num-ops-vec (subst-vec θ Ms)
 
@@ -418,7 +480,7 @@ vars-eqs-sub-less {M}{x}{eqs} x∉M = begin≤
 
 
 ```
-var-eqs-append-≡ : ∀ {n} (Ms Ls : Vec AST n) eqs
+var-eqs-append-≡ : ∀ {n} (Ms Ls : Vec Term n) eqs
    → vars-eqs (append-eqs Ms Ls eqs) ≡ vars-vec Ms ∪ vars-vec Ls ∪ vars-eqs eqs
 var-eqs-append-≡ {zero} [] [] eqs rewrite ∅∪p≡p (vars-eqs eqs) | ∅∪p≡p (vars-eqs eqs) = refl
 var-eqs-append-≡ {suc n} (M ∷ Ms) (L ∷ Ls) eqs 
@@ -431,7 +493,7 @@ var-eqs-append-≡ {suc n} (M ∷ Ms) (L ∷ Ls) eqs
     refl
 
 {- obsolete -}
-var-eqs-append-⊆ : ∀ {n} (Ms Ls : Vec AST n) eqs
+var-eqs-append-⊆ : ∀ {n} (Ms Ls : Vec Term n) eqs
    → vars-eqs (append-eqs Ms Ls eqs) ⊆ vars-vec Ms ∪ vars-vec Ls ∪ vars-eqs eqs
 var-eqs-append-⊆ {zero} [] [] eqs x∈eqs
     rewrite ∅∪p≡p (vars-eqs eqs) | ∅∪p≡p (vars-eqs eqs) = x∈eqs
@@ -456,7 +518,7 @@ var-eqs-append-⊆ {suc n} (M ∷ Ms) (L ∷ Ls) eqs {x} x∈M∪L∪app-Ms-Ls-e
 
 open import Data.Nat.Solver using (module +-*-Solver)
 
-num-ops-append : ∀ {n} (Ms Ls : Vec AST n) eqs
+num-ops-append : ∀ {n} (Ms Ls : Vec Term n) eqs
    → num-ops-eqs (append-eqs Ms Ls eqs) ≡ num-ops-vec Ms + num-ops-vec Ls + num-ops-eqs eqs
 num-ops-append {zero} [] [] eqs = refl
 num-ops-append {suc n} (M ∷ Ms) (L ∷ Ls) eqs
@@ -503,7 +565,7 @@ measure3 {eqs}{θ}{op}{Ms}{x} x∉M
 ```
 
 ```
-measure4 : ∀{eqs}{θ}{op}{Ms Ls : Vec AST (arity op)}
+measure4 : ∀{eqs}{θ}{op}{Ms Ls : Vec Term (arity op)}
    → measure (append-eqs Ms Ls eqs) θ
      <₃ measure (⟨ op ⦅ Ms ⦆ , op ⦅ Ls ⦆ ⟩ ∷ eqs) θ
 measure4 {eqs}{θ}{op}{Ms}{Ls} = second-< vars≤ ops<
@@ -520,40 +582,38 @@ measure4 {eqs}{θ}{op}{Ms}{Ls} = second-< vars≤ ops<
 
 ## The Unify Function
 
-
-
 ```
 data Result : Set where
   finished : Equations → Result
   no-solution : Result
 
-unify-rec : (eqs : Equations) → (θ : Equations)
-          → Acc _<₃_ (measure eqs θ) → Result
-unify-rec [] θ rec = finished θ
-unify-rec (⟨ ` x , ` y ⟩ ∷ eqs) θ (acc rec)
+unify-rec : (eqs : Equations) → (σ : Equations)
+          → Acc _<₃_ (measure eqs σ) → Result
+unify-rec [] σ rec = finished σ
+unify-rec (⟨ ` x , ` y ⟩ ∷ eqs) σ (acc rec)
     with x ≟ y
-... | yes refl = unify-rec eqs θ (rec _ (measure1 {eqs}{θ}))
+... | yes refl = unify-rec eqs σ (rec _ (measure1 {eqs}{σ}))
 ... | no xy =
     let eqs' = [ ` y / x ] eqs in
-    let θ' = ⟨ ` x , ` y ⟩ ∷ [ ` y / x ] θ in
-    unify-rec eqs' θ' (rec _ (measure2{eqs}{θ} (x∉⁅y⁆ _ _ xy)))
-unify-rec (⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ eqs) θ (acc rec)
+    let σ' = ⟨ ` x , ` y ⟩ ∷ [ ` y / x ] σ in
+    unify-rec eqs' σ' (rec _ (measure2{eqs}{σ} (x∉⁅y⁆ _ _ xy)))
+unify-rec (⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ eqs) σ (acc rec)
     with occurs? x (op ⦅ Ms ⦆)
 ... | yes x∈M = no-solution
 ... | no x∉M =
     let eqs' = [ op ⦅ Ms ⦆ / x ] eqs in
-    let θ' = ⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ [ op ⦅ Ms ⦆ / x ] θ in
-    unify-rec eqs' θ' (rec _ (measure2{eqs}{θ} x∉M))
-unify-rec (⟨ op ⦅ Ms ⦆ , ` x ⟩ ∷ eqs) θ (acc rec)
+    let σ' = ⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ [ op ⦅ Ms ⦆ / x ] σ in
+    unify-rec eqs' σ' (rec _ (measure2{eqs}{σ} x∉M))
+unify-rec (⟨ op ⦅ Ms ⦆ , ` x ⟩ ∷ eqs) σ (acc rec)
     with occurs? x (op ⦅ Ms ⦆)
 ... | yes x∈M = no-solution
 ... | no x∉M =
     let eqs' = [ op ⦅ Ms ⦆ / x ] eqs in
-    let θ' = ⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ [ op ⦅ Ms ⦆ / x ] θ in
-    unify-rec eqs' θ' (rec _ (measure3{eqs}{θ} x∉M))
-unify-rec (⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs) θ (acc rec)
+    let σ' = ⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ [ op ⦅ Ms ⦆ / x ] σ in
+    unify-rec eqs' σ' (rec _ (measure3{eqs}{σ} x∉M))
+unify-rec (⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs) σ (acc rec)
     with op-eq? op op'
-... | yes refl = unify-rec (append-eqs Ms Ls eqs) θ (rec _ (measure4 {eqs}{θ}))
+... | yes refl = unify-rec (append-eqs Ms Ls eqs) σ (rec _ (measure4 {eqs}{σ}))
 ... | no neq = no-solution
 
 unify : (eqs : Equations) → Result
@@ -564,7 +624,7 @@ unify eqs = unify-rec eqs [] (<₃-wellFounded (measure eqs []))
 
 We shall prove that the `unify` function is correct in that
 
-1. (Soundness) If it returns a substitution θ, then θ unifies the equations.
+1. (Soundness) If it returns a substitution σ, then σ unifies the equations.
 2. (Completeness) if it returns `no-solution`, then
    there are no substitutions that unify the equations.
 
@@ -574,8 +634,8 @@ and a compelteness lemma for `unify-rec`.
 
 The `unify-rec` function has two preconditions:
 
-1. the current substitution θ is idempotent, and
-2. the current equations no longer contain the variables in the domain of θ.
+1. the current substitution σ is idempotent, and
+2. the current equations no longer contain the variables in the domain of σ.
 
 In the proofs of soundness and completeness, to invoke the induction
 hypothesis, we need to establish the above two preconditions for the
@@ -597,7 +657,7 @@ M∪x∪eqs {M}{x}{eqs}{σ} prem
 ```
 
 We have some work to do regarding point 2 (that the current equations
-does not contain any variables in the domain of θ).
+does not contain any variables in the domain of σ).
 
 UNDER CONSTRUCTION
 
@@ -651,7 +711,7 @@ eqs∩x∪σ⊆∅ {x}{M}{σ}{eqs} x∉M eqs∩domσ⊆∅ {y} y∈
 
 
 ```
-MsLseqs∩domσ⊆∅ : ∀{n}{Ms Ls : Vec AST n}{eqs}{σ}
+MsLseqs∩domσ⊆∅ : ∀{n}{Ms Ls : Vec Term n}{eqs}{σ}
    → (vars-vec Ms ∪ vars-vec Ls ∪ vars-eqs eqs) ∩ dom σ ⊆ ∅
    → vars-eqs (append-eqs Ms Ls eqs) ∩ dom σ ⊆ ∅
 MsLseqs∩domσ⊆∅ {n}{Ms}{Ls}{eqs}{σ} prem =
@@ -665,76 +725,76 @@ MsLseqs∩domσ⊆∅ {n}{Ms}{Ls}{eqs}{σ} prem =
 
 
 ```
-unify-rec-sound : ∀{eqs}{σ}{θ}{ac}
+unify-rec-sound : ∀{eqs}{σ}{σ'}{ac}
    → IdemSubst σ
    → vars-eqs eqs ∩ dom σ ⊆ ∅
-   → unify-rec eqs σ ac ≡ finished θ
-   → θ unifies eqs × θ unifies σ
-unify-rec-sound {[]} {σ}{θ}{ac} Sσ eqs∩domσ⊆∅ refl = ⟨ tt , unifies-refl Sσ ⟩
-unify-rec-sound {⟨ ` x , ` y ⟩ ∷ eqs} {σ} {θ} {acc rs} Sσ eqs∩domσ⊆∅ unify[eqs,σ]≡θ
+   → unify-rec eqs σ ac ≡ finished σ'
+   → σ' unifies eqs × σ' unifies σ
+unify-rec-sound {[]} {σ}{σ'}{ac} Sσ eqs∩domσ⊆∅ refl = ⟨ tt , unifies-refl Sσ ⟩
+unify-rec-sound {⟨ ` x , ` y ⟩ ∷ eqs} {σ} {σ'} {acc rs} Sσ eqs∩domσ⊆∅ unify[eqs,σ]≡σ'
     with x ≟ y 
 ... | yes refl
-    with unify-rec-sound {eqs}{σ}{θ} {rs _ (measure1 {eqs}{θ})}
-            Sσ (xx-eqs∩dom⊆∅ {x}{eqs}{σ} eqs∩domσ⊆∅) unify[eqs,σ]≡θ
-... | ⟨ θeqs , θσ ⟩ =    
-      ⟨ ⟨ refl , θeqs ⟩ , θσ ⟩
-unify-rec-sound {⟨ ` x , ` y ⟩ ∷ eqs} {σ} {θ} {acc rs} Sσ eqs∩domσ⊆∅ unify[eqs,σ]≡θ
+    with unify-rec-sound {eqs}{σ}{σ'} {rs _ (measure1 {eqs}{σ'})}
+            Sσ (xx-eqs∩dom⊆∅ {x}{eqs}{σ} eqs∩domσ⊆∅) unify[eqs,σ]≡σ'
+... | ⟨ σ'eqs , σ'σ ⟩ =    
+      ⟨ ⟨ refl , σ'eqs ⟩ , σ'σ ⟩
+unify-rec-sound {⟨ ` x , ` y ⟩ ∷ eqs} {σ} {σ'} {acc rs} Sσ eqs∩domσ⊆∅ unify[eqs,σ]≡σ'
     | no xy
-    with unify-rec-sound {[ ` y / x ] eqs}{(⟨ ` x , ` y ⟩ ∷ [ ` y / x ] σ)}{θ}
-             {rs _ (measure2{eqs}{θ} (x∉⁅y⁆ _ _ xy))}
+    with unify-rec-sound {[ ` y / x ] eqs}{(⟨ ` x , ` y ⟩ ∷ [ ` y / x ] σ)}{σ'}
+             {rs _ (measure2{eqs}{σ'} (x∉⁅y⁆ _ _ xy))}
              (insert-subst {x}{` y}{σ}{eqs} (x∉⁅y⁆ x y xy) eqs∩domσ⊆∅ Sσ)
              (eqs∩x∪σ⊆∅ {x}{` y}{σ}{eqs} (x∉⁅y⁆ x y xy) eqs∩domσ⊆∅)
-             unify[eqs,σ]≡θ
-... | ⟨ θeqs , ⟨ θx=θy , θσ ⟩ ⟩ =     
-       ⟨ ⟨ θx=θy , subst-reflect θeqs θx=θy ⟩ , subst-reflect θσ θx=θy ⟩
-unify-rec-sound {⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ eqs} {σ} {θ}{acc rs} Sσ eqs∩domσ⊆∅ unify[eqs,σ]≡θ
+             unify[eqs,σ]≡σ'
+... | ⟨ σ'eqs , ⟨ σ'x=σ'y , σ'σ ⟩ ⟩ =     
+       ⟨ ⟨ σ'x=σ'y , subst-reflect σ'eqs σ'x=σ'y ⟩ , subst-reflect σ'σ σ'x=σ'y ⟩
+unify-rec-sound {⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ eqs} {σ} {σ'}{acc rs} Sσ eqs∩domσ⊆∅ unify[eqs,σ]≡σ'
     with occurs? x (op ⦅ Ms ⦆)
 ... | yes x∈M
-    with unify[eqs,σ]≡θ
+    with unify[eqs,σ]≡σ'
 ... | ()    
-unify-rec-sound {⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ eqs} {σ} {θ}{acc rs} Sσ eqs∩domσ⊆∅ unify[eqs,σ]≡θ
+unify-rec-sound {⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ eqs} {σ} {σ'}{acc rs} Sσ eqs∩domσ⊆∅ unify[eqs,σ]≡σ'
     | no x∉M 
-    with unify-rec-sound {([ op ⦅ Ms ⦆ / x ] eqs)} {(⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ [ op ⦅ Ms ⦆ / x ] σ)} {θ}
+    with unify-rec-sound {([ op ⦅ Ms ⦆ / x ] eqs)} {(⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ [ op ⦅ Ms ⦆ / x ] σ)} {σ'}
              {rs _ (measure2{eqs}{σ} x∉M)}
              (insert-subst {x}{op ⦅ Ms ⦆}{σ}{eqs} x∉M eqs∩domσ⊆∅ Sσ)
              (eqs∩x∪σ⊆∅ {x}{op ⦅ Ms ⦆}{σ}{eqs} x∉M eqs∩domσ⊆∅)
-             unify[eqs,σ]≡θ
-... | ⟨ θeqs , ⟨ θxM , θσ ⟩ ⟩ =
-    ⟨ ⟨ θxM , subst-reflect θeqs θxM ⟩ , subst-reflect θσ θxM ⟩
-unify-rec-sound {⟨ op ⦅ Ms ⦆ , ` x ⟩ ∷ eqs} {σ} {θ}{acc rs} Sσ eqs∩domσ⊆∅ unify[eqs,σ]≡θ
+             unify[eqs,σ]≡σ'
+... | ⟨ σ'eqs , ⟨ σ'xM , σ'σ ⟩ ⟩ =
+    ⟨ ⟨ σ'xM , subst-reflect σ'eqs σ'xM ⟩ , subst-reflect σ'σ σ'xM ⟩
+unify-rec-sound {⟨ op ⦅ Ms ⦆ , ` x ⟩ ∷ eqs} {σ} {σ'}{acc rs} Sσ eqs∩domσ⊆∅ unify[eqs,σ]≡σ'
     with occurs? x (op ⦅ Ms ⦆)
 ... | yes x∈M
-    with unify[eqs,σ]≡θ
+    with unify[eqs,σ]≡σ'
 ... | ()    
-unify-rec-sound {⟨ op ⦅ Ms ⦆ , ` x ⟩ ∷ eqs} {σ} {θ}{acc rs} Sσ eqs∩domσ⊆∅ unify[eqs,σ]≡θ
+unify-rec-sound {⟨ op ⦅ Ms ⦆ , ` x ⟩ ∷ eqs} {σ} {σ'}{acc rs} Sσ eqs∩domσ⊆∅ unify[eqs,σ]≡σ'
     | no x∉M
-    with unify-rec-sound {([ op ⦅ Ms ⦆ / x ] eqs)} {(⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ [ op ⦅ Ms ⦆ / x ] σ)} {θ}
-             {rs _ (measure3{eqs}{θ} x∉M)}
+    with unify-rec-sound {([ op ⦅ Ms ⦆ / x ] eqs)} {(⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ [ op ⦅ Ms ⦆ / x ] σ)} {σ'}
+             {rs _ (measure3{eqs}{σ'} x∉M)}
              ((insert-subst {x}{op ⦅ Ms ⦆}{σ}{eqs} x∉M (M∪x∪eqs {op ⦅ Ms ⦆}{x}{eqs}{σ} eqs∩domσ⊆∅) Sσ))
              (eqs∩x∪σ⊆∅ {x}{op ⦅ Ms ⦆}{σ}{eqs} x∉M (M∪x∪eqs {op ⦅ Ms ⦆}{x}{eqs}{σ} eqs∩domσ⊆∅))
-             unify[eqs,σ]≡θ
-... | ⟨ θeqs , ⟨ θxM , θσ ⟩ ⟩ =
-    ⟨ ⟨ sym θxM , subst-reflect θeqs θxM ⟩ , subst-reflect θσ θxM ⟩
-unify-rec-sound {⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs} {σ} {θ}{acc rs} Sσ eqs∩domσ⊆∅ unify[eqs,σ]≡θ
+             unify[eqs,σ]≡σ'
+... | ⟨ σ'eqs , ⟨ σ'xM , σ'σ ⟩ ⟩ =
+    ⟨ ⟨ sym σ'xM , subst-reflect σ'eqs σ'xM ⟩ , subst-reflect σ'σ σ'xM ⟩
+unify-rec-sound {⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs} {σ} {σ'}{acc rs} Sσ eqs∩domσ⊆∅ unify[eqs,σ]≡σ'
     with op-eq? op op'
 ... | yes refl
-    with unify-rec-sound {append-eqs Ms Ls eqs}{σ}{θ}{rs _ (measure4{eqs}{θ})} Sσ
-             (MsLseqs∩domσ⊆∅ {Ms = Ms}{Ls = Ls}{σ = σ} eqs∩domσ⊆∅) unify[eqs,σ]≡θ
-... | ⟨ θMs,Ls,eqs , θσ ⟩
-    with subst-vec-reflect {Ms = Ms}{Ls} θMs,Ls,eqs
-... | ⟨ θMs=θLs , θeqs ⟩ =
-    ⟨ ⟨ cong (λ □ → op ⦅ □ ⦆) θMs=θLs  , θeqs ⟩ , θσ ⟩
-unify-rec-sound {⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs} {σ} {θ}{acc rs} Sσ eqs∩domσ⊆∅ unify[eqs,σ]≡θ
+    with unify-rec-sound {append-eqs Ms Ls eqs}{σ}{σ'}{rs _ (measure4{eqs}{σ'})} Sσ
+             (MsLseqs∩domσ⊆∅ {Ms = Ms}{Ls = Ls}{σ = σ} eqs∩domσ⊆∅) unify[eqs,σ]≡σ'
+... | ⟨ σ'Ms,Ls,eqs , σ'σ ⟩
+    with subst-vec-reflect {Ms = Ms}{Ls} σ'Ms,Ls,eqs
+... | ⟨ σ'Ms=σ'Ls , σ'eqs ⟩ =
+    ⟨ ⟨ cong (λ □ → op ⦅ □ ⦆) σ'Ms=σ'Ls  , σ'eqs ⟩ , σ'σ ⟩
+unify-rec-sound {⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs} {σ} {σ'}{acc rs} Sσ eqs∩domσ⊆∅ unify[eqs,σ]≡σ'
     | no neq
-    with unify[eqs,σ]≡θ
+    with unify[eqs,σ]≡σ'
 ... | ()    
 
-unify-sound : ∀{eqs}{θ}
-   → unify eqs ≡ finished θ
-   → θ unifies eqs
-unify-sound {eqs}{θ} unify-eqs-θ =
+unify-sound : ∀{eqs}{σ'}
+   → unify eqs ≡ finished σ'
+   → σ' unifies eqs
+unify-sound {eqs}{σ'} unify-eqs-σ' =
     let m = (<₃-wellFounded (measure eqs [])) in
-    proj₁ (unify-rec-sound {eqs}{[]}{θ}{m} empty G unify-eqs-θ)
+    proj₁ (unify-rec-sound {eqs}{[]}{σ'}{m} empty G unify-eqs-σ')
     where
     G : vars-eqs eqs ∩ ∅ ⊆ ∅
     G rewrite p∩∅≡∅ (vars-eqs eqs) = λ z → z

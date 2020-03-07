@@ -44,26 +44,26 @@ suc x ≟ suc y
 ... | yes refl = yes refl
 ... | no xy = no λ {refl → xy refl}
 
-data AST : Set where
-  `_ : Var → AST
-  _⦅_⦆ : (op : Op) → Vec AST (arity op) → AST
+data Term : Set where
+  `_ : Var → Term
+  _⦅_⦆ : (op : Op) → Vec Term (arity op) → Term
 ```
 
 ```
 Substitution : Set
-Substitution = List (AST × AST)
+Substitution = List (Term × Term)
 ```
 
 ```
-append-eqs : ∀{n} → Vec AST n → Vec AST n → Substitution → Substitution
+append-eqs : ∀{n} → Vec Term n → Vec Term n → Substitution → Substitution
 append-eqs {zero} Ms Ls eqs = eqs
 append-eqs {suc n} (M ∷ Ms) (L ∷ Ls) eqs = ⟨ M , L ⟩ ∷ append-eqs Ms Ls eqs
 ```
 
 ```
-[_::=_]_ : Var → AST → ∀{n} → Vec AST n → Vec AST n
+[_::=_]_ : Var → Term → ∀{n} → Vec Term n → Vec Term n
 
-[_:=_]_ : Var → AST → AST → AST
+[_:=_]_ : Var → Term → Term → Term
 [ x := M ] (` y)
     with x ≟ y
 ... | yes xy = M
@@ -73,11 +73,11 @@ append-eqs {suc n} (M ∷ Ms) (L ∷ Ls) eqs = ⟨ M , L ⟩ ∷ append-eqs Ms L
 [ x ::= M ] [] = []
 [ x ::= M ] (N ∷ Ns) = [ x := M ] N ∷ [ x ::= M ] Ns
 
-[_/_]_ : AST → Var → Substitution → Substitution
+[_/_]_ : Term → Var → Substitution → Substitution
 [ M / x ] [] = []
 [ M / x ] (⟨ L , N ⟩ ∷ eqs) = ⟨ [ x := M ] L , [ x := M ] N ⟩ ∷ ([ M / x ] eqs)
 
-lookup : Substitution → Var → Maybe AST
+lookup : Substitution → Var → Maybe Term
 lookup [] x = nothing
 lookup (⟨ ` y , M ⟩ ∷ eqs) x
     with x ≟ y
@@ -85,9 +85,9 @@ lookup (⟨ ` y , M ⟩ ∷ eqs) x
 ... | no xy = lookup eqs x
 lookup (⟨ op ⦅ Ms ⦆ , snd ⟩ ∷ eqs) x = lookup eqs x
 
-subst-vec : Substitution → ∀{n} → Vec AST n → Vec AST n
+subst-vec : Substitution → ∀{n} → Vec Term n → Vec Term n
 
-subst : Substitution → AST → AST
+subst : Substitution → Term → Term
 subst σ (` x)
     with lookup σ x
 ... | nothing = ` x
@@ -108,9 +108,9 @@ _∘_ : Substitution → Substitution → Substitution
 Definition of the variables in a term.
 
 ```
-vars-vec : ∀{n} → Vec AST n → FiniteSet
+vars-vec : ∀{n} → Vec Term n → FiniteSet
 
-vars : AST → FiniteSet
+vars : Term → FiniteSet
 vars (` x) = ⁅ x ⁆
 vars (op ⦅ Ms ⦆) = vars-vec Ms
 
@@ -125,8 +125,8 @@ vars-eqs (⟨ L , M ⟩ ∷ eqs) = vars L  ∪  vars M  ∪  vars-eqs eqs
 Decision procedure for checking whether a variable occurs in a term.
 
 ```
-occurs? : (x : Var) → (M : AST) → Dec (x ∈ vars M)
-occurs-vec? : (x : Var) → ∀{n} → (Ms : Vec AST n) → Dec (x ∈ vars-vec Ms)
+occurs? : (x : Var) → (M : Term) → Dec (x ∈ vars M)
+occurs-vec? : (x : Var) → ∀{n} → (Ms : Vec Term n) → Dec (x ∈ vars-vec Ms)
 
 occurs? x (` y)
     with x ≟ y
@@ -180,8 +180,8 @@ op≡-inversion refl = refl
 Ms≡-inversion : ∀{op Ms Ms'} → op ⦅ Ms ⦆ ≡ op ⦅ Ms' ⦆ → Ms ≡ Ms'
 Ms≡-inversion refl = refl
 
-∷≡-inversion : ∀{n}{x y : AST}{xs ys : Vec AST n}
-   → _≡_ {a = Agda.Primitive.lzero}{A = Vec AST (suc n)} (x ∷ xs) (y ∷ ys)
+∷≡-inversion : ∀{n}{x y : Term}{xs ys : Vec Term n}
+   → _≡_ {a = Agda.Primitive.lzero}{A = Vec Term (suc n)} (x ∷ xs) (y ∷ ys)
    → x ≡ y  ×  xs ≡ ys
 ∷≡-inversion refl = ⟨ refl , refl ⟩
 ```
@@ -192,7 +192,7 @@ The empty substitution is the identity function.
 
 ```
 subst-empty : ∀ M → subst [] M ≡ M
-subst-vec-empty : ∀ {n} (Ms : Vec AST n) → subst-vec [] Ms ≡ Ms
+subst-vec-empty : ∀ {n} (Ms : Vec Term n) → subst-vec [] Ms ≡ Ms
 subst-empty (` x) = refl
 subst-empty (op ⦅ Ms ⦆)
     rewrite subst-vec-empty Ms = refl
@@ -221,7 +221,7 @@ substituted does not occur in the term.
 no-vars→subst-id : ∀{N x M}
   → ¬ x ∈ vars N
   → [ x := M ] N ≡ N
-no-vars→subst-vec-id : ∀{n}{Ns : Vec AST n} {x M}
+no-vars→subst-vec-id : ∀{n}{Ns : Vec Term n} {x M}
   → ¬ x ∈ vars-vec Ns
   → [ x ::= M ] Ns ≡ Ns
   
@@ -279,7 +279,7 @@ M∩domθ⊆∅→subst-id : ∀{M}{θ}
    → IdemSubst θ
    → vars M ∩ dom θ ⊆ ∅
    → subst θ M ≡ M
-M∩domθ⊆∅→subst-vec-id : ∀{n}{Ms : Vec AST n}{θ}
+M∩domθ⊆∅→subst-vec-id : ∀{n}{Ms : Vec Term n}{θ}
    → IdemSubst θ
    → vars-vec Ms ∩ dom θ ⊆ ∅
    → subst-vec θ Ms ≡ Ms
@@ -335,7 +335,7 @@ Substitution removes variables from terms.
 ```
 vars-subst-∪ : ∀{N}{x M}
    → vars ([ x := M ] N) ⊆ vars M  ∪  (vars N - ⁅ x ⁆)
-vars-vec-subst-∪ : ∀{n}{Ns : Vec AST n}{x M}
+vars-vec-subst-∪ : ∀{n}{Ns : Vec Term n}{x M}
    → vars-vec ([ x ::= M ] Ns) ⊆ vars M  ∪  (vars-vec Ns - ⁅ x ⁆)
 vars-subst-∪ {` y} {x} {M}
     with x ≟ y
@@ -543,7 +543,7 @@ subst-compose-var σ' (⟨ A , B ⟩ ∷ σ) α = G A
 ```
 subst-compose : ∀ σ σ' A
    → subst (σ' ∘ σ) A ≡ subst σ' (subst σ A)
-subst-vec-compose : ∀ σ σ' {n} (As : Vec AST n)
+subst-vec-compose : ∀ σ σ' {n} (As : Vec Term n)
    → subst-vec (σ' ∘ σ) As ≡ subst-vec σ' (subst-vec σ As)
 subst-compose σ σ' (` α) = subst-compose-var σ' σ α
 subst-compose σ σ' (op ⦅ Ts ⦆)

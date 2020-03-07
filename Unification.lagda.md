@@ -494,7 +494,7 @@ var-eqs-append-≡ {suc n} (M ∷ Ms) (L ∷ Ls) eqs
     | var-eqs-append-≡ {n} Ms Ls eqs =
     refl
 
-{- obsolete -}
+{- obsolete but convenient, prove as corollary -}
 var-eqs-append-⊆ : ∀ {n} (Ms Ls : Vec Term n) eqs
    → vars-eqs (append-eqs Ms Ls eqs) ⊆ vars-vec Ms ∪ vars-vec Ls ∪ vars-eqs eqs
 var-eqs-append-⊆ {zero} [] [] eqs x∈eqs

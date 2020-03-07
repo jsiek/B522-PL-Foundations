@@ -108,7 +108,7 @@ the solution, a substitution σ.
    
         [ M / x] eqs , ⟨ ` x , M ⟩ ∷ [ M / x] σ
 
-   provided that x ∉ M. Otherwise report that there are no solutions.
+   provided that `x ∉ M`. Otherwise report that there are no solutions.
 
 3. Decompose equalities on function symbols
 
@@ -122,7 +122,7 @@ the solution, a substitution σ.
 
 
 The rest of this Chapter is organized as follows.  We first prove some
-properties of `unifies`, in particular, that `unifies` is reflexive,
+properties about `unifies`, in particular, that `unifies` is reflexive,
 that `unifies` is preserved and reflected by substitution, and that
 there are no unifiers for an equation of the form `⟨ x , M ⟩` when `x`
 occurs in `M`. Next we turn to the proof of termination of Martelli

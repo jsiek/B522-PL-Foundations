@@ -1,6 +1,6 @@
 
 This is unfinished work... I decided to first do Martelli and
-Montanari's algorithm, which is in the `UnifyMM.lagda.md` file.
+Montanari's algorithm, which is in the `Unify.lagda.md` file.
 
 ```
 open import Data.Maybe
@@ -12,7 +12,7 @@ open import Relation.Nullary using (Dec; yes; no)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 open import UnionFind
 
-module UnifyHuet
+module HuetUnify
     (Op : Set)
     (op-eq : (x : Op) → (y : Op) → Dec (x ≡ y))
     (arity : Op → ℕ) where

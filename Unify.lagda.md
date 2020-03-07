@@ -1,3 +1,5 @@
+## Imports
+
 ```
 open import Agda.Primitive using (lzero)
 open import Data.Empty using (⊥; ⊥-elim)
@@ -24,12 +26,12 @@ open Relation.Binary.PropositionalEquality.≡-Reasoning
    using (begin_; _≡⟨⟩_; _≡⟨_⟩_; _∎)
 open import FiniteSet
 
-module UnifyMM
+module Unify
     (Op : Set)
     (op-eq? : (x : Op) → (y : Op) → Dec (x ≡ y))
     (arity : Op → ℕ) where
 
-open import TermSubstUnify Op op-eq? arity public
+open import FirstOrderTerms Op op-eq? arity public
 ```
 
 ## Introduction to Unification

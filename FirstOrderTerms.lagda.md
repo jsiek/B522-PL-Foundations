@@ -24,7 +24,7 @@ open Relation.Binary.PropositionalEquality.≡-Reasoning
    using (begin_; _≡⟨⟩_; _≡⟨_⟩_; _∎)
 open import FiniteSet
 
-module TermSubstUnify
+module FirstOrderTerms
     (Op : Set)
     (op-eq? : (x : Op) → (y : Op) → Dec (x ≡ y))
     (arity : Op → ℕ) where

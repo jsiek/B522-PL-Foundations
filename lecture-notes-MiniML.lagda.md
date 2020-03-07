@@ -24,7 +24,7 @@ open Relation.Binary.PropositionalEquality.≡-Reasoning
    renaming (begin_ to begin≡_; _∎ to _QED)
 open import Relation.Nullary using (Dec; yes; no)
 
-import UnifyMM
+import Unify
 ```
 
 ## Primitives
@@ -130,7 +130,7 @@ tyop-eq op-fun op-nat = no (λ ())
 tyop-eq op-fun op-bool = no (λ ())
 tyop-eq op-fun op-fun = yes refl
 
-open UnifyMM TyOp tyop-eq arity
+open Unify TyOp tyop-eq arity
   renaming (AST to Type; _⦅_⦆ to _❨_❩; subst to subst-ty; `_ to tyvar;
             subst-compose to subst-ty-compose)
 

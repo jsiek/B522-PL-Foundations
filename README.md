@@ -143,27 +143,27 @@ an appropriate choice for your project.
 | 		   | 27  | [Connectives](https://plfa.github.io/Connectives/) & [Negation](https://plfa.github.io/Negation/) |
 |		   | 28  | [Quantifiers](https://plfa.github.io/Quantifiers/) & [Decidable](https://plfa.github.io/Decidable/) (unusual day, regular time) |
 |		   | 29  | [Lists](https://plfa.github.io/Lists/) and higher-order functions |
-| February | 3   | [Lambda](https://plfa.github.io/Lambda/) the Simply Typed Lambda Calculus |
-|          | 5   | [Properties](https://plfa.github.io/Properties/) such as type safety |
+| February |  3  | [Lambda](https://plfa.github.io/Lambda/) the Simply Typed Lambda Calculus |
+|          |  5  | [Properties](https://plfa.github.io/Properties/) such as type safety |
 |          | 10  | [DeBruijn](https://plfa.github.io/DeBruijn/) representation of variables |
 |          | 12  | [More](https://plfa.github.io/More/) constructs: numbers, let, products (pairs), sums, unit, empty, lists |
 |          | 17  | [STLC Termination via Logical Relations](./STLC-Termination.lagda.md) |
 |          | 19  | [Inference](https://plfa.github.io/Inference/) bidirectional type inference |
 |          | 24  | [Subtyping and Records](./lecture-notes-Subtyping.lagda.md) |
 |          | 26  | [Bisimulation](https://plfa.github.io/Bisimulation/) |
-| March    | 2  | [Untyped](https://plfa.github.io/Untyped/) Lambda Calculus |
-|          | 4  | [Confluence](https://plfa.github.io/Confluence/) of the Lambda Calculus |
-|          | 9  | [BigStep](https://plfa.github.io/BigStep/) Call-by-name Evaluation of the Lambda Calculus |
-|          | 11   | [Denotational](https://plfa.github.io/Denotational/) semantics of the Lambda Calculus |
-|          | 16   | [Compositional](https://plfa.github.io/Compositional/) |
-|          | 18   | [Soundness](https://plfa.github.io/Soundness/) |
+| March    |  2  | [Untyped](https://plfa.github.io/Untyped/) Lambda Calculus |
+|          |  4  | [Confluence](https://plfa.github.io/Confluence/) of the Lambda Calculus |
+|          |  9  | [BigStep](https://plfa.github.io/BigStep/) Call-by-name Evaluation of the Lambda Calculus |
+|          | 11  | [Denotational](https://plfa.github.io/Denotational/) semantics of the Lambda Calculus |
+|          | 16  | [Compositional](https://plfa.github.io/Compositional/) |
+|          | 18  | [Soundness](https://plfa.github.io/Soundness/) |
 |          | 23  | [Adequacy](https://plfa.github.io/Adequacy/) |
 |          | 25  | [ContextualEquivalence](https://plfa.github.io/ContextualEquivalence/) |
 |          | 30  | [Unification](https://plfa.github.io/Unification) |
-| April    | 1  | [HM-TypeInference](https://plfa.github.io/HM-TypeInference) |
-|          | 6   | Gradual Typing |
-|          | 8   | Universal and Existential Types (Parametric Polymorphism) |
-|          | 13   | References and the Heap |
+| April    |  1  | [HM-TypeInference](https://plfa.github.io/HM-TypeInference) |
+|          |  6  | Gradual Typing |
+|          |  8  | Universal and Existential Types (Parametric Polymorphism) |
+|          | 13  | References and the Heap |
 |          | 15  | Classes and Objects (Featherweight Java) |
 |          | 20  | Recursive Types |
 |          | 22  | Intersection and Union Types |

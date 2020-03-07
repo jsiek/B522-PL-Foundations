@@ -26,7 +26,7 @@ open Relation.Binary.PropositionalEquality.≡-Reasoning
    using (begin_; _≡⟨⟩_; _≡⟨_⟩_; _∎)
 open import FiniteSet
 
-module Unify
+module Unification
     (Op : Set)
     (op-eq? : (x : Op) → (y : Op) → Dec (x ≡ y))
     (arity : Op → ℕ) where
@@ -35,6 +35,11 @@ open import FirstOrderTerms Op op-eq? arity public
 ```
 
 ## Introduction to Unification
+
+
+
+
+
 
 ```
 Equations : Set

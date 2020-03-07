@@ -1,6 +1,6 @@
 
 This is unfinished work... I decided to first do Martelli and
-Montanari's algorithm, which is in the `Unify.lagda.md` file.
+Montanari's algorithm, which is in the `Unification.lagda.md` file.
 
 ```
 open import Data.Maybe

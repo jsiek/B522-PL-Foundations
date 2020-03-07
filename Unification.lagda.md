@@ -36,9 +36,25 @@ open import FirstOrderTerms Op op-eq? arity public
 
 ## Introduction to Unification
 
+This chapter lays the groundwork for Chapter
+[HM-TypeInference](https://plfa.github.io/HM-TypeInference)
+on Hindley-Milner type inference. In that chapter,
+we produce equations over types, such as
 
+    α = β ⇒ Nat
+    Nat = β
 
+where the α and β are _unknown type variables_ that need to be solved
+for.  For the above example, a solution is
 
+    α = Nat ⇒ Nat
+    β = Nat
+
+In general, equations over syntactic structures can be solved using
+unification algorithms. In this chapter we study a particularly lucid
+algorithm by Martelli and Montanari. It is not the most efficient
+algorithm for unification; see the Chapter Notes for pointers to those
+algorithms.
 
 
 ```
@@ -504,7 +520,7 @@ measure4 {eqs}{θ}{op}{Ms}{Ls} = second-< vars≤ ops<
 
 ## The Unify Function
 
-Martelli and Montanari's Algorithm 1.
+
 
 ```
 data Result : Set where

@@ -163,12 +163,12 @@ an appropriate choice for your project.
 | April    | 1  | [HM-TypeInference](https://plfa.github.io/HM-TypeInference) |
 |          | 6   | Gradual Typing |
 |          | 8   | Universal and Existential Types (Parametric Polymorphism) |
-|          | 13   | Classes and Objects (Featherweight Java) |
-|          | 15  | Recursive Types |
-|          | 20  | Intersection and Union Types |
-|          | 22  | Higher-Order Polymorphism |
-|          | 27  | Dependent Types |
-|          | 29  | References and the Heap |
+|          | 13   | References and the Heap |
+|          | 15  | Classes and Objects (Featherweight Java) |
+|          | 20  | Recursive Types |
+|          | 22  | Intersection and Union Types |
+|          | 27  | Higher-Order Polymorphism |
+|          | 29  | Dependent Types |
 
 ## Resources
 

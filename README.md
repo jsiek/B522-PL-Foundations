@@ -159,16 +159,16 @@ an appropriate choice for your project.
 |          | 18   | [Soundness](https://plfa.github.io/Soundness/) |
 |          | 23  | [Adequacy](https://plfa.github.io/Adequacy/) |
 |          | 25  | [ContextualEquivalence](https://plfa.github.io/ContextualEquivalence/) |
-|          | 30  | [Unify]()References and the Heap |
-| April    | 1  | Classes and Objects (Featherweight Java) |
+|          | 30  | [Unification](https://plfa.github.io/Unification) |
+| April    | 1  | [HM-TypeInference](https://plfa.github.io/HM-TypeInference) |
 |          | 6   | Gradual Typing |
 |          | 8   | Universal and Existential Types (Parametric Polymorphism) |
-|          | 13   | Hindley-Milner Inference |
+|          | 13   | Classes and Objects (Featherweight Java) |
 |          | 15  | Recursive Types |
 |          | 20  | Intersection and Union Types |
 |          | 22  | Higher-Order Polymorphism |
 |          | 27  | Dependent Types |
-|          | 29  | TBD |
+|          | 29  | References and the Heap |
 
 ## Resources
 

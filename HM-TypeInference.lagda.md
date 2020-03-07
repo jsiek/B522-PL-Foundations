@@ -1,5 +1,5 @@
 ```
-module lecture-notes-MiniML where
+module HM-TypeInference where
 ```
 
 # MiniML

@@ -34,6 +34,279 @@ open import TermSubstUnify Op op-eq? arity public
 
 ## Introduction to Unification
 
+```
+Equations : Set
+Equations = List (AST × AST)
+```
+
+Definition of what it means to unify a list of equations.
+
+```
+_unifies_ : Equations → Equations → Set
+θ unifies [] = ⊤
+θ unifies (⟨ M , L ⟩ ∷ eqs) = subst θ M ≡ subst θ L  ×  θ unifies eqs
+```
+
+## Properties of Unifiers
+
+
+### Unifies is reflexive
+
+```
+ext-subst : ∀{θ}{x}{M}{L}
+   → x ∉ vars L
+   → x ∉ vars-eqs θ
+   → subst (⟨ ` x , M ⟩ ∷ θ) L ≡ subst θ L
+ext-subst-vec : ∀{θ}{x}{M}{n}{Ls : Vec AST n}
+   → x ∉ vars-vec Ls
+   → x ∉ vars-eqs θ
+   → subst-vec (⟨ ` x , M ⟩ ∷ θ) Ls ≡ subst-vec θ Ls
+
+ext-subst {θ} {x} {M} {` y} x∉L x∉θ
+    with x ≟ y
+... | yes refl = ⊥-elim (x∉L (x∈⁅x⁆ x))
+... | no xy = G
+    where
+    G : subst (⟨ ` x , M ⟩ ∷ θ) (` y)  ≡ subst θ (` y)
+    G
+        with y ≟ x
+    ... | yes refl = ⊥-elim (xy refl)
+    ... | no yx = refl
+ext-subst {θ} {x} {M} {op ⦅ Ls ⦆} x∉L x∉θ = cong (λ □ → op ⦅ □ ⦆) (ext-subst-vec {θ}{x}{M}{Ls = Ls} x∉L x∉θ)
+
+ext-subst-vec {θ} {x} {M} {zero} {Ls} x∉Ls x∉θ = refl
+ext-subst-vec {θ} {x} {M} {suc n} {L ∷ Ls} x∉L∪Ls x∉θ =
+    cong₂ _∷_ (ext-subst {θ}{x}{M}{L} (λ x∈L → x∉L∪Ls (p⊆p∪q (vars L) (vars-vec Ls) x∈L)) x∉θ)
+              (ext-subst-vec {θ} {x} {M} {n} {Ls} (λ x∈Ls → x∉L∪Ls (q⊆p∪q (vars L) (vars-vec Ls) x∈Ls)) x∉θ)
+```
+
+```
+no-vars→ext-unifies : ∀{θ}{x}{M}{eqs}
+   → θ unifies eqs
+   → x ∉ vars-eqs eqs
+   → x ∉ vars-eqs θ
+   → (⟨ ` x , M ⟩ ∷ θ) unifies eqs
+no-vars→ext-unifies {θ} {x} {M} {[]} θeqs x∉eqs x∉θ = tt
+no-vars→ext-unifies {θ} {x} {M} {⟨ L , N ⟩ ∷ eqs} ⟨ θL=θN , θeqs ⟩ x∉L∪N∪eqs x∉θ =
+  let IH = no-vars→ext-unifies {θ} {x} {M} {eqs} θeqs x∉eqs x∉θ in
+  ⟨ L=N , IH ⟩
+    where
+    x∉L : x ∉ vars L
+    x∉L = λ x∈L → x∉L∪N∪eqs (p⊆p∪q (vars L) (vars N ∪ vars-eqs eqs) x∈L ) 
+    x∉N : x ∉ vars N
+    x∉N = λ x∈N →
+        let x∈L∪N∪eqs = p⊆r→p⊆q∪r _ _ _ (p⊆p∪q _ _) x∈N in
+        x∉L∪N∪eqs x∈L∪N∪eqs
+    x∉eqs : x ∉ vars-eqs eqs
+    x∉eqs = λ x∈eqs →
+      let x∈L∪N∪eqs = p⊆r→p⊆q∪r _ _ _ (p⊆r→p⊆q∪r _ _ _ ⊆-refl) x∈eqs in
+      x∉L∪N∪eqs x∈L∪N∪eqs
+    L=N : subst (⟨ ` x , M ⟩ ∷ θ) L ≡ subst (⟨ ` x , M ⟩ ∷ θ) N
+    L=N = begin
+        subst (⟨ ` x , M ⟩ ∷ θ) L     ≡⟨ ext-subst {θ}{x}{M}{L} x∉L x∉θ ⟩
+        subst θ L                     ≡⟨ θL=θN ⟩
+        subst θ N                     ≡⟨ sym (ext-subst {θ}{x}{M}{N} x∉N x∉θ) ⟩
+        subst (⟨ ` x , M ⟩ ∷ θ) N
+        ∎
+```
+
+```
+
+unifies-refl : ∀{θ} → IdemSubst θ → θ unifies θ
+unifies-refl {[]} empty = tt
+unifies-refl {⟨ ` x , M ⟩ ∷ θ} (insert x∉M x∉θ M∩θ⊆∅ SΘ) =
+    ⟨ G1 , G2 ⟩
+    where
+    IH : θ unifies θ
+    IH = unifies-refl {θ} SΘ 
+    H : vars M ∩ (⁅ x ⁆ ∪ dom θ) ⊆ ∅
+    H {y} y∈
+        rewrite ∪-distribˡ-∩ {vars M} {⁅ x ⁆} {dom θ}
+        with (proj₁ (∈∪ _ _ _)) y∈
+    ... | inj₁ y∈Mx
+        with (proj₁ (∈∩ _ _ _)) y∈Mx
+    ... | ⟨ y∈M , y∈x ⟩
+        with x∈⁅y⁆→x≡y _ _ y∈x
+    ... | refl = ⊥-elim (x∉M y∈M)
+    H {y} y∈
+        | inj₂ y∈M∩θ = M∩θ⊆∅ y∈M∩θ
+    G1 : subst (⟨ ` x , M ⟩ ∷ θ) (` x) ≡ subst (⟨ ` x , M ⟩ ∷ θ) M
+    G1 = begin
+        subst (⟨ ` x , M ⟩ ∷ θ) (` x)     ≡⟨ subst-var-eq {x}{M}{θ} ⟩
+        M                                 ≡⟨ sym (M∩domθ⊆∅→subst-id (insert x∉M x∉θ M∩θ⊆∅ SΘ) H) ⟩
+        subst (⟨ ` x , M ⟩ ∷ θ) M
+        ∎
+
+    G2 : (⟨ ` x , M ⟩ ∷ θ) unifies θ
+    G2 = no-vars→ext-unifies IH x∉θ x∉θ
+```
+
+### Substitution preserves unifiers
+
+```
+subst-vec-sub1 : ∀{n}{Ns : Vec AST n}{z}{θ}{M}
+  → subst θ (` z) ≡ subst θ M
+  → subst-vec θ Ns ≡ subst-vec θ ([ z ::= M ] Ns)
+
+subst-sub1 : ∀{N}{z}{θ}{M}
+  → subst θ (` z) ≡ subst θ M
+  → subst θ N ≡ subst θ ([ z := M ] N)
+subst-sub1 {` x} {z} {θ} {M} θzM
+    with z ≟ x
+... | yes refl = θzM
+... | no zx = refl
+subst-sub1 {op ⦅ Ns ⦆} {z} {θ} {M} θzM =
+    cong (λ □ → op ⦅ □ ⦆) (subst-vec-sub1 θzM)
+
+subst-vec-sub1 {zero} {Ns} θzM = refl
+subst-vec-sub1 {suc n} {N ∷ Ns}{z}{θ}{M} θzM
+    rewrite subst-sub1 {N}{z}{θ}{M} θzM
+    | subst-vec-sub1 {n} {Ns}{z}{θ}{M} θzM = refl
+```
+
+```
+subst-sub : ∀{L}{N}{z}{θ}{M}
+  → subst θ (` z) ≡ subst θ M
+  → subst θ L ≡ subst θ N
+  → subst θ ([ z := M ] L) ≡ subst θ ([ z := M ] N)
+subst-sub {L}{N}{z}{θ}{M} θzM θLM =   begin
+    subst θ ([ z := M ] L)    ≡⟨ sym (subst-sub1 {L} θzM) ⟩
+    subst θ L                 ≡⟨ θLM ⟩
+    subst θ N                 ≡⟨ subst-sub1 {N} θzM ⟩
+    subst θ ([ z := M ] N)    ∎
+```
+
+```
+subst-pres : ∀{eqs θ x M}
+  → subst θ (` x) ≡ subst θ M
+  → θ unifies eqs
+  → θ unifies ([ M / x ] eqs)
+subst-pres {[]} eq θeqs = tt
+subst-pres {⟨ L , N ⟩ ∷ eqs} {θ}{x}{M} eq ⟨ θLM , θeqs ⟩ =
+  ⟨ subst-sub {L = L}{N = N} eq θLM , (subst-pres {eqs} eq θeqs) ⟩
+```
+
+```
+subst-vec-pres : ∀{n}{Ms Ls : Vec AST n}{eqs}{θ}
+   → θ unifies eqs
+   → subst-vec θ Ms ≡ subst-vec θ Ls
+   → θ unifies append-eqs Ms Ls eqs
+subst-vec-pres {zero} {Ms} {Ls} θeqs θMsLs = θeqs
+subst-vec-pres {suc n} {M ∷ Ms} {L ∷ Ls} θeqs θMLMsLs
+    with ∷≡-inversion θMLMsLs
+... | ⟨ θML , θMsLs ⟩ = ⟨ θML , (subst-vec-pres θeqs θMsLs) ⟩
+```
+
+### Substitution reflects unifiers
+
+```
+subst-ref : ∀{L}{N}{z}{θ}{M}
+  → subst θ (` z) ≡ subst θ M
+  → subst θ ([ z := M ] L) ≡ subst θ ([ z := M ] N)
+  → subst θ L ≡ subst θ N
+subst-ref {L}{N}{z}{θ}{M} θzM θLM = begin
+    subst θ L                ≡⟨ subst-sub1 {L} θzM ⟩
+    subst θ ([ z := M ] L)   ≡⟨ θLM ⟩
+    subst θ ([ z := M ] N)   ≡⟨ sym (subst-sub1 {N} θzM) ⟩
+    subst θ N   ∎
+```
+
+```
+subst-reflect : ∀{eqs θ x M}
+  → θ unifies ([ M / x ] eqs)
+  → subst θ (` x) ≡ subst θ M
+  → θ unifies eqs
+subst-reflect {[]} {θ} {x} {M} θ[M/x]eqs θx=θM = tt
+subst-reflect {⟨ L , N ⟩ ∷ eqs} {θ} {x} {M} ⟨ θ[x:=M]L=θ[x:=M]N , θ[M/x]eqs ⟩ θx=θM =
+    ⟨ subst-ref {L = L}{N} θx=θM θ[x:=M]L=θ[x:=M]N , subst-reflect {eqs}{θ}{x}{M} θ[M/x]eqs θx=θM ⟩
+```
+
+```
+subst-vec-reflect : ∀{n}{Ms Ls : Vec AST n}{eqs}{θ}
+   → θ unifies append-eqs Ms Ls eqs
+   → (subst-vec θ Ms ≡ subst-vec θ Ls)  × θ unifies eqs
+subst-vec-reflect {zero} {[]} {[]} {eqs} {θ} θMs,Ls,eqs = ⟨ refl , θMs,Ls,eqs ⟩
+subst-vec-reflect {suc n} {M ∷ Ms} {L ∷ Ls} {eqs} {θ} ⟨ θM=θL , θMs,Ls,eqs ⟩ 
+    with subst-vec-reflect {n} {Ms} {Ls} {eqs} {θ} θMs,Ls,eqs
+... | ⟨ θMs=θLs , θeqs ⟩ =     
+    ⟨ cong₂ _∷_ θM=θL θMs=θLs , θeqs ⟩
+```
+
+### A failed occurs-check implies no solutions
+
+```
+num-ops-vec : ∀{n} → Vec AST n → ℕ
+
+num-ops : AST → ℕ
+num-ops (` x) = 0
+num-ops (op ⦅ Ms ⦆) = suc (num-ops-vec Ms)
+
+num-ops-vec {zero} Ms = 0
+num-ops-vec {suc n} (M ∷ Ms) = num-ops M + num-ops-vec Ms
+
+num-ops-eqs : Equations → ℕ
+num-ops-eqs [] = 0
+num-ops-eqs (⟨ L , M ⟩ ∷ eqs) = num-ops L + num-ops M + num-ops-eqs eqs
+
+is-op : AST → Set
+is-op (` x) = ⊥
+is-op (op ⦅ Ms ⦆) = ⊤
+
+num-ops-less-vec : ∀ {n}{Ms : Vec AST n}{x θ}
+   → x ∈ vars-vec Ms
+   → num-ops (subst θ (` x)) ≤ num-ops-vec (subst-vec θ Ms)
+
+num-ops-less : ∀ {M}{x θ}
+   → x ∈ vars M
+   → is-op M
+   → num-ops (subst θ (` x)) < num-ops (subst θ M)
+num-ops-less {op ⦅ Ms ⦆}{x}{θ} x∈Ms opM =
+   s≤s (num-ops-less-vec {Ms = Ms}{x}{θ} x∈Ms)
+
+num-ops-less-vec {zero} {[]} {x} {θ} x∈Ms = ⊥-elim (∉∅ {x} x∈Ms)
+num-ops-less-vec {suc n} {(` y) ∷ Ms} {x} {θ} x∈MMs
+    with ∈p∪q→∈p⊎∈q x∈MMs
+... | inj₁ x∈M
+    with x ≟ y
+... | yes refl = m≤m+n (num-ops (subst θ (` y))) (num-ops-vec (subst-vec θ Ms))
+... | no xy = ⊥-elim ((x∉⁅y⁆ x y xy) x∈M)
+num-ops-less-vec {suc n} {(` y) ∷ Ms} {x} {θ} x∈MMs
+    | inj₂ x∈Ms =
+    let IH = num-ops-less-vec {n} {Ms}{x}{θ} x∈Ms in
+    begin≤
+    num-ops (subst θ (` x))         ≤⟨ IH ⟩
+    num-ops-vec (subst-vec θ Ms)    ≤⟨ m≤n+m _ _ ⟩
+    num-ops (subst θ (` y)) + num-ops-vec (subst-vec θ Ms)
+    QED
+num-ops-less-vec {suc n} {(op ⦅ Ls ⦆) ∷ Ms} {x} {θ} x∈MMs
+    with ∈p∪q→∈p⊎∈q x∈MMs
+... | inj₁ x∈M =
+    let θx<1+θLS = num-ops-less {(op ⦅ Ls ⦆)}{x}{θ} x∈M tt in
+    begin≤
+       num-ops (subst θ (` x))       ≤⟨ ≤-pred θx<1+θLS ⟩
+       num-ops-vec (subst-vec θ Ls)  ≤⟨ m≤m+n _ _ ⟩
+       num-ops-vec (subst-vec θ Ls) + num-ops-vec (subst-vec θ Ms) ≤⟨ n≤1+n _ ⟩
+       suc (num-ops-vec (subst-vec θ Ls) + num-ops-vec (subst-vec θ Ms))
+      QED
+num-ops-less-vec {suc n} {M ∷ Ms} {x} {θ} x∈MMs
+    | inj₂ x∈Ms =
+    let IH = num-ops-less-vec {n} {Ms}{x}{θ} x∈Ms in
+    begin≤
+    num-ops (subst θ (` x))         ≤⟨ IH ⟩
+    num-ops-vec (subst-vec θ Ms)    ≤⟨ m≤n+m _ _ ⟩
+    num-ops (subst θ M) + num-ops-vec (subst-vec θ Ms)
+    QED
+
+occurs-no-soln : ∀{θ x M}
+  → x ∈ vars M → is-op M
+  → subst θ (` x) ≢ subst θ M
+occurs-no-soln {θ} x∈M opM θxM
+    with num-ops-less {θ = θ} x∈M opM
+... | θx<θM rewrite θxM =
+      ⊥-elim (1+n≰n θx<θM)
+```
+
+
 
 
 ## Proof of Termination

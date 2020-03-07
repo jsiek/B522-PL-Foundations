@@ -42,20 +42,20 @@ on Hindley-Milner type inference. In that chapter,
 we produce equations over types, such as
 
     α = β ⇒ Nat
-    Nat = β
+    Bool = β
 
 where the α and β are _unknown type variables_ that need to be solved
 for. For the above example, a solution is
 
-    α = Nat ⇒ Nat
-    β = Nat
+    α = Bool ⇒ Nat
+    β = Bool
 
 From a syntactic point of view, types are an instance of a more
 general construction known as _first-order terms_, which are
 recursively defined to include constants, variables, and function
 symbols applied to first-order terms.  We define first-order terms,
-substitution, and properties about them in the file
-[FirstOrderTerms.lagda.md](./FirstOrderTerms.lagda.md).  Equations
+substitution, and properties about them in the module
+[FirstOrderTerms](./FirstOrderTerms.lagda.md).  Equations
 over first-order terms can be solved using a unification algorithm. In
 this chapter we study a particularly lucid unification algorithm by
 Martelli and Montanari (TOPLAS 1982).
@@ -71,7 +71,7 @@ Equations = List (Term × Term)
 The goal of a unification algorithm is to find a substitution σ that,
 when applied to both sides of each equation, makes the two sides
 syntacticaly equal. In such case we say that the substitution σ
-_unifies_ the equation.
+_unifies_ the equations.
 
 ```
 _unifies_ : Equations → Equations → Set
@@ -80,17 +80,17 @@ _unifies_ : Equations → Equations → Set
 ```
 
 The unification of algorithm Martelli and Montanari considers one
-equation at a time from the list of equations `eqs`, performing one of
-the following actions depending on the form of the equation. In the
-process, the algorithm accumulates the solution, a substitution σ.
+equation at a time from the list of equations `eqs` and performs one
+of the following actions. In the process, the algorithm accumulates
+the solution, a substitution σ.
 
 1. Remove trivial equations:
 
-    ⟨ ` x , ` x ⟩ ∷ eqs , σ
+        ⟨ ` x , ` x ⟩ ∷ eqs , σ
     
    becomes
    
-    eqs , σ
+        eqs , σ
 
 2. Eliminate variables via substiution:
 

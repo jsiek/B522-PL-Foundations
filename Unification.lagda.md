@@ -122,15 +122,16 @@ the solution, a substitution σ.
 
 
 The rest of this Chapter is organized as follows.  We first prove some
-properties about `unifies`, in particular, that `unifies` is reflexive,
-that `unifies` is preserved and reflected by substitution, and that
-there are no unifiers for an equation of the form `⟨ x , M ⟩` when `x`
-occurs in `M`. Next we turn to the proof of termination of Martelli
-and Montanari's unification algorithm, defining a measure function and
-proving lemmas that show the measure decreases in each of the
-recursive calls. We then define the `unify` function by well-founded
-recursion on the measure and prove that `unify` is correct, which is
-to say that it returns a unifier for the equations iff one exists.
+properties about `unifies`, in particular, that `unifies` is
+reflexive, that `unifies` is preserved and reflected by substitution,
+and that there are no unifiers for an equation of the form `⟨ x , M ⟩`
+when `x` occurs in `M`. Next we turn to the proof of termination of
+Martelli and Montanari's unification algorithm, defining a measure
+function and proving lemmas that show the measure decreases in each of
+the recursive calls. We then define the `unify` function by
+well-founded recursion on the measure and prove that `unify` is
+correct, which is to say that it returns a unifier for the equations
+if and only if one exists.
 
 ## Properties of Unifiers
 

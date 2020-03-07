@@ -79,44 +79,28 @@ _unifies_ : Equations → Equations → Set
 σ unifies (⟨ M , L ⟩ ∷ eqs) = subst σ M ≡ subst σ L  ×  σ unifies eqs
 ```
 
-The unification of algorithm Martelli and Montanari considers one
+The unification algorithm of Martelli and Montanari considers one
 equation at a time from the list of equations `eqs` and performs one
 of the following actions. In the process, the algorithm accumulates
 the solution, a substitution σ.
 
 1. Remove trivial equations:
 
-        ⟨ ` x , ` x ⟩ ∷ eqs , σ
-    
-   becomes
-   
-        eqs , σ
+        ⟨ ` x , ` x ⟩ ∷ eqs , σ    becomes    eqs , σ
 
 2. Eliminate variables via substitution:
 
-        ⟨ ` x , M ⟩ ∷ eqs , σ
-    
-   becomes
-   
-        [ M / x] eqs , ⟨ ` x , M ⟩ ∷ [ M / x] σ
+        ⟨ ` x , M ⟩ ∷ eqs , σ    becomes    [ M / x] eqs , ⟨ ` x , M ⟩ ∷ [ M / x] σ
     
    and
    
-        ⟨ M , ` x ⟩ ∷ eqs , σ
-    
-   becomes
-   
-        [ M / x] eqs , ⟨ ` x , M ⟩ ∷ [ M / x] σ
+        ⟨ M , ` x ⟩ ∷ eqs , σ    becomes    [ M / x] eqs , ⟨ ` x , M ⟩ ∷ [ M / x] σ
 
    provided that `x ∉ M`. Otherwise report that there are no solutions.
 
 3. Decompose equalities on function symbols
 
-        ⟨ f ⦅ M₁ ... Mᵤ ⦆ , f' ⦅ L₁ ... Lᵤ ⦆  ⟩ ∷ eqs , σ
-    
-   becomes
-   
-        ⟨ M₁ , L₁ ⟩ ∷ ... ∷ ⟨ Mᵤ , Lᵤ ⟩ ∷ eqs , σ
+        ⟨ f ⦅ M₁ ... Mᵤ ⦆ , f' ⦅ L₁ ... Lᵤ ⦆  ⟩ ∷ eqs , σ    becomes    ⟨ M₁ , L₁ ⟩ ∷ ... ∷ ⟨ Mᵤ , Lᵤ ⟩ ∷ eqs , σ
 
    provided that `f ≡ f'`. Otherwise report that there are no solutions.
 
@@ -139,65 +123,66 @@ if and only if one exists.
 ### Unifies is reflexive
 
 ```
-ext-subst : ∀{θ}{x}{M}{L}
-   → x ∉ vars L
-   → x ∉ vars-eqs θ
-   → subst (⟨ ` x , M ⟩ ∷ θ) L ≡ subst θ L
-ext-subst-vec : ∀{θ}{x}{M}{n}{Ls : Vec Term n}
-   → x ∉ vars-vec Ls
-   → x ∉ vars-eqs θ
-   → subst-vec (⟨ ` x , M ⟩ ∷ θ) Ls ≡ subst-vec θ Ls
+private
+  ext-subst : ∀{θ}{x}{M}{L}
+     → x ∉ vars L
+     → x ∉ vars-eqs θ
+     → subst (⟨ ` x , M ⟩ ∷ θ) L ≡ subst θ L
+  ext-subst-vec : ∀{θ}{x}{M}{n}{Ls : Vec Term n}
+     → x ∉ vars-vec Ls
+     → x ∉ vars-eqs θ
+     → subst-vec (⟨ ` x , M ⟩ ∷ θ) Ls ≡ subst-vec θ Ls
 
-ext-subst {θ} {x} {M} {` y} x∉L x∉θ
-    with x ≟ y
-... | yes refl = ⊥-elim (x∉L (x∈⁅x⁆ x))
-... | no xy = G
-    where
-    G : subst (⟨ ` x , M ⟩ ∷ θ) (` y)  ≡ subst θ (` y)
-    G
-        with y ≟ x
-    ... | yes refl = ⊥-elim (xy refl)
-    ... | no yx = refl
-ext-subst {θ} {x} {M} {op ⦅ Ls ⦆} x∉L x∉θ = cong (λ □ → op ⦅ □ ⦆) (ext-subst-vec {θ}{x}{M}{Ls = Ls} x∉L x∉θ)
+  ext-subst {θ} {x} {M} {` y} x∉L x∉θ
+      with x ≟ y
+  ... | yes refl = ⊥-elim (x∉L (x∈⁅x⁆ x))
+  ... | no xy = G
+      where
+      G : subst (⟨ ` x , M ⟩ ∷ θ) (` y)  ≡ subst θ (` y)
+      G
+          with y ≟ x
+      ... | yes refl = ⊥-elim (xy refl)
+      ... | no yx = refl
+  ext-subst {θ} {x} {M} {op ⦅ Ls ⦆} x∉L x∉θ = cong (λ □ → op ⦅ □ ⦆) (ext-subst-vec {θ}{x}{M}{Ls = Ls} x∉L x∉θ)
 
-ext-subst-vec {θ} {x} {M} {zero} {Ls} x∉Ls x∉θ = refl
-ext-subst-vec {θ} {x} {M} {suc n} {L ∷ Ls} x∉L∪Ls x∉θ =
-    cong₂ _∷_ (ext-subst {θ}{x}{M}{L} (λ x∈L → x∉L∪Ls (p⊆p∪q (vars L) (vars-vec Ls) x∈L)) x∉θ)
-              (ext-subst-vec {θ} {x} {M} {n} {Ls} (λ x∈Ls → x∉L∪Ls (q⊆p∪q (vars L) (vars-vec Ls) x∈Ls)) x∉θ)
+  ext-subst-vec {θ} {x} {M} {zero} {Ls} x∉Ls x∉θ = refl
+  ext-subst-vec {θ} {x} {M} {suc n} {L ∷ Ls} x∉L∪Ls x∉θ =
+      cong₂ _∷_ (ext-subst {θ}{x}{M}{L} (λ x∈L → x∉L∪Ls (p⊆p∪q (vars L) (vars-vec Ls) x∈L)) x∉θ)
+                (ext-subst-vec {θ} {x} {M} {n} {Ls} (λ x∈Ls → x∉L∪Ls (q⊆p∪q (vars L) (vars-vec Ls) x∈Ls)) x∉θ)
 ```
 
 ```
-no-vars→ext-unifies : ∀{θ}{x}{M}{eqs}
-   → θ unifies eqs
-   → x ∉ vars-eqs eqs
-   → x ∉ vars-eqs θ
-   → (⟨ ` x , M ⟩ ∷ θ) unifies eqs
-no-vars→ext-unifies {θ} {x} {M} {[]} θeqs x∉eqs x∉θ = tt
-no-vars→ext-unifies {θ} {x} {M} {⟨ L , N ⟩ ∷ eqs} ⟨ θL=θN , θeqs ⟩ x∉L∪N∪eqs x∉θ =
-  let IH = no-vars→ext-unifies {θ} {x} {M} {eqs} θeqs x∉eqs x∉θ in
-  ⟨ L=N , IH ⟩
-    where
-    x∉L : x ∉ vars L
-    x∉L = λ x∈L → x∉L∪N∪eqs (p⊆p∪q (vars L) (vars N ∪ vars-eqs eqs) x∈L ) 
-    x∉N : x ∉ vars N
-    x∉N = λ x∈N →
-        let x∈L∪N∪eqs = p⊆r→p⊆q∪r _ _ _ (p⊆p∪q _ _) x∈N in
+private
+  no-vars→ext-unifies : ∀{θ}{x}{M}{eqs}
+     → θ unifies eqs
+     → x ∉ vars-eqs eqs
+     → x ∉ vars-eqs θ
+     → (⟨ ` x , M ⟩ ∷ θ) unifies eqs
+  no-vars→ext-unifies {θ} {x} {M} {[]} θeqs x∉eqs x∉θ = tt
+  no-vars→ext-unifies {θ} {x} {M} {⟨ L , N ⟩ ∷ eqs} ⟨ θL=θN , θeqs ⟩ x∉L∪N∪eqs x∉θ =
+    let IH = no-vars→ext-unifies {θ} {x} {M} {eqs} θeqs x∉eqs x∉θ in
+    ⟨ L=N , IH ⟩
+      where
+      x∉L : x ∉ vars L
+      x∉L = λ x∈L → x∉L∪N∪eqs (p⊆p∪q (vars L) (vars N ∪ vars-eqs eqs) x∈L ) 
+      x∉N : x ∉ vars N
+      x∉N = λ x∈N →
+          let x∈L∪N∪eqs = p⊆r→p⊆q∪r _ _ _ (p⊆p∪q _ _) x∈N in
+          x∉L∪N∪eqs x∈L∪N∪eqs
+      x∉eqs : x ∉ vars-eqs eqs
+      x∉eqs = λ x∈eqs →
+        let x∈L∪N∪eqs = p⊆r→p⊆q∪r _ _ _ (p⊆r→p⊆q∪r _ _ _ ⊆-refl) x∈eqs in
         x∉L∪N∪eqs x∈L∪N∪eqs
-    x∉eqs : x ∉ vars-eqs eqs
-    x∉eqs = λ x∈eqs →
-      let x∈L∪N∪eqs = p⊆r→p⊆q∪r _ _ _ (p⊆r→p⊆q∪r _ _ _ ⊆-refl) x∈eqs in
-      x∉L∪N∪eqs x∈L∪N∪eqs
-    L=N : subst (⟨ ` x , M ⟩ ∷ θ) L ≡ subst (⟨ ` x , M ⟩ ∷ θ) N
-    L=N = begin
-        subst (⟨ ` x , M ⟩ ∷ θ) L     ≡⟨ ext-subst {θ}{x}{M}{L} x∉L x∉θ ⟩
-        subst θ L                     ≡⟨ θL=θN ⟩
-        subst θ N                     ≡⟨ sym (ext-subst {θ}{x}{M}{N} x∉N x∉θ) ⟩
-        subst (⟨ ` x , M ⟩ ∷ θ) N
-        ∎
+      L=N : subst (⟨ ` x , M ⟩ ∷ θ) L ≡ subst (⟨ ` x , M ⟩ ∷ θ) N
+      L=N = begin
+          subst (⟨ ` x , M ⟩ ∷ θ) L     ≡⟨ ext-subst {θ}{x}{M}{L} x∉L x∉θ ⟩
+          subst θ L                     ≡⟨ θL=θN ⟩
+          subst θ N                     ≡⟨ sym (ext-subst {θ}{x}{M}{N} x∉N x∉θ) ⟩
+          subst (⟨ ` x , M ⟩ ∷ θ) N
+          ∎
 ```
 
 ```
-
 unifies-refl : ∀{θ} → IdemSubst θ → θ unifies θ
 unifies-refl {[]} empty = tt
 unifies-refl {⟨ ` x , M ⟩ ∷ θ} (insert x∉M x∉θ M∩θ⊆∅ SΘ) =

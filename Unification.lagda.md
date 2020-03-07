@@ -94,31 +94,31 @@ the solution, a substitution σ.
 
 2. Eliminate variables via substiution:
 
-    ⟨ ` x , M ⟩ ∷ eqs , σ
+        ⟨ ` x , M ⟩ ∷ eqs , σ
     
    becomes
    
-    [ M / x] eqs , ⟨ ` x , M ⟩ ∷ [ M / x] σ
+        [ M / x] eqs , ⟨ ` x , M ⟩ ∷ [ M / x] σ
     
    and
    
-    ⟨ M , ` x ⟩ ∷ eqs , σ
+        ⟨ M , ` x ⟩ ∷ eqs , σ
     
    becomes
    
-    [ M / x] eqs , ⟨ ` x , M ⟩ ∷ [ M / x] σ
+        [ M / x] eqs , ⟨ ` x , M ⟩ ∷ [ M / x] σ
 
    provided that x ∉ M. Otherwise report that there are no solutions.
 
 3. Decompose equalities on function symbols
 
-    ⟨ f ⦅ M₁ ... Mᵤ ⦆ , f' ⦅ L₁ ... Lᵤ ⦆  ⟩ ∷ eqs , σ
+        ⟨ f ⦅ M₁ ... Mᵤ ⦆ , f' ⦅ L₁ ... Lᵤ ⦆  ⟩ ∷ eqs , σ
     
    becomes
    
-    ⟨ M₁ , L₁ ⟩ ∷ ... ∷ ⟨ Mᵤ , Lᵤ ⟩ ∷ eqs , σ
+        ⟨ M₁ , L₁ ⟩ ∷ ... ∷ ⟨ Mᵤ , Lᵤ ⟩ ∷ eqs , σ
 
-   provided that f ≡ f'. Otherwise report that there are no solutions.
+   provided that `f ≡ f'`. Otherwise report that there are no solutions.
 
 
 The rest of this Chapter is organized as follows.  We first prove some

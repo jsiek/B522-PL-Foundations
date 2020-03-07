@@ -92,7 +92,7 @@ the solution, a substitution σ.
    
         eqs , σ
 
-2. Eliminate variables via substiution:
+2. Eliminate variables via substitution:
 
         ⟨ ` x , M ⟩ ∷ eqs , σ
     

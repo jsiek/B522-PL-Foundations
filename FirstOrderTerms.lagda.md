@@ -55,12 +55,6 @@ Substitution = List (Term × Term)
 ```
 
 ```
-append-eqs : ∀{n} → Vec Term n → Vec Term n → Substitution → Substitution
-append-eqs {zero} Ms Ls eqs = eqs
-append-eqs {suc n} (M ∷ Ms) (L ∷ Ls) eqs = ⟨ M , L ⟩ ∷ append-eqs Ms Ls eqs
-```
-
-```
 [_::=_]_ : Var → Term → ∀{n} → Vec Term n → Vec Term n
 
 [_:=_]_ : Var → Term → Term → Term
@@ -164,10 +158,8 @@ Definition of idempotent substitutions.
 data IdemSubst : Substitution → Set where
   empty : IdemSubst []
   insert : ∀{eqs}{x}{M}
-     → x ∉ vars M
-     → x ∉ vars-eqs eqs
-     → vars M ∩ dom eqs ⊆ ∅
-     → IdemSubst eqs
+     → x ∉ vars M  →  x ∉ vars-eqs eqs
+     → vars M ∩ dom eqs ⊆ ∅  →  IdemSubst eqs
      → IdemSubst (⟨ ` x , M ⟩ ∷ eqs)
 ```
 

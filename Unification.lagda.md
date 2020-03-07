@@ -55,10 +55,20 @@ general construction known as _first-order terms_, which are
 recursively defined to include constants, variables, and function
 symbols applied to first-order terms.  We define first-order terms,
 substitution, and properties about them in the module
-[FirstOrderTerms](./FirstOrderTerms.lagda.md).  Equations
-over first-order terms can be solved using a unification algorithm. In
-this chapter we study a particularly lucid unification algorithm by
-Martelli and Montanari (TOPLAS 1982).
+[FirstOrderTerms](./FirstOrderTerms.lagda.md). In particular, the
+module defines the predicate `IdemSubst` for _idempotent
+substitutions_, that is, substitutions σ such that
+
+    subst σ (sust σ M) ≡ subst σ M
+
+The `IdemSubst` predicate does not directly state this property, but
+instead places restrictions on the form of a substitution to make sure
+it is idempotent. We make use of `IdemSubst` in several of the proofs
+in this chapter.
+
+Equations over first-order terms can be solved using what are called
+unification algorithms. In this chapter we study a particularly lucid
+unification algorithm by Martelli and Montanari (TOPLAS 1982).
 
 We represent an equation as a pair of terms, and a set of equations as
 a list of pairs of terms.
@@ -66,6 +76,14 @@ a list of pairs of terms.
 ```
 Equations : Set
 Equations = List (Term × Term)
+```
+
+We use the following helper function for adding a bunch of new equations.
+
+```
+append-eqs : ∀{n} → Vec Term n → Vec Term n → Equations → Equations
+append-eqs {zero} Ms Ls eqs = eqs
+append-eqs {suc n} (M ∷ Ms) (L ∷ Ls) eqs = ⟨ M , L ⟩ ∷ append-eqs Ms Ls eqs
 ```
 
 The goal of a unification algorithm is to find a substitution σ that,
@@ -96,7 +114,8 @@ the solution, a substitution σ.
    
         ⟨ M , ` x ⟩ ∷ eqs , σ    becomes    [ M / x] eqs , ⟨ ` x , M ⟩ ∷ [ M / x] σ
 
-   provided that `x ∉ M`. Otherwise report that there are no solutions.
+   provided that `x ∉ vars M` (this is known as the _occurs check_).
+   Otherwise report that there are no solutions.
 
 3. Decompose equalities on function symbols
 
@@ -125,12 +144,10 @@ if and only if one exists.
 ```
 private
   ext-subst : ∀{θ}{x}{M}{L}
-     → x ∉ vars L
-     → x ∉ vars-eqs θ
+     → x ∉ vars L  →  x ∉ vars-eqs θ
      → subst (⟨ ` x , M ⟩ ∷ θ) L ≡ subst θ L
   ext-subst-vec : ∀{θ}{x}{M}{n}{Ls : Vec Term n}
-     → x ∉ vars-vec Ls
-     → x ∉ vars-eqs θ
+     → x ∉ vars-vec Ls  →  x ∉ vars-eqs θ
      → subst-vec (⟨ ` x , M ⟩ ∷ θ) Ls ≡ subst-vec θ Ls
 
   ext-subst {θ} {x} {M} {` y} x∉L x∉θ
@@ -139,16 +156,15 @@ private
   ... | no xy = G
       where
       G : subst (⟨ ` x , M ⟩ ∷ θ) (` y)  ≡ subst θ (` y)
-      G
-          with y ≟ x
+      G   with y ≟ x
       ... | yes refl = ⊥-elim (xy refl)
       ... | no yx = refl
-  ext-subst {θ} {x} {M} {op ⦅ Ls ⦆} x∉L x∉θ = cong (λ □ → op ⦅ □ ⦆) (ext-subst-vec {θ}{x}{M}{Ls = Ls} x∉L x∉θ)
-
+  ext-subst {θ} {x} {M} {op ⦅ Ls ⦆} x∉L x∉θ =
+      cong (λ □ → op ⦅ □ ⦆) (ext-subst-vec {θ}{x}{M}{Ls = Ls} x∉L x∉θ)
   ext-subst-vec {θ} {x} {M} {zero} {Ls} x∉Ls x∉θ = refl
   ext-subst-vec {θ} {x} {M} {suc n} {L ∷ Ls} x∉L∪Ls x∉θ =
-      cong₂ _∷_ (ext-subst {θ}{x}{M}{L} (λ x∈L → x∉L∪Ls (p⊆p∪q (vars L) (vars-vec Ls) x∈L)) x∉θ)
-                (ext-subst-vec {θ} {x} {M} {n} {Ls} (λ x∈Ls → x∉L∪Ls (q⊆p∪q (vars L) (vars-vec Ls) x∈Ls)) x∉θ)
+      cong₂ _∷_ (ext-subst {θ}{x}{M}{L} (λ x∈L → x∉L∪Ls (p⊆p∪q _ _ x∈L)) x∉θ)
+                (ext-subst-vec {θ}{x}{M}{n}{Ls} (λ x∈Ls → x∉L∪Ls (q⊆p∪q _ _ x∈Ls)) x∉θ)
 ```
 
 ```
@@ -557,7 +573,7 @@ measure4 : ∀{eqs}{θ}{op}{Ms Ls : Vec Term (arity op)}
 measure4 {eqs}{θ}{op}{Ms}{Ls} = second-< vars≤ ops<
     where
     vars≤ : ∣ vars-eqs (append-eqs Ms Ls eqs) ∣ ≤ ∣ vars-vec Ms ∪ vars-vec Ls ∪ vars-eqs eqs ∣
-    vars≤ = p⊆q⇒∣p∣≤∣q∣ (var-eqs-append-⊆ Ms Ls eqs)
+    vars≤ rewrite var-eqs-append-≡ Ms Ls eqs = p⊆q⇒∣p∣≤∣q∣ ⊆-refl
     
     ops< : num-ops-eqs (append-eqs Ms Ls eqs) < suc (num-ops-vec Ms + suc (num-ops-vec Ls) + num-ops-eqs eqs)
     ops< rewrite num-ops-append Ms Ls eqs

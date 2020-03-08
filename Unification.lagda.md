@@ -244,60 +244,70 @@ Next we prove that substitution preserves unifiers.
     → θ unifies eqs
     → θ unifies ([ M / x ] eqs)
 
-We need two lemmas to prove the above.  The lemmas says that
-substitution preserves the unification of a single equation between
-two terms.
+To do so, we'll need to prove that substitution preserves the
+unification of each equation.
+
+    subst σ (` x) ≡ subst σ M
+  → subst σ L ≡ subst σ N
+  → subst σ ([ x := M ] L) ≡ subst σ ([ x := M ] N)
+
+We prove this as a corollary of the following lemma, which shows that
+a substitution σ unifies `N` and `[ x := M ] N` under the assumption
+that `subst σ (` x) ≡ subst σ M`.
 
 ```
-subst-sub1 : ∀{N}{x}{σ}{M}
+subst-invariant : ∀{N}{x}{σ}{M}
   → subst σ (` x) ≡ subst σ M
   → subst σ N ≡ subst σ ([ x := M ] N)
-subst-vec-sub1 : ∀{n}{Ns : Vec Term n}{z}{σ}{M}
+subst-vec-invariant : ∀{n}{Ns : Vec Term n}{z}{σ}{M}
   → subst σ (` z) ≡ subst σ M
   → subst-vec σ Ns ≡ subst-vec σ ([ z ::= M ] Ns)
-subst-sub1 {` x} {z} {σ} {M} σzM
+subst-invariant {` x} {z} {σ} {M} σzM
     with z ≟ x
 ... | yes refl = σzM
 ... | no zx = refl
-subst-sub1 {op ⦅ Ns ⦆} {z} {σ} {M} σzM =
-    cong (λ □ → op ⦅ □ ⦆) (subst-vec-sub1 σzM)
-subst-vec-sub1 {zero} {Ns} σzM = refl
-subst-vec-sub1 {suc n} {N ∷ Ns}{z}{σ}{M} σzM
-    rewrite subst-sub1 {N}{z}{σ}{M} σzM
-    | subst-vec-sub1 {n} {Ns}{z}{σ}{M} σzM = refl
+subst-invariant {op ⦅ Ns ⦆} {z} {σ} {M} σzM =
+    cong (λ □ → op ⦅ □ ⦆) (subst-vec-invariant σzM)
+subst-vec-invariant {zero} {Ns} σzM = refl
+subst-vec-invariant {suc n} {N ∷ Ns}{z}{σ}{M} σzM
+    rewrite subst-invariant {N}{z}{σ}{M} σzM
+    | subst-vec-invariant {n} {Ns}{z}{σ}{M} σzM = refl
+```
+
+
+
+
+```
+subst-pres-equation : ∀{L}{N}{x}{σ}{M}
+  → subst σ (` x) ≡ subst σ M
+  → subst σ L ≡ subst σ N
+  → subst σ ([ x := M ] L) ≡ subst σ ([ x := M ] N)
+subst-pres-equation {L}{N}{x}{σ}{M} σxM σLM =   begin
+    subst σ ([ x := M ] L)    ≡⟨ sym (subst-invariant {L} σxM) ⟩
+    subst σ L                 ≡⟨ σLM ⟩
+    subst σ N                 ≡⟨ subst-invariant {N} σxM ⟩
+    subst σ ([ x := M ] N)    ∎
 ```
 
 ```
-subst-sub : ∀{L}{N}{z}{θ}{M}
-  → subst θ (` z) ≡ subst θ M
-  → subst θ L ≡ subst θ N
-  → subst θ ([ z := M ] L) ≡ subst θ ([ z := M ] N)
-subst-sub {L}{N}{z}{θ}{M} θzM θLM =   begin
-    subst θ ([ z := M ] L)    ≡⟨ sym (subst-sub1 {L} θzM) ⟩
-    subst θ L                 ≡⟨ θLM ⟩
-    subst θ N                 ≡⟨ subst-sub1 {N} θzM ⟩
-    subst θ ([ z := M ] N)    ∎
+subst-pres : ∀{eqs σ x M}
+  → subst σ (` x) ≡ subst σ M
+  → σ unifies eqs
+  → σ unifies ([ M / x ] eqs)
+subst-pres {[]} eq σeqs = tt
+subst-pres {⟨ L , N ⟩ ∷ eqs} {σ}{x}{M} eq ⟨ σLM , σeqs ⟩ =
+  ⟨ subst-pres-equation {L = L}{N = N} eq σLM , (subst-pres {eqs} eq σeqs) ⟩
 ```
 
 ```
-subst-pres : ∀{eqs θ x M}
-  → subst θ (` x) ≡ subst θ M
-  → θ unifies eqs
-  → θ unifies ([ M / x ] eqs)
-subst-pres {[]} eq θeqs = tt
-subst-pres {⟨ L , N ⟩ ∷ eqs} {θ}{x}{M} eq ⟨ θLM , θeqs ⟩ =
-  ⟨ subst-sub {L = L}{N = N} eq θLM , (subst-pres {eqs} eq θeqs) ⟩
-```
-
-```
-subst-vec-pres : ∀{n}{Ms Ls : Vec Term n}{eqs}{θ}
-   → θ unifies eqs
-   → subst-vec θ Ms ≡ subst-vec θ Ls
-   → θ unifies append-eqs Ms Ls eqs
-subst-vec-pres {zero} {Ms} {Ls} θeqs θMsLs = θeqs
-subst-vec-pres {suc n} {M ∷ Ms} {L ∷ Ls} θeqs θMLMsLs
-    with ∷≡-inversion θMLMsLs
-... | ⟨ θML , θMsLs ⟩ = ⟨ θML , (subst-vec-pres θeqs θMsLs) ⟩
+subst-vec-pres : ∀{n}{Ms Ls : Vec Term n}{eqs}{σ}
+   → σ unifies eqs
+   → subst-vec σ Ms ≡ subst-vec σ Ls
+   → σ unifies append-eqs Ms Ls eqs
+subst-vec-pres {zero} {Ms} {Ls} σeqs σMsLs = σeqs
+subst-vec-pres {suc n} {M ∷ Ms} {L ∷ Ls} σeqs σMLMsLs
+    with ∷≡-inversion σMLMsLs
+... | ⟨ σML , σMsLs ⟩ = ⟨ σML , (subst-vec-pres σeqs σMsLs) ⟩
 ```
 
 ### Substitution reflects unifiers
@@ -308,9 +318,9 @@ subst-ref : ∀{L}{N}{z}{θ}{M}
   → subst θ ([ z := M ] L) ≡ subst θ ([ z := M ] N)
   → subst θ L ≡ subst θ N
 subst-ref {L}{N}{z}{θ}{M} θzM θLM = begin
-    subst θ L                ≡⟨ subst-sub1 {L} θzM ⟩
+    subst θ L                ≡⟨ subst-invariant {L} θzM ⟩
     subst θ ([ z := M ] L)   ≡⟨ θLM ⟩
-    subst θ ([ z := M ] N)   ≡⟨ sym (subst-sub1 {N} θzM) ⟩
+    subst θ ([ z := M ] N)   ≡⟨ sym (subst-invariant {N} θzM) ⟩
     subst θ N   ∎
 ```
 

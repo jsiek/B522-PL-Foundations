@@ -253,46 +253,43 @@ First we prove two lemmas to help with the variable case.
 
 ```
 x∉domσ→no-lookup : ∀{σ}{x}
-   → IdemSubst σ
    → x ∉ dom σ
    → lookup σ x ≡ nothing
-x∉domσ→no-lookup {[]} {x} Sσ x∉σ = refl
-x∉domσ→no-lookup {⟨ ` y , M ⟩ ∷ σ} {x} (insert y∉M y∉σ M∩σ⊆∅ Sσ) x∉σ
+x∉domσ→no-lookup {[]} {x} x∉σ = refl
+x∉domσ→no-lookup {⟨ ` y , M ⟩ ∷ σ} {x} x∉σ
     with x ≟ y
 ... | yes refl = ⊥-elim (x∉σ (p⊆p∪q _ _ (x∈⁅x⁆ y)))
 ... | no x≠y =
-    let IH = x∉domσ→no-lookup {σ}{x} Sσ λ x∈σ → x∉σ (q⊆p∪q _ _ x∈σ) in
-    IH
+    x∉domσ→no-lookup {σ}{x} λ x∈σ → x∉σ (q⊆p∪q _ _ x∈σ)
+x∉domσ→no-lookup {⟨ op ⦅ Ls ⦆ , M ⟩ ∷ σ} {x} x∉σ =
+    x∉domσ→no-lookup {σ}{x} λ x∈σ → x∉σ (q⊆p∪q _ _ x∈σ)
 ```
 
 ```
 x∉domσ→subst-id : ∀{σ}{x}
-   → IdemSubst σ
    → x ∉ dom σ
    → subst σ (` x) ≡ ` x
-x∉domσ→subst-id {σ}{x} Sσ x∉σ
+x∉domσ→subst-id {σ}{x} x∉σ
     with lookup σ x | inspect (lookup σ) x
 ... | nothing | [ σx ] = refl
 ... | just M | [ σx ]
-    rewrite x∉domσ→no-lookup Sσ x∉σ
+    rewrite x∉domσ→no-lookup {σ} x∉σ
     with σx
 ... | ()    
 ```
 
 ```
 M∩domσ⊆∅→subst-id : ∀{M}{σ}
-   → IdemSubst σ
    → vars M ∩ dom σ ⊆ ∅
    → subst σ M ≡ M
 M∩domσ⊆∅→subst-vec-id : ∀{n}{Ms : Vec Term n}{σ}
-   → IdemSubst σ
    → vars-vec Ms ∩ dom σ ⊆ ∅
    → subst-vec σ Ms ≡ Ms
    
-M∩domσ⊆∅→subst-vec-id {zero} {[]} {σ} Sσ M∩domσ⊆∅ = refl
-M∩domσ⊆∅→subst-vec-id {suc n} {M ∷ Ms} {σ} Sσ M∩domσ⊆∅
+M∩domσ⊆∅→subst-vec-id {zero} {[]} {σ} M∩domσ⊆∅ = refl
+M∩domσ⊆∅→subst-vec-id {suc n} {M ∷ Ms} {σ} M∩domσ⊆∅
     rewrite ∪-distrib-∩ {vars M} {vars-vec Ms} {dom σ} =
-    cong₂ _∷_ (M∩domσ⊆∅→subst-id Sσ Mσ⊆∅) (M∩domσ⊆∅→subst-vec-id {n}{Ms}{σ} Sσ Msσ⊆∅)
+    cong₂ _∷_ (M∩domσ⊆∅→subst-id Mσ⊆∅) (M∩domσ⊆∅→subst-vec-id {n}{Ms}{σ} Msσ⊆∅)
     where
     Mσ⊆∅ : vars M ∩ dom σ ⊆ ∅
     Mσ⊆∅ {x} x∈M∩domσ = M∩domσ⊆∅ {x} (p⊆p∪q _ _ {x} x∈M∩domσ)
@@ -300,14 +297,14 @@ M∩domσ⊆∅→subst-vec-id {suc n} {M ∷ Ms} {σ} Sσ M∩domσ⊆∅
     Msσ⊆∅ : vars-vec Ms ∩ dom σ ⊆ ∅
     Msσ⊆∅ {x} x∈Ms∩domσ = M∩domσ⊆∅ {x} (q⊆p∪q _ _ {x} x∈Ms∩domσ)
 
-M∩domσ⊆∅→subst-id {` x} {σ} Sσ M∩domσ⊆∅ = x∉domσ→subst-id Sσ G
+M∩domσ⊆∅→subst-id {` x} {σ} M∩domσ⊆∅ = x∉domσ→subst-id {σ} G
     where
     G : x ∉ dom σ
     G x∈domσ rewrite x∈p→⁅x⁆∩p≡⁅x⁆ x (dom σ) x∈domσ =
        let x∈∅ = M∩domσ⊆∅ {x} (x∈⁅x⁆ x) in
        ∉∅ {x} x∈∅
-M∩domσ⊆∅→subst-id {op ⦅ Ms ⦆} {σ} Sσ M∩domσ⊆∅ =
-    cong (λ □ → op ⦅ □ ⦆) (M∩domσ⊆∅→subst-vec-id {Ms = Ms} Sσ M∩domσ⊆∅)
+M∩domσ⊆∅→subst-id {op ⦅ Ms ⦆} {σ} M∩domσ⊆∅ =
+    cong (λ □ → op ⦅ □ ⦆) (M∩domσ⊆∅→subst-vec-id {Ms = Ms} M∩domσ⊆∅)
 ```
 
 Special case for dom of a list of equations.

@@ -145,13 +145,22 @@ We prove that if σ is an idempotent substitution, then σ unifies σ.
 The proof is by induction on σ and the base case is trivial.
 For the induction step, we need to show that
 
-    ⟨ ` x , M ⟩ ∷ σ  unifies  ⟨ ` x , M ⟩ ∷ σ
+    ⟨ ` x , M ⟩ ∷ σ'  unifies  ⟨ ` x , M ⟩ ∷ σ'
 
 So we need to show that
 
-    subst (⟨ ` x , M ⟩ ∷ σ) (` x) ≡ (⟨ ` x , M ⟩ ∷ σ) M          (1)
-    ⟨ ` x , M ⟩ ∷ σ  unifies σ                                   (2)
+    (1)  subst (⟨ ` x , M ⟩ ∷ σ') (` x) ≡ (⟨ ` x , M ⟩ ∷ σ') M
+    (2)  ⟨ ` x , M ⟩ ∷ σ'  unifies σ'
 
+For the proof of (1), we have
+
+      subst (⟨ ` x , M ⟩ ∷ σ') (` x)
+    ≡ M                             (definition of subst)
+    ≡ (⟨ ` x , M ⟩ ∷ σ') M          (σ is idempotent)
+
+We generalize (2) to the following lemma, which separates the two
+occurences of σ' into separate variables, enabling a proof by
+induction.
 
 ```
 private
@@ -202,57 +211,60 @@ private
           ∎
 ```
 
+The following formalizes the reflexivity property.
+
 ```
 unifies-refl : ∀{σ} → IdemSubst σ → σ unifies σ
 unifies-refl {[]} empty = tt
 unifies-refl {⟨ ` x , M ⟩ ∷ σ} (insert x∉M x∉σ M∩σ⊆∅ SΣ) =
     ⟨ G1 , G2 ⟩
     where
-    IH : σ unifies σ
-    IH = unifies-refl {σ} SΣ 
     H : vars M ∩ (⁅ x ⁆ ∪ dom σ) ⊆ ∅
-    H {y} y∈
-        rewrite ∪-distribˡ-∩ {vars M} {⁅ x ⁆} {dom σ}
-        with (proj₁ (∈∪ _ _ _)) y∈
-    ... | inj₁ y∈Mx
-        with (proj₁ (∈∩ _ _ _)) y∈Mx
-    ... | ⟨ y∈M , y∈x ⟩
-        with x∈⁅y⁆→x≡y _ _ y∈x
-    ... | refl = ⊥-elim (x∉M y∈M)
-    H {y} y∈
-        | inj₂ y∈M∩σ = M∩σ⊆∅ y∈M∩σ
+    H = begin⊆
+        vars M ∩ (⁅ x ⁆ ∪ dom σ)             ⊆⟨ ⊆-reflexive (∪-distribˡ-∩ {vars M} {⁅ x ⁆} {dom σ}) ⟩
+        (vars M ∩ ⁅ x ⁆) ∪ (vars M ∩ dom σ)  ⊆⟨ p⊆r→q⊆s→p∪q⊆r∪s (x∉p→p∩⁅x⁆⊆∅ _ _ x∉M) M∩σ⊆∅ ⟩
+        ∅ ∪ ∅                                ⊆⟨ ⊆-reflexive (p∪∅≡p _) ⟩
+        ∅
+        ■
     G1 : subst (⟨ ` x , M ⟩ ∷ σ) (` x) ≡ subst (⟨ ` x , M ⟩ ∷ σ) M
     G1 = begin
         subst (⟨ ` x , M ⟩ ∷ σ) (` x)     ≡⟨ subst-var-eq {x}{M}{σ} ⟩
-        M                                 ≡⟨ sym (M∩domσ⊆∅→subst-id (insert x∉M x∉σ M∩σ⊆∅ SΣ) H) ⟩
+        M                                 ≡⟨ sym (M∩domσ⊆∅→subst-id H) ⟩
         subst (⟨ ` x , M ⟩ ∷ σ) M
         ∎
-
     G2 : (⟨ ` x , M ⟩ ∷ σ) unifies σ
-    G2 = no-vars→ext-unifies IH x∉σ x∉σ
+    G2 = no-vars→ext-unifies (unifies-refl {σ} SΣ) x∉σ x∉σ
 ```
 
 ### Substitution preserves unifiers
 
+Next we prove that substitution preserves unifiers.
+
+      subst θ (` x) ≡ subst θ M
+    → θ unifies eqs
+    → θ unifies ([ M / x ] eqs)
+
+We need two lemmas to prove the above.  The lemmas says that
+substitution preserves the unification of a single equation between
+two terms.
+
 ```
-subst-vec-sub1 : ∀{n}{Ns : Vec Term n}{z}{θ}{M}
-  → subst θ (` z) ≡ subst θ M
-  → subst-vec θ Ns ≡ subst-vec θ ([ z ::= M ] Ns)
-
-subst-sub1 : ∀{N}{z}{θ}{M}
-  → subst θ (` z) ≡ subst θ M
-  → subst θ N ≡ subst θ ([ z := M ] N)
-subst-sub1 {` x} {z} {θ} {M} θzM
+subst-sub1 : ∀{N}{x}{σ}{M}
+  → subst σ (` x) ≡ subst σ M
+  → subst σ N ≡ subst σ ([ x := M ] N)
+subst-vec-sub1 : ∀{n}{Ns : Vec Term n}{z}{σ}{M}
+  → subst σ (` z) ≡ subst σ M
+  → subst-vec σ Ns ≡ subst-vec σ ([ z ::= M ] Ns)
+subst-sub1 {` x} {z} {σ} {M} σzM
     with z ≟ x
-... | yes refl = θzM
+... | yes refl = σzM
 ... | no zx = refl
-subst-sub1 {op ⦅ Ns ⦆} {z} {θ} {M} θzM =
-    cong (λ □ → op ⦅ □ ⦆) (subst-vec-sub1 θzM)
-
-subst-vec-sub1 {zero} {Ns} θzM = refl
-subst-vec-sub1 {suc n} {N ∷ Ns}{z}{θ}{M} θzM
-    rewrite subst-sub1 {N}{z}{θ}{M} θzM
-    | subst-vec-sub1 {n} {Ns}{z}{θ}{M} θzM = refl
+subst-sub1 {op ⦅ Ns ⦆} {z} {σ} {M} σzM =
+    cong (λ □ → op ⦅ □ ⦆) (subst-vec-sub1 σzM)
+subst-vec-sub1 {zero} {Ns} σzM = refl
+subst-vec-sub1 {suc n} {N ∷ Ns}{z}{σ}{M} σzM
+    rewrite subst-sub1 {N}{z}{σ}{M} σzM
+    | subst-vec-sub1 {n} {Ns}{z}{σ}{M} σzM = refl
 ```
 
 ```

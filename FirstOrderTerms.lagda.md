@@ -194,16 +194,29 @@ subst-vec-empty {.(suc _)} (M ∷ Ms)
     | subst-vec-empty Ms = refl
 ```
 
-When the variable matches, the result of substitution is the
-associated term.
+When the variable matches the variable in the first pair, the result
+of substitution is the associated term.
 
 ```
-subst-var-eq : ∀{x}{M}{θ}
-   → subst (⟨ ` x , M ⟩ ∷ θ) (` x) ≡ M
-subst-var-eq {x}{M}{θ}
+subst-var-eq : ∀{x}{M}{σ}
+   → subst (⟨ ` x , M ⟩ ∷ σ) (` x) ≡ M
+subst-var-eq {x}{M}{σ}
     with x ≟ x
 ... | yes refl = refl
 ... | no xx = ⊥-elim (xx refl)
+```
+
+When the variable does not match the variable in the first pair, the
+result is the rest of the substitution applied to the variable.
+
+```
+subst-var-neq : ∀{x}{y}{M}{σ}
+   → x ≢ y
+   → subst (⟨ ` x , M ⟩ ∷ σ) (` y) ≡ subst σ (` y)
+subst-var-neq {x}{y}{M}{σ} x≢y
+    with y ≟ x
+... | yes refl = ⊥-elim (x≢y refl)
+... | no yx = refl
 ```
 
 Single substitution is the identity when the variable being
@@ -239,62 +252,62 @@ substitution has not variables in common with the term.
 First we prove two lemmas to help with the variable case.
 
 ```
-x∉domθ→no-lookup : ∀{θ}{x}
-   → IdemSubst θ
-   → x ∉ dom θ
-   → lookup θ x ≡ nothing
-x∉domθ→no-lookup {[]} {x} Sθ x∉θ = refl
-x∉domθ→no-lookup {⟨ ` y , M ⟩ ∷ θ} {x} (insert y∉M y∉θ M∩θ⊆∅ Sθ) x∉θ
+x∉domσ→no-lookup : ∀{σ}{x}
+   → IdemSubst σ
+   → x ∉ dom σ
+   → lookup σ x ≡ nothing
+x∉domσ→no-lookup {[]} {x} Sσ x∉σ = refl
+x∉domσ→no-lookup {⟨ ` y , M ⟩ ∷ σ} {x} (insert y∉M y∉σ M∩σ⊆∅ Sσ) x∉σ
     with x ≟ y
-... | yes refl = ⊥-elim (x∉θ (p⊆p∪q _ _ (x∈⁅x⁆ y)))
+... | yes refl = ⊥-elim (x∉σ (p⊆p∪q _ _ (x∈⁅x⁆ y)))
 ... | no x≠y =
-    let IH = x∉domθ→no-lookup {θ}{x} Sθ λ x∈θ → x∉θ (q⊆p∪q _ _ x∈θ) in
+    let IH = x∉domσ→no-lookup {σ}{x} Sσ λ x∈σ → x∉σ (q⊆p∪q _ _ x∈σ) in
     IH
 ```
 
 ```
-x∉domθ→subst-id : ∀{θ}{x}
-   → IdemSubst θ
-   → x ∉ dom θ
-   → subst θ (` x) ≡ ` x
-x∉domθ→subst-id {θ}{x} Sθ x∉θ
-    with lookup θ x | inspect (lookup θ) x
-... | nothing | [ θx ] = refl
-... | just M | [ θx ]
-    rewrite x∉domθ→no-lookup Sθ x∉θ
-    with θx
+x∉domσ→subst-id : ∀{σ}{x}
+   → IdemSubst σ
+   → x ∉ dom σ
+   → subst σ (` x) ≡ ` x
+x∉domσ→subst-id {σ}{x} Sσ x∉σ
+    with lookup σ x | inspect (lookup σ) x
+... | nothing | [ σx ] = refl
+... | just M | [ σx ]
+    rewrite x∉domσ→no-lookup Sσ x∉σ
+    with σx
 ... | ()    
 ```
 
 ```
-M∩domθ⊆∅→subst-id : ∀{M}{θ}
-   → IdemSubst θ
-   → vars M ∩ dom θ ⊆ ∅
-   → subst θ M ≡ M
-M∩domθ⊆∅→subst-vec-id : ∀{n}{Ms : Vec Term n}{θ}
-   → IdemSubst θ
-   → vars-vec Ms ∩ dom θ ⊆ ∅
-   → subst-vec θ Ms ≡ Ms
+M∩domσ⊆∅→subst-id : ∀{M}{σ}
+   → IdemSubst σ
+   → vars M ∩ dom σ ⊆ ∅
+   → subst σ M ≡ M
+M∩domσ⊆∅→subst-vec-id : ∀{n}{Ms : Vec Term n}{σ}
+   → IdemSubst σ
+   → vars-vec Ms ∩ dom σ ⊆ ∅
+   → subst-vec σ Ms ≡ Ms
    
-M∩domθ⊆∅→subst-vec-id {zero} {[]} {θ} Sθ M∩domθ⊆∅ = refl
-M∩domθ⊆∅→subst-vec-id {suc n} {M ∷ Ms} {θ} Sθ M∩domθ⊆∅
-    rewrite ∪-distrib-∩ {vars M} {vars-vec Ms} {dom θ} =
-    cong₂ _∷_ (M∩domθ⊆∅→subst-id Sθ Mθ⊆∅) (M∩domθ⊆∅→subst-vec-id {n}{Ms}{θ} Sθ Msθ⊆∅)
+M∩domσ⊆∅→subst-vec-id {zero} {[]} {σ} Sσ M∩domσ⊆∅ = refl
+M∩domσ⊆∅→subst-vec-id {suc n} {M ∷ Ms} {σ} Sσ M∩domσ⊆∅
+    rewrite ∪-distrib-∩ {vars M} {vars-vec Ms} {dom σ} =
+    cong₂ _∷_ (M∩domσ⊆∅→subst-id Sσ Mσ⊆∅) (M∩domσ⊆∅→subst-vec-id {n}{Ms}{σ} Sσ Msσ⊆∅)
     where
-    Mθ⊆∅ : vars M ∩ dom θ ⊆ ∅
-    Mθ⊆∅ {x} x∈M∩domθ = M∩domθ⊆∅ {x} (p⊆p∪q _ _ {x} x∈M∩domθ)
+    Mσ⊆∅ : vars M ∩ dom σ ⊆ ∅
+    Mσ⊆∅ {x} x∈M∩domσ = M∩domσ⊆∅ {x} (p⊆p∪q _ _ {x} x∈M∩domσ)
 
-    Msθ⊆∅ : vars-vec Ms ∩ dom θ ⊆ ∅
-    Msθ⊆∅ {x} x∈Ms∩domθ = M∩domθ⊆∅ {x} (q⊆p∪q _ _ {x} x∈Ms∩domθ)
+    Msσ⊆∅ : vars-vec Ms ∩ dom σ ⊆ ∅
+    Msσ⊆∅ {x} x∈Ms∩domσ = M∩domσ⊆∅ {x} (q⊆p∪q _ _ {x} x∈Ms∩domσ)
 
-M∩domθ⊆∅→subst-id {` x} {θ} Sθ M∩domθ⊆∅ = x∉domθ→subst-id Sθ G
+M∩domσ⊆∅→subst-id {` x} {σ} Sσ M∩domσ⊆∅ = x∉domσ→subst-id Sσ G
     where
-    G : x ∉ dom θ
-    G x∈domθ rewrite x∈p→⁅x⁆∩p≡⁅x⁆ x (dom θ) x∈domθ =
-       let x∈∅ = M∩domθ⊆∅ {x} (x∈⁅x⁆ x) in
+    G : x ∉ dom σ
+    G x∈domσ rewrite x∈p→⁅x⁆∩p≡⁅x⁆ x (dom σ) x∈domσ =
+       let x∈∅ = M∩domσ⊆∅ {x} (x∈⁅x⁆ x) in
        ∉∅ {x} x∈∅
-M∩domθ⊆∅→subst-id {op ⦅ Ms ⦆} {θ} Sθ M∩domθ⊆∅ =
-    cong (λ □ → op ⦅ □ ⦆) (M∩domθ⊆∅→subst-vec-id {Ms = Ms} Sθ M∩domθ⊆∅)
+M∩domσ⊆∅→subst-id {op ⦅ Ms ⦆} {σ} Sσ M∩domσ⊆∅ =
+    cong (λ □ → op ⦅ □ ⦆) (M∩domσ⊆∅→subst-vec-id {Ms = Ms} Sσ M∩domσ⊆∅)
 ```
 
 Special case for dom of a list of equations.

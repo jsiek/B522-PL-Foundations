@@ -162,8 +162,10 @@ So we need to show that
 For the proof of (1), we have
 
       subst ((` x ≐ M) ∷ σ') (` x)
-    ≡ M                             (definition of subst)
-    ≡ ((` x ≐ M) ∷ σ') M          (σ is idempotent)
+    ≡                                 (definition of subst)      
+      M
+    ≡                                 (σ is idempotent)
+      ((` x ≐ M) ∷ σ') M
 
 We generalize (2) to the following lemma, which separates the two
 occurences of σ' into separate variables, enabling a proof by

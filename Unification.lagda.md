@@ -251,13 +251,13 @@ Next we prove that substitution preserves unifiers.
 To do so, we'll need to prove that substitution preserves the
 unification of each equation.
 
-    subst σ (` x) ≡ subst σ M
-  → subst σ L ≡ subst σ N
-  → subst σ ([ x := M ] L) ≡ subst σ ([ x := M ] N)
+      subst σ (` x) ≡ subst σ M
+    → subst σ L ≡ subst σ N
+    → subst σ ([ x := M ] L) ≡ subst σ ([ x := M ] N)
 
 We prove this as a corollary of the following lemma, which establishes that
-a substitution σ always unifies both `N` and `[ x := M ] N` under the
-assumption that `subst σ (` x) ≡ subst σ M`.
+a substitution `σ` always unifies both `N` and `[ x := M ] N` under the
+assumption that `subst σ x ≡ subst σ M`.
 
 ```
   subst-invariant : ∀{N}{x}{σ}{M}

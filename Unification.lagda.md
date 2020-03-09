@@ -14,6 +14,7 @@ open import Data.Nat.Properties
 open Data.Nat.Properties.≤-Reasoning
   using (_≤⟨_⟩_)
   renaming (begin_ to begin≤_; _∎ to _QED)
+open import Data.Nat.Solver using (module +-*-Solver)
 open import Data.Product using (_×_; Σ; Σ-syntax; ∃; ∃-syntax; proj₁; proj₂)
    renaming (_,_ to ⟨_,_⟩)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
@@ -110,7 +111,7 @@ the solution, a substitution σ.
 
         (` x ≐ ` x) ∷ eqs , σ    becomes    eqs , σ
 
-2. Eliminate variables via substitution:
+2. Eliminate a variable via substitution:
 
         (` x ≐ M) ∷ eqs , σ    becomes    [ M / x] eqs , (` x ≐ M) ∷ [ M / x] σ
     
@@ -121,7 +122,7 @@ the solution, a substitution σ.
    provided that `x ∉ vars M` (this is known as the _occurs check_).
    Otherwise report that there are no solutions.
 
-3. Decompose equalities on function symbols
+3. Decompose an equality on function symbols
 
         (f ⦅ M₁ ... Mᵤ ⦆ ≐ f' ⦅ L₁ ... Lᵤ ⦆) ∷ eqs , σ    becomes    (M₁ ≐ L₁) ∷ ... ∷ (Mᵤ ≐ Lᵤ) ∷ eqs , σ
 
@@ -494,8 +495,8 @@ using the facts that products are well-founded (from the
                      (×-wellFounded <-wellFounded <-wellFounded)
 ```
 
-  We define the following convenience functions for proving that one
-  triple is lexicogrpahically less than another triple.
+We define the following convenience functions for proving that one
+triple is lexicogrpahically less than another triple.
 
 ```
   first-< : ∀ {k l m k' l' m'}
@@ -523,7 +524,24 @@ using the facts that products are well-founded (from the
   ... | yes refl = inj₂ ⟨ refl , (inj₂ ⟨ refl , m<m' ⟩) ⟩
 ```
 
-  Substitution reduces the number of variables in an equation.
+When we remove a trivial equation, of the form `x ≐ x`, the number of
+variables and the number of operators either decrease or stays the
+same. Of course, the number of equations decreases by one.
+
+```
+  measure1 : ∀{eqs}{θ}{x} → measure eqs θ <₃ measure ((` x ≐ ` x) ∷ eqs) θ
+  measure1 {eqs}{θ}{x} = third-< vars≤ ≤-refl (s≤s (s≤s ≤-refl))
+      where
+      vars≤ : ∣ vars-eqs eqs ∣ ≤ ∣ vars-eqs ((` x ≐ ` x) ∷ eqs) ∣
+      vars≤ =                                       begin≤
+            ∣ vars-eqs eqs ∣                         ≤⟨ ∣q∣≤∣p∪q∣ {⁅ x ⁆} {vars-eqs eqs} ⟩
+            ∣ ⁅ x ⁆ ∪ vars-eqs eqs ∣                 ≤⟨ ∣q∣≤∣p∪q∣ {⁅ x ⁆} {⁅ x ⁆ ∪  vars-eqs eqs} ⟩
+            ∣ ⁅ x ⁆ ∪ ⁅ x ⁆ ∪ vars-eqs eqs ∣         ≤⟨ ≤-refl ⟩
+            ∣ vars-eqs ((` x ≐ ` x) ∷ eqs) ∣         QED
+```
+
+When we eliminate a variable by substitution, we reduce the number of
+variables in the equation. 
 
 ```
   vars-eqs-sub-less : ∀{M x eqs}
@@ -539,7 +557,39 @@ using the facts that products are well-founded (from the
            ∣ vars-eqs ((` x ≐ M) ∷ eqs) ∣           QED
 ```
 
+For an equation of the form `x ≐ M`, the above lemma directly shows
+that the measure decreases.
 
+```
+  measure2 : ∀{eqs}{θ}{M}{x}
+     → x ∉ vars M
+     → measure ([ M / x ] eqs) ((` x ≐ M) ∷ [ M / x ] θ)
+       <₃ measure ((` x ≐ M) ∷ eqs) θ
+  measure2{eqs}{θ}{M}{x} x∉M = (first-< (vars-eqs-sub-less {M}{x}{eqs} x∉M))
+```
+
+For an equation of the form `M ≐ x`, we do a little extra work to flip
+around the conclusion of the lemma `vars-eqs-sub-less` to match what
+is needed in this case.
+
+```
+  measure3 : ∀{eqs}{θ}{M}{x}
+     → x ∉ vars M
+     → measure  ([ M / x ] eqs) ((` x ≐ M) ∷ [ M / x ] θ)
+       <₃ measure ((M ≐ ` x) ∷ eqs) θ
+  measure3 {eqs}{θ}{M}{x} x∉M
+      with vars-eqs-sub-less {M}{x}{eqs} x∉M
+  ... | vars< 
+      rewrite sym (∪-assoc ⁅ x ⁆ (vars M) (vars-eqs eqs))
+      | ∪-comm ⁅ x ⁆ (vars M)
+      | ∪-assoc (vars M) ⁅ x ⁆ (vars-eqs eqs) = 
+     first-< vars< 
+```
+
+When we decompose an equality between two function symbol
+applications, the number of variables stays the same.  This is because
+the result of `append-eqs` is an equation with the same variables as
+there are in its input.
 
 ```
   var-eqs-append-≡ : ∀ {n} (Ms Ls : Vec Term n) eqs
@@ -553,13 +603,14 @@ using the facts that products are well-founded (from the
       | ∪-assoc (vars L) (vars-vec Ms) (vars-vec Ls ∪ vars-eqs eqs)
       | var-eqs-append-≡ {n} Ms Ls eqs =
       refl
+```
 
-  var-eqs-append-⊆ : ∀ {n} (Ms Ls : Vec Term n) eqs
-     → vars-eqs (append-eqs Ms Ls eqs) ⊆ vars-vec Ms ∪ vars-vec Ls ∪ vars-eqs eqs
-  var-eqs-append-⊆ {n} Ms Ls eqs rewrite var-eqs-append-≡ {n} Ms Ls eqs = ⊆-refl
+When we decompose an equality between two function symbol
+applications, the number of operators is reduced by one.  Towards
+proving that, we first prove that the result of `append-eqs` is an
+equation with the same number of operators as there are in its input.
 
-  open import Data.Nat.Solver using (module +-*-Solver)
-
+```
   num-ops-append : ∀ {n} (Ms Ls : Vec Term n) eqs
      → num-ops-eqs (append-eqs Ms Ls eqs) ≡ num-ops-vec Ms + num-ops-vec Ls + num-ops-eqs eqs
   num-ops-append {zero} [] [] eqs = refl
@@ -573,39 +624,9 @@ using the facts that products are well-founded (from the
             (nM :+ nL) :+ ((nMs :+ nLs) :+ neqs) := ((nM :+ nMs) :+ (nL :+ nLs)) :+ neqs) refl
 ```
 
-```
-  measure1 : ∀{eqs}{θ}{x} → measure eqs θ <₃ measure ((` x ≐ ` x) ∷ eqs) θ
-  measure1 {eqs}{θ}{x} = third-< vars≤ ≤-refl (s≤s (s≤s ≤-refl))
-      where
-      vars≤ : ∣ vars-eqs eqs ∣ ≤ ∣ vars-eqs (⟨ ` x , ` x ⟩ ∷ eqs) ∣
-      vars≤ =                                       begin≤
-            ∣ vars-eqs eqs ∣                         ≤⟨ ∣q∣≤∣p∪q∣ {⁅ x ⁆} {vars-eqs eqs} ⟩
-            ∣ ⁅ x ⁆ ∪ vars-eqs eqs ∣                 ≤⟨ ∣q∣≤∣p∪q∣ {⁅ x ⁆} {⁅ x ⁆ ∪  vars-eqs eqs} ⟩
-            ∣ ⁅ x ⁆ ∪ ⁅ x ⁆ ∪ vars-eqs eqs ∣         ≤⟨ ≤-refl ⟩
-            ∣ vars-eqs ((` x ≐ ` x) ∷ eqs) ∣         QED
-```
-
-```
-  measure2 : ∀{eqs}{θ}{M}{x}
-     → x ∉ vars M
-     → measure ([ M / x ] eqs) ((` x ≐ M) ∷ [ M / x ] θ)
-       <₃ measure ((` x ≐ M) ∷ eqs) θ
-  measure2{eqs}{θ}{M}{x} x∉M = (first-< (vars-eqs-sub-less {M}{x}{eqs} x∉M))
-```
-
-```
-  measure3 : ∀{eqs}{θ}{op}{Ms}{x}
-     → x ∉ vars (op ⦅ Ms ⦆)
-     → measure  ([ op ⦅ Ms ⦆ / x ] eqs) ((` x ≐ op ⦅ Ms ⦆) ∷ [ op ⦅ Ms ⦆ / x ] θ)
-       <₃ measure ((op ⦅ Ms ⦆ ≐ ` x) ∷ eqs) θ
-  measure3 {eqs}{θ}{op}{Ms}{x} x∉M
-      with vars-eqs-sub-less {op ⦅ Ms ⦆}{x}{eqs} x∉M
-  ... | vars< 
-      rewrite sym (∪-assoc ⁅ x ⁆ (vars-vec Ms) (vars-eqs eqs))
-      | ∪-comm ⁅ x ⁆ (vars-vec Ms)
-      | ∪-assoc (vars-vec Ms) ⁅ x ⁆ (vars-eqs eqs) = 
-     first-< vars< 
-```
+Putting these two pieces together, we prove that decomposing an
+equality between two function symbol applications causes the measure
+to decrease.
 
 ```
   measure4 : ∀{eqs}{θ}{op}{Ms Ls : Vec Term (arity op)}
@@ -624,13 +645,46 @@ using the facts that products are well-founded (from the
 
 ## The Unify Function
 
+
+The `unify` function will take as input a list of equations and either
+return a substitution or an indication that there are no solutions to
+the equations. We define the following `Result` data type for these
+purposes.
+
 ```
 data Result : Set where
-  finished : Equations → Result
+  finished : Substitution → Result
   no-solution : Result
+```
 
+We define `unify` in terms of the following recursive helper function,
+`unify-rec`, that takes two extra parameters. The parameter `σ` is the
+substitution that has been accumulated so far, and that will
+eventually become the solution.  The parameter of data type `Acc _<₃_
+(measure eqs σ)` is used to ensure that the measure decreases on
+recursive calls. This data type has one constructor, `acc`, with one
+parameter, which we name `rec` below. When we apply `rec` to a proof
+that the measure decreases, we get another instance of `Acc` that is
+an appropriate argument for the recursive call to `unify-rec`.
+
+To define `unify-rec`, we first pattern match on `eqs`. If it is
+empty, then unification is finished and we return the current
+substitution. If `eqs` is not empty, we pattern match on the first
+equation. If it is an equation between two variables, we either
+eliminate the equation (if the two variables are equal), or we
+eliminate one of the variables by substitution.  If the equation is
+between a variable and an operator application, we eliminate the
+variable by substitution. However, we first check to see whether the
+variable occurs inside the operator application, in which case we halt
+with no solution. Finally, if the equation is between two operator
+applications, we check whether the two operators are equal.  If not,
+there is no solution. Otherwise, we append the corresponding sub-terms
+to the equations and recursively call `unify-rec`.
+
+
+```
 private
-  unify-rec : (eqs : Equations) → (σ : Equations)
+  unify-rec : (eqs : Equations) → (σ : Substitution)
             → Acc _<₃_ (measure eqs σ) → Result
   unify-rec [] σ rec = finished σ
   unify-rec ((` x ≐ ` y) ∷ eqs) σ (acc rec)
@@ -658,7 +712,13 @@ private
       with op-eq? op op'
   ... | yes refl = unify-rec (append-eqs Ms Ls eqs) σ (rec _ (measure4 {eqs}{σ}))
   ... | no neq = no-solution
+```
 
+With `unify-rec` complete, it is straightforward to define the `unify`
+function. We apply `unify-rec` to the empty substitution and a proof
+that `<₃` is well founded.
+
+```
 unify : (eqs : Equations) → Result
 unify eqs = unify-rec eqs [] (<₃-wellFounded (measure eqs []))
 ```
@@ -753,6 +813,11 @@ UNDER CONSTRUCTION
       G = p⊆r→p⊆q∪r _ _ _ (p⊆p∪q _ _) y∈M
 ```
 
+```
+  var-eqs-append-⊆ : ∀ {n} (Ms Ls : Vec Term n) eqs
+     → vars-eqs (append-eqs Ms Ls eqs) ⊆ vars-vec Ms ∪ vars-vec Ls ∪ vars-eqs eqs
+  var-eqs-append-⊆ {n} Ms Ls eqs rewrite var-eqs-append-≡ {n} Ms Ls eqs = ⊆-refl
+```
 
 ```
   MsLseqs∩domσ⊆∅ : ∀{n}{Ms Ls : Vec Term n}{eqs}{σ}

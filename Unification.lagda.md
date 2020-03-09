@@ -145,7 +145,10 @@ if and only if one exists.
 
 ### Unifies is reflexive
 
-We prove that if σ is an idempotent substitution, then `σ unifies σ`.
+We prove that
+
+    IdemSubst σ  →  σ unifies σ
+
 The proof is by induction on σ and the base case is trivial.
 For the induction step, we need to show that
 

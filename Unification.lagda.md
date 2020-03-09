@@ -533,7 +533,7 @@ using the facts that products are well-founded (from the
            suc ∣ vars-eqs ([ M / x ] eqs) ∣          ≤⟨ s≤s (p⊆q⇒∣p∣≤∣q∣ (vars-eqs-subst-∪ {eqs}{x}{M})) ⟩
            suc ∣ vars M ∪ (vars-eqs eqs - ⁅ x ⁆) ∣   ≤⟨ ≤-reflexive (cong (λ □ → suc ∣ □ ∣)
                                                                    (distrib-∪-2 (vars M) _ _ (x∉p→p∩⁅x⁆⊆∅ _ _ x∉M))) ⟩
-           suc ∣ (vars M ∪ vars-eqs eqs) - ⁅ x ⁆ ∣   ≤⟨ ∣p-x∣<∣p∪x∣ (vars M ∪ vars-eqs eqs) x ⟩
+           suc ∣ (vars M ∪ vars-eqs eqs) - ⁅ x ⁆ ∣   ≤⟨ ∣p-x∣<∣p∪x∣ _ _ ⟩
            ∣ (vars M ∪ vars-eqs eqs) ∪ ⁅ x ⁆ ∣       ≤⟨ ≤-reflexive (cong (λ □ → ∣ □ ∣) (∪-comm _ _)) ⟩
            ∣ ⁅ x ⁆ ∪ vars M ∪ vars-eqs eqs ∣         ≤⟨ ≤-refl ⟩
            ∣ vars-eqs ((` x ≐ M) ∷ eqs) ∣           QED

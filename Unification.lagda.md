@@ -574,7 +574,7 @@ using the facts that products are well-founded (from the
   ```
 
   ```
-  measure1 : ∀{eqs}{θ}{x} → measure eqs θ <₃ measure (⟨ ` x , ` x ⟩ ∷ eqs) θ
+  measure1 : ∀{eqs}{θ}{x} → measure eqs θ <₃ measure ((` x ≐ ` x) ∷ eqs) θ
   measure1 {eqs}{θ}{x} = third-< vars≤ ≤-refl (s≤s (s≤s ≤-refl))
       where
       vars≤ : ∣ vars-eqs eqs ∣ ≤ ∣ vars-eqs (⟨ ` x , ` x ⟩ ∷ eqs) ∣
@@ -582,22 +582,22 @@ using the facts that products are well-founded (from the
             ∣ vars-eqs eqs ∣                         ≤⟨ ∣q∣≤∣p∪q∣ {⁅ x ⁆} {vars-eqs eqs} ⟩
             ∣ ⁅ x ⁆ ∪ vars-eqs eqs ∣                 ≤⟨ ∣q∣≤∣p∪q∣ {⁅ x ⁆} {⁅ x ⁆ ∪  vars-eqs eqs} ⟩
             ∣ ⁅ x ⁆ ∪ ⁅ x ⁆ ∪ vars-eqs eqs ∣         ≤⟨ ≤-refl ⟩
-            ∣ vars-eqs (⟨ ` x , ` x ⟩ ∷ eqs) ∣       QED
+            ∣ vars-eqs ((` x ≐ ` x) ∷ eqs) ∣         QED
   ```
 
   ```
   measure2 : ∀{eqs}{θ}{M}{x}
      → x ∉ vars M
-     → measure ([ M / x ] eqs) (⟨ ` x , M ⟩ ∷ [ M / x ] θ)
-       <₃ measure (⟨ ` x , M ⟩ ∷ eqs) θ
+     → measure ([ M / x ] eqs) ((` x ≐ M) ∷ [ M / x ] θ)
+       <₃ measure ((` x ≐ M) ∷ eqs) θ
   measure2{eqs}{θ}{M}{x} x∉M = (first-< (vars-eqs-sub-less {M}{x}{eqs} x∉M))
   ```
 
   ```
   measure3 : ∀{eqs}{θ}{op}{Ms}{x}
      → x ∉ vars (op ⦅ Ms ⦆)
-     → measure  ([ op ⦅ Ms ⦆ / x ] eqs) (⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ [ op ⦅ Ms ⦆ / x ] θ)
-       <₃ measure (⟨ op ⦅ Ms ⦆ , ` x ⟩ ∷ eqs) θ
+     → measure  ([ op ⦅ Ms ⦆ / x ] eqs) ((` x ≐ op ⦅ Ms ⦆) ∷ [ op ⦅ Ms ⦆ / x ] θ)
+       <₃ measure ((op ⦅ Ms ⦆ ≐ ` x) ∷ eqs) θ
   measure3 {eqs}{θ}{op}{Ms}{x} x∉M
       with vars-eqs-sub-less {op ⦅ Ms ⦆}{x}{eqs} x∉M
   ... | vars< 
@@ -610,7 +610,7 @@ using the facts that products are well-founded (from the
   ```
   measure4 : ∀{eqs}{θ}{op}{Ms Ls : Vec Term (arity op)}
      → measure (append-eqs Ms Ls eqs) θ
-       <₃ measure (⟨ op ⦅ Ms ⦆ , op ⦅ Ls ⦆ ⟩ ∷ eqs) θ
+       <₃ measure ((op ⦅ Ms ⦆ ≐ op ⦅ Ls ⦆) ∷ eqs) θ
   measure4 {eqs}{θ}{op}{Ms}{Ls} = second-< vars≤ ops<
       where
       vars≤ : ∣ vars-eqs (append-eqs Ms Ls eqs) ∣ ≤ ∣ vars-vec Ms ∪ vars-vec Ls ∪ vars-eqs eqs ∣
@@ -633,28 +633,28 @@ private
   unify-rec : (eqs : Equations) → (σ : Equations)
             → Acc _<₃_ (measure eqs σ) → Result
   unify-rec [] σ rec = finished σ
-  unify-rec (⟨ ` x , ` y ⟩ ∷ eqs) σ (acc rec)
+  unify-rec ((` x ≐ ` y) ∷ eqs) σ (acc rec)
       with x ≟ y
   ... | yes refl = unify-rec eqs σ (rec _ (measure1 {eqs}{σ}))
   ... | no xy =
       let eqs' = [ ` y / x ] eqs in
-      let σ' = ⟨ ` x , ` y ⟩ ∷ [ ` y / x ] σ in
+      let σ' = (` x ≐ ` y) ∷ [ ` y / x ] σ in
       unify-rec eqs' σ' (rec _ (measure2{eqs}{σ} (x∉⁅y⁆ _ _ xy)))
-  unify-rec (⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ eqs) σ (acc rec)
+  unify-rec ((` x ≐ op ⦅ Ms ⦆) ∷ eqs) σ (acc rec)
       with occurs? x (op ⦅ Ms ⦆)
   ... | yes x∈M = no-solution
   ... | no x∉M =
       let eqs' = [ op ⦅ Ms ⦆ / x ] eqs in
-      let σ' = ⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ [ op ⦅ Ms ⦆ / x ] σ in
+      let σ' = (` x ≐ op ⦅ Ms ⦆) ∷ [ op ⦅ Ms ⦆ / x ] σ in
       unify-rec eqs' σ' (rec _ (measure2{eqs}{σ} x∉M))
-  unify-rec (⟨ op ⦅ Ms ⦆ , ` x ⟩ ∷ eqs) σ (acc rec)
+  unify-rec ((op ⦅ Ms ⦆ ≐ ` x) ∷ eqs) σ (acc rec)
       with occurs? x (op ⦅ Ms ⦆)
   ... | yes x∈M = no-solution
   ... | no x∉M =
       let eqs' = [ op ⦅ Ms ⦆ / x ] eqs in
-      let σ' = ⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ [ op ⦅ Ms ⦆ / x ] σ in
+      let σ' = (` x ≐ op ⦅ Ms ⦆) ∷ [ op ⦅ Ms ⦆ / x ] σ in
       unify-rec eqs' σ' (rec _ (measure3{eqs}{σ} x∉M))
-  unify-rec (⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs) σ (acc rec)
+  unify-rec ((op ⦅ Ms ⦆ ≐ op' ⦅ Ls ⦆) ∷ eqs) σ (acc rec)
       with op-eq? op op'
   ... | yes refl = unify-rec (append-eqs Ms Ls eqs) σ (rec _ (measure4 {eqs}{σ}))
   ... | no neq = no-solution

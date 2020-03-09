@@ -492,12 +492,12 @@ using the facts that products are well-founded (from the
   <₃-wellFounded : WellFounded _<₃_
   <₃-wellFounded = ×-wellFounded <-wellFounded
                      (×-wellFounded <-wellFounded <-wellFounded)
-  ```
+```
 
   We define the following convenience functions for proving that one
   triple is lexicogrpahically less than another triple.
 
-  ```
+```
   first-< : ∀ {k l m k' l' m'}
           → k < k'
           → ⟨ k , ⟨ l , m ⟩ ⟩ <₃ ⟨ k' , ⟨ l' , m' ⟩ ⟩
@@ -521,11 +521,11 @@ using the facts that products are well-founded (from the
       with l ≟ l'
   ... | no l≢l' = inj₂ ⟨ refl , (inj₁ (≤∧≢⇒< l≤l' l≢l')) ⟩
   ... | yes refl = inj₂ ⟨ refl , (inj₂ ⟨ refl , m<m' ⟩) ⟩
-  ```
+```
 
   Substitution reduces the number of variables in an equation.
 
-  ```
+```
   vars-eqs-sub-less : ∀{M x eqs}
      → ¬ x ∈ vars M
      → ∣ vars-eqs ([ M / x ] eqs) ∣ < ∣ vars-eqs ((` x ≐ M) ∷ eqs) ∣
@@ -537,11 +537,11 @@ using the facts that products are well-founded (from the
            ∣ (vars M ∪ vars-eqs eqs) ∪ ⁅ x ⁆ ∣       ≤⟨ ≤-reflexive (cong (λ □ → ∣ □ ∣) (∪-comm _ _)) ⟩
            ∣ ⁅ x ⁆ ∪ vars M ∪ vars-eqs eqs ∣         ≤⟨ ≤-refl ⟩
            ∣ vars-eqs ((` x ≐ M) ∷ eqs) ∣           QED
-  ```
+```
 
 
 
-  ```
+```
   var-eqs-append-≡ : ∀ {n} (Ms Ls : Vec Term n) eqs
      → vars-eqs (append-eqs Ms Ls eqs) ≡ vars-vec Ms ∪ vars-vec Ls ∪ vars-eqs eqs
   var-eqs-append-≡ {zero} [] [] eqs rewrite ∅∪p≡p (vars-eqs eqs) | ∅∪p≡p (vars-eqs eqs) = refl
@@ -571,9 +571,9 @@ using the facts that products are well-founded (from the
       G : (nM nL nMs nLs neqs : ℕ) → (nM + nL) + ((nMs + nLs) + neqs) ≡ ((nM + nMs) + (nL + nLs)) + neqs
       G = solve 5 (λ nM nL nMs nLs neqs →
             (nM :+ nL) :+ ((nMs :+ nLs) :+ neqs) := ((nM :+ nMs) :+ (nL :+ nLs)) :+ neqs) refl
-  ```
+```
 
-  ```
+```
   measure1 : ∀{eqs}{θ}{x} → measure eqs θ <₃ measure ((` x ≐ ` x) ∷ eqs) θ
   measure1 {eqs}{θ}{x} = third-< vars≤ ≤-refl (s≤s (s≤s ≤-refl))
       where
@@ -583,17 +583,17 @@ using the facts that products are well-founded (from the
             ∣ ⁅ x ⁆ ∪ vars-eqs eqs ∣                 ≤⟨ ∣q∣≤∣p∪q∣ {⁅ x ⁆} {⁅ x ⁆ ∪  vars-eqs eqs} ⟩
             ∣ ⁅ x ⁆ ∪ ⁅ x ⁆ ∪ vars-eqs eqs ∣         ≤⟨ ≤-refl ⟩
             ∣ vars-eqs ((` x ≐ ` x) ∷ eqs) ∣         QED
-  ```
+```
 
-  ```
+```
   measure2 : ∀{eqs}{θ}{M}{x}
      → x ∉ vars M
      → measure ([ M / x ] eqs) ((` x ≐ M) ∷ [ M / x ] θ)
        <₃ measure ((` x ≐ M) ∷ eqs) θ
   measure2{eqs}{θ}{M}{x} x∉M = (first-< (vars-eqs-sub-less {M}{x}{eqs} x∉M))
-  ```
+```
 
-  ```
+```
   measure3 : ∀{eqs}{θ}{op}{Ms}{x}
      → x ∉ vars (op ⦅ Ms ⦆)
      → measure  ([ op ⦅ Ms ⦆ / x ] eqs) ((` x ≐ op ⦅ Ms ⦆) ∷ [ op ⦅ Ms ⦆ / x ] θ)
@@ -605,9 +605,9 @@ using the facts that products are well-founded (from the
       | ∪-comm ⁅ x ⁆ (vars-vec Ms)
       | ∪-assoc (vars-vec Ms) ⁅ x ⁆ (vars-eqs eqs) = 
      first-< vars< 
-  ```
+```
 
-  ```
+```
   measure4 : ∀{eqs}{θ}{op}{Ms Ls : Vec Term (arity op)}
      → measure (append-eqs Ms Ls eqs) θ
        <₃ measure ((op ⦅ Ms ⦆ ≐ op ⦅ Ls ⦆) ∷ eqs) θ

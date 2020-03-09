@@ -368,80 +368,99 @@ The `append-eqs` operation reflects unifiers.
 
 ### A failed occurs-check implies no solutions
 
-```
-  num-ops-vec : ∀{n} → Vec Term n → ℕ
+An equation of the form `x ≐ f ⦅ Ms ⦆` where `x ∈ vars (f ⦅ Ms ⦆)` has no unifiers.
+We shall prove this by contradiction, assuming that there is a unifier `σ`
+and proving false. From `subst σ (` x) ≡ subst σ (f ⦅ Ms ⦆)`, we know that
+the number of operators (aka. function symbols) in `subst σ (` x)`
+must be the same as the number of operators in `subst σ (f ⦅ Ms ⦆)`.
+However, we shall prove a lemma that if `x ∈ vars (f ⦅ Ms ⦆)`,
+then the number of operators in `subst σ (` x)` is strictly less than
+the number of operators in `subst σ (f ⦅ Ms ⦆)`. Thus we have a contradiction. 
 
+We begin by defining functions for counting the number of operators in
+a term, in a vector of terms, and in a list of equations.
+
+```
   num-ops : Term → ℕ
+  num-ops-vec : ∀{n} → Vec Term n → ℕ
   num-ops (` x) = 0
   num-ops (op ⦅ Ms ⦆) = suc (num-ops-vec Ms)
-
   num-ops-vec {zero} Ms = 0
   num-ops-vec {suc n} (M ∷ Ms) = num-ops M + num-ops-vec Ms
 
   num-ops-eqs : Equations → ℕ
   num-ops-eqs [] = 0
   num-ops-eqs ((L ≐ M) ∷ eqs) = num-ops L + num-ops M + num-ops-eqs eqs
+```
 
+We define the following function for identifying terms that are
+operator applications.
+
+```
   is-op : Term → Set
   is-op (` x) = ⊥
   is-op (op ⦅ Ms ⦆) = ⊤
+```
 
-  num-ops-less-vec : ∀ {n}{Ms : Vec Term n}{x θ}
+The main lemma proves that if `x ∈ vars M`, the number of operators in
+`subst σ (` x)` is less than the number of operators in `subst σ M`.
+The proof is a straightforward induction on the term `M`.
+
+```
+  num-ops-less : ∀ {M}{x σ}
+     → x ∈ vars M  →  is-op M
+     → num-ops (subst σ (` x)) < num-ops (subst σ M)
+  num-ops-less-vec : ∀ {n}{Ms : Vec Term n}{x σ}
      → x ∈ vars-vec Ms
-     → num-ops (subst θ (` x)) ≤ num-ops-vec (subst-vec θ Ms)
-
-  num-ops-less : ∀ {M}{x θ}
-     → x ∈ vars M
-     → is-op M
-     → num-ops (subst θ (` x)) < num-ops (subst θ M)
-  num-ops-less {op ⦅ Ms ⦆}{x}{θ} x∈Ms opM =
-     s≤s (num-ops-less-vec {Ms = Ms}{x}{θ} x∈Ms)
-
-  num-ops-less-vec {zero} {[]} {x} {θ} x∈Ms = ⊥-elim (∉∅ {x} x∈Ms)
-  num-ops-less-vec {suc n} {(` y) ∷ Ms} {x} {θ} x∈MMs
+     → num-ops (subst σ (` x)) ≤ num-ops-vec (subst-vec σ Ms)
+  num-ops-less {op ⦅ Ms ⦆}{x}{σ} x∈Ms opM =
+     s≤s (num-ops-less-vec {Ms = Ms}{x}{σ} x∈Ms)
+  num-ops-less-vec {zero} {[]} {x} {σ} x∈Ms = ⊥-elim (∉∅ {x} x∈Ms)
+  num-ops-less-vec {suc n} {(` y) ∷ Ms} {x} {σ} x∈MMs
       with ∈p∪q→∈p⊎∈q x∈MMs
   ... | inj₁ x∈M
       with x ≟ y
-  ... | yes refl = m≤m+n (num-ops (subst θ (` y))) (num-ops-vec (subst-vec θ Ms))
+  ... | yes refl = m≤m+n (num-ops (subst σ (` y))) (num-ops-vec (subst-vec σ Ms))
   ... | no xy = ⊥-elim ((x∉⁅y⁆ x y xy) x∈M)
-  num-ops-less-vec {suc n} {(` y) ∷ Ms} {x} {θ} x∈MMs
+  num-ops-less-vec {suc n} {(` y) ∷ Ms} {x} {σ} x∈MMs
       | inj₂ x∈Ms =
-      let IH = num-ops-less-vec {n} {Ms}{x}{θ} x∈Ms in
+      let IH = num-ops-less-vec {n} {Ms}{x}{σ} x∈Ms in
       begin≤
-      num-ops (subst θ (` x))         ≤⟨ IH ⟩
-      num-ops-vec (subst-vec θ Ms)    ≤⟨ m≤n+m _ _ ⟩
-      num-ops (subst θ (` y)) + num-ops-vec (subst-vec θ Ms)
+      num-ops (subst σ (` x))         ≤⟨ IH ⟩
+      num-ops-vec (subst-vec σ Ms)    ≤⟨ m≤n+m _ _ ⟩
+      num-ops (subst σ (` y)) + num-ops-vec (subst-vec σ Ms)
       QED
-  num-ops-less-vec {suc n} {(op ⦅ Ls ⦆) ∷ Ms} {x} {θ} x∈MMs
+  num-ops-less-vec {suc n} {(op ⦅ Ls ⦆) ∷ Ms} {x} {σ} x∈MMs
       with ∈p∪q→∈p⊎∈q x∈MMs
   ... | inj₁ x∈M =
-      let θx<1+θLS = num-ops-less {(op ⦅ Ls ⦆)}{x}{θ} x∈M tt in
+      let σx<1+σLS = num-ops-less {(op ⦅ Ls ⦆)}{x}{σ} x∈M tt in
       begin≤
-         num-ops (subst θ (` x))       ≤⟨ ≤-pred θx<1+θLS ⟩
-         num-ops-vec (subst-vec θ Ls)  ≤⟨ m≤m+n _ _ ⟩
-         num-ops-vec (subst-vec θ Ls) + num-ops-vec (subst-vec θ Ms) ≤⟨ n≤1+n _ ⟩
-         suc (num-ops-vec (subst-vec θ Ls) + num-ops-vec (subst-vec θ Ms))
+         num-ops (subst σ (` x))       ≤⟨ ≤-pred σx<1+σLS ⟩
+         num-ops-vec (subst-vec σ Ls)  ≤⟨ m≤m+n _ _ ⟩
+         num-ops-vec (subst-vec σ Ls) + num-ops-vec (subst-vec σ Ms) ≤⟨ n≤1+n _ ⟩
+         suc (num-ops-vec (subst-vec σ Ls) + num-ops-vec (subst-vec σ Ms))
         QED
-  num-ops-less-vec {suc n} {M ∷ Ms} {x} {θ} x∈MMs
+  num-ops-less-vec {suc n} {M ∷ Ms} {x} {σ} x∈MMs
       | inj₂ x∈Ms =
-      let IH = num-ops-less-vec {n} {Ms}{x}{θ} x∈Ms in
+      let IH = num-ops-less-vec {n} {Ms}{x}{σ} x∈Ms in
       begin≤
-      num-ops (subst θ (` x))         ≤⟨ IH ⟩
-      num-ops-vec (subst-vec θ Ms)    ≤⟨ m≤n+m _ _ ⟩
-      num-ops (subst θ M) + num-ops-vec (subst-vec θ Ms)
+      num-ops (subst σ (` x))         ≤⟨ IH ⟩
+      num-ops-vec (subst-vec σ Ms)    ≤⟨ m≤n+m _ _ ⟩
+      num-ops (subst σ M) + num-ops-vec (subst-vec σ Ms)
       QED
-
-  occurs-no-soln : ∀{θ x M}
-    → x ∈ vars M → is-op M
-    → subst θ (` x) ≢ subst θ M
-  occurs-no-soln {θ} x∈M opM θxM
-      with num-ops-less {θ = θ} x∈M opM
-  ... | θx<θM rewrite θxM =
-        ⊥-elim (1+n≰n θx<θM)
 ```
 
+Thus, if `x ∈ vars M`, there is no solution to `x ≐ M`.
 
-
+```
+  occurs-no-soln : ∀{σ x M}
+    → x ∈ vars M → is-op M
+    → subst σ (` x) ≢ subst σ M
+  occurs-no-soln {σ} x∈M opM σxM
+      with num-ops-less {σ = σ} x∈M opM
+  ... | σx<σM rewrite σxM =
+        ⊥-elim (1+n≰n σx<σM)
+```
 
 ## Proof of Termination
 

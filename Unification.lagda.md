@@ -37,14 +37,14 @@ open import FirstOrderTerms Op op-eq? arity public
 ## Introduction to Unification
 
 This chapter lays the groundwork for the chapter on Hindley-Milner
-type inference [HM-TypeInference](./HM-TypeInference.lagda.md).
-During type inference we produce equations over types, such as
+type inference ([HM-TypeInference](./HM-TypeInference.lagda.md)).
+Type inference produces equations over types, such as
 
     α = β ⇒ Nat
     Bool = β
 
 where the α and β are _unknown type variables_ that need to be
-solved. For the example, a solution is
+solved. For the example, a solution to the above equations is
 
     α = Bool ⇒ Nat
     β = Bool
@@ -131,10 +131,10 @@ the solution, a substitution σ.
 The rest of this Chapter is organized as follows.  We first prove some
 properties about `unifies`, in particular, that `unifies` is
 reflexive, that `unifies` is preserved and reflected by substitution,
-and that there are no unifiers for an equation of the form `⟨ x , M ⟩`
+and that there are no unifiers for an equation of the form `x ≐ M`
 when `x` occurs in `M`. Next we turn to the proof of termination of
 Martelli and Montanari's unification algorithm, defining a measure
-function and proving lemmas that show the measure decreases in each of
+function and proving lemmas that show the measure decreases for each of
 the recursive calls. We then define the `unify` function by
 well-founded recursion on the measure and prove that `unify` is
 correct, which is to say that it returns a unifier for the equations
@@ -145,7 +145,7 @@ if and only if one exists.
 
 ### Unifies is reflexive
 
-We prove that if σ is an idempotent substitution, then σ unifies σ.
+We prove that if σ is an idempotent substitution, then `σ unifies σ`.
 The proof is by induction on σ and the base case is trivial.
 For the induction step, we need to show that
 

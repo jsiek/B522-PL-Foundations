@@ -112,11 +112,11 @@ the solution, a substitution σ.
 
 2. Eliminate variables via substitution:
 
-        (` x ≐ M) ∷ eqs , σ    becomes    [ M / x] eqs , ⟨ ` x , M ⟩ ∷ [ M / x] σ
+        (` x ≐ M) ∷ eqs , σ    becomes    [ M / x] eqs , (` x ≐ M) ∷ [ M / x] σ
     
    and
    
-        (M ≐ ` x) ∷ eqs , σ    becomes    [ M / x] eqs , ⟨ ` x , M ⟩ ∷ [ M / x] σ
+        (M ≐ ` x) ∷ eqs , σ    becomes    [ M / x] eqs , (` x ≐ M) ∷ [ M / x] σ
 
    provided that `x ∉ vars M` (this is known as the _occurs check_).
    Otherwise report that there are no solutions.
@@ -367,7 +367,7 @@ The `append-eqs` operation also preserves unifiers.
 
   num-ops-eqs : Equations → ℕ
   num-ops-eqs [] = 0
-  num-ops-eqs (⟨ L , M ⟩ ∷ eqs) = num-ops L + num-ops M + num-ops-eqs eqs
+  num-ops-eqs ((L ≐ M) ∷ eqs) = num-ops L + num-ops M + num-ops-eqs eqs
 
   is-op : Term → Set
   is-op (` x) = ⊥

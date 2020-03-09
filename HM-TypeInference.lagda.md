@@ -131,7 +131,7 @@ tyop-eq op-fun op-bool = no (λ ())
 tyop-eq op-fun op-fun = yes refl
 
 open Unification TyOp tyop-eq arity
-  renaming (AST to Type; _⦅_⦆ to _❨_❩; subst to subst-ty; `_ to tyvar;
+  renaming (Term to Type; _⦅_⦆ to _❨_❩; subst to subst-ty; `_ to tyvar;
             subst-compose to subst-ty-compose)
 
 Nat = op-nat ❨ [] ❩

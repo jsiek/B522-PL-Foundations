@@ -528,21 +528,15 @@ using the facts that products are well-founded (from the
   ```
   vars-eqs-sub-less : ∀{M x eqs}
      → ¬ x ∈ vars M
-     → ∣ vars-eqs ([ M / x ] eqs) ∣ < ∣ ⁅ x ⁆ ∪ vars M ∪ vars-eqs eqs ∣
+     → ∣ vars-eqs ([ M / x ] eqs) ∣ < ∣ vars-eqs ((` x ≐ M) ∷ eqs) ∣
   vars-eqs-sub-less {M}{x}{eqs} x∉M = begin≤
            suc ∣ vars-eqs ([ M / x ] eqs) ∣          ≤⟨ s≤s (p⊆q⇒∣p∣≤∣q∣ (vars-eqs-subst-∪ {eqs}{x}{M})) ⟩
-           suc ∣ vars M ∪ (vars-eqs eqs - ⁅ x ⁆) ∣   ≤⟨ ≤-reflexive (cong (λ □ → suc ∣ □ ∣) (distrib-∪-2 (vars M) (vars-eqs eqs) ⁅ x ⁆ G2)) ⟩
+           suc ∣ vars M ∪ (vars-eqs eqs - ⁅ x ⁆) ∣   ≤⟨ ≤-reflexive (cong (λ □ → suc ∣ □ ∣)
+                                                                   (distrib-∪-2 (vars M) _ _ (x∉p→p∩⁅x⁆⊆∅ _ _ x∉M))) ⟩
            suc ∣ (vars M ∪ vars-eqs eqs) - ⁅ x ⁆ ∣   ≤⟨ ∣p-x∣<∣p∪x∣ (vars M ∪ vars-eqs eqs) x ⟩
            ∣ (vars M ∪ vars-eqs eqs) ∪ ⁅ x ⁆ ∣       ≤⟨ ≤-reflexive (cong (λ □ → ∣ □ ∣) (∪-comm _ _)) ⟩
-           ∣ ⁅ x ⁆ ∪ vars M ∪ vars-eqs eqs ∣
-           QED
-      where
-      G2 : vars M ∩ ⁅ x ⁆ ⊆ ∅
-      G2 {z} z∈M∩x
-          with x∈⁅y⁆→x≡y z x (∈p∩q→∈q z∈M∩x)
-      ... | refl =
-          let z∈M = ∈p∩q→∈p z∈M∩x in
-          ⊥-elim (x∉M z∈M)
+           ∣ ⁅ x ⁆ ∪ vars M ∪ vars-eqs eqs ∣         ≤⟨ ≤-refl ⟩
+           ∣ vars-eqs ((` x ≐ M) ∷ eqs) ∣           QED
   ```
 
 

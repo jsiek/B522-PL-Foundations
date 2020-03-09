@@ -185,7 +185,7 @@ private
     ⟨ [x=M]σL=[x=M]σN , IH ⟩
       where
       x∉L : x ∉ vars L
-      x∉L = λ x∈L → x∉L∪N∪eqs (p⊆p∪q (vars L) (vars N ∪ vars-eqs eqs) x∈L ) 
+      x∉L = λ x∈L → x∉L∪N∪eqs (p⊆p∪q _ _ x∈L ) 
       x∉N : x ∉ vars N
       x∉N = λ x∈N →
           let x∈L∪N∪eqs = p⊆r→p⊆q∪r _ _ _ (p⊆p∪q _ _) x∈N in
@@ -228,7 +228,7 @@ The following formalizes the proof of the reflexivity property.
       ⟨ G1 , G2 ⟩
       where
       H =                                      begin⊆
-         vars M ∩ (⁅ x ⁆ ∪ dom σ)             ⊆⟨ ⊆-reflexive (∪-distribˡ-∩ {vars M} {⁅ x ⁆} {dom σ}) ⟩
+         vars M ∩ (⁅ x ⁆ ∪ dom σ)             ⊆⟨ ⊆-reflexive (∪-distribˡ-∩ {vars M}) ⟩
          (vars M ∩ ⁅ x ⁆) ∪ (vars M ∩ dom σ)  ⊆⟨ p⊆r→q⊆s→p∪q⊆r∪s (x∉p→p∩⁅x⁆⊆∅ _ _ x∉M) M∩σ⊆∅ ⟩
          ∅ ∪ ∅                                ⊆⟨ ⊆-reflexive (p∪∅≡p _) ⟩
          ∅                                    ■
@@ -374,7 +374,7 @@ and proving false. From `subst σ (` x) ≡ subst σ (f ⦅ Ms ⦆)`, we know th
 the number of operators (aka. function symbols) in `subst σ (` x)`
 must be the same as the number of operators in `subst σ (f ⦅ Ms ⦆)`.
 However, we shall prove a lemma that if `x ∈ vars (f ⦅ Ms ⦆)`,
-then the number of operators in `subst σ (` x)` is strictly less than
+then the number of operators in `subst σ x` is strictly less than
 the number of operators in `subst σ (f ⦅ Ms ⦆)`. Thus we have a contradiction. 
 
 We begin by defining functions for counting the number of operators in
@@ -403,7 +403,7 @@ operator applications.
 ```
 
 The main lemma proves that if `x ∈ vars M`, the number of operators in
-`subst σ (` x)` is less than the number of operators in `subst σ M`.
+`subst σ x` is less than the number of operators in `subst σ M`.
 The proof is a straightforward induction on the term `M`.
 
 ```

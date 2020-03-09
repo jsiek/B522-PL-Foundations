@@ -161,11 +161,9 @@ So we need to show that
 
 For the proof of (1), we have
 
-      subst ((` x ≐ M) ∷ σ') (` x)
-    ≡                                 (definition of subst)      
-      M
-    ≡                                 (σ is idempotent)
-      ((` x ≐ M) ∷ σ') M
+    subst ((` x ≐ M) ∷ σ') (` x)  ≡    (definition of subst)
+    M                             ≡    (σ is idempotent)
+    ((` x ≐ M) ∷ σ') M                   
 
 We generalize (2) to the following lemma, which separates the two
 occurences of σ' into separate variables, enabling a proof by

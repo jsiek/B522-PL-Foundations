@@ -278,10 +278,10 @@ assumption that `subst σ x ≡ subst σ M`.
       | subst-vec-invariant {n} {Ns}{z}{σ}{M} σzM = refl
 ```
 
-Here is the corollary, that substitution preserves the unification of
-one equation. We reason equationally in three steps, applying
-`subst-invariant` in reverse, then the second premise, and then
-`subst-invariant` in the forward direction.
+To prove that substitution preserves the unification of one equation,
+we reason equationally in three steps, applying `subst-invariant` in
+reverse, then the second premise, and then `subst-invariant` in the
+forward direction.
 
 ```
   subst-pres-equation : ∀{L}{N}{x}{σ}{M}

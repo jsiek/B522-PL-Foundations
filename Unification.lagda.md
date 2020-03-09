@@ -469,7 +469,7 @@ shall show that a lexicographic ordering of three numbers decreases
 with each recursive call. The numbers are
 
 1. the number of variables in the equations,
-2. the number of operators (non-variable nodes) in the equations,
+2. the number of operators in the equations,
 3. the number of equations.
 
 We prove that this particular lexicographic ordering is well-founded

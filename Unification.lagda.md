@@ -167,7 +167,10 @@ For the proof of (1), we have
 
 We generalize (2) to the following lemma, which separates the two
 occurences of σ' into separate variables, enabling a proof by
-induction.
+induction. The proof requires another lemma, `ext-subst` proved
+in the `where` clause, which states that extending a substitution with an
+equation `x ≐ M` does not change the result of applying the
+substitution to a term `L` if  `x` does not occur in `L`.
 
 ```
 private
@@ -179,7 +182,7 @@ private
   no-vars→ext-unifies {σ} {x} {M} {[]} σeqs x∉eqs x∉σ = tt
   no-vars→ext-unifies {σ} {x} {M} {(L ≐ N) ∷ eqs} ⟨ σL=σN , σeqs ⟩ x∉L∪N∪eqs x∉σ =
     let IH = no-vars→ext-unifies {σ} {x} {M} {eqs} σeqs x∉eqs x∉σ in
-    ⟨ L=N , IH ⟩
+    ⟨ [x=M]σL=[x=M]σN , IH ⟩
       where
       x∉L : x ∉ vars L
       x∉L = λ x∈L → x∉L∪N∪eqs (p⊆p∪q (vars L) (vars N ∪ vars-eqs eqs) x∈L ) 
@@ -209,8 +212,7 @@ private
           cong₂ _∷_ (ext-subst {σ}{x}{M}{L} (λ x∈L → x∉L∪Ls (p⊆p∪q _ _ x∈L)) x∉σ)
                     (ext-subst-vec {σ}{x}{M}{n}{Ls} (λ x∈Ls → x∉L∪Ls (q⊆p∪q _ _ x∈Ls)) x∉σ)
         
-      L=N : subst ((` x ≐ M) ∷ σ) L ≡ subst ((` x ≐ M) ∷ σ) N
-      L=N = begin
+      [x=M]σL=[x=M]σN = begin
           subst ((` x ≐ M) ∷ σ) L       ≡⟨ ext-subst {σ}{x}{M}{L} x∉L x∉σ ⟩
           subst σ L                     ≡⟨ σL=σN ⟩
           subst σ N                     ≡⟨ sym (ext-subst {σ}{x}{M}{N} x∉N x∉σ) ⟩
@@ -225,19 +227,15 @@ The following formalizes the proof of the reflexivity property.
   unifies-refl {(` x ≐ M) ∷ σ} (insert x∉M x∉σ M∩σ⊆∅ SΣ) =
       ⟨ G1 , G2 ⟩
       where
-      H : vars M ∩ (⁅ x ⁆ ∪ dom σ) ⊆ ∅
-      H = begin⊆
-          vars M ∩ (⁅ x ⁆ ∪ dom σ)             ⊆⟨ ⊆-reflexive (∪-distribˡ-∩ {vars M} {⁅ x ⁆} {dom σ}) ⟩
-          (vars M ∩ ⁅ x ⁆) ∪ (vars M ∩ dom σ)  ⊆⟨ p⊆r→q⊆s→p∪q⊆r∪s (x∉p→p∩⁅x⁆⊆∅ _ _ x∉M) M∩σ⊆∅ ⟩
-          ∅ ∪ ∅                                ⊆⟨ ⊆-reflexive (p∪∅≡p _) ⟩
-          ∅
-          ■
-      G1 : subst ((` x ≐ M) ∷ σ) (` x) ≡ subst ((` x ≐ M) ∷ σ) M
-      G1 = begin
+      H =                                      begin⊆
+         vars M ∩ (⁅ x ⁆ ∪ dom σ)             ⊆⟨ ⊆-reflexive (∪-distribˡ-∩ {vars M} {⁅ x ⁆} {dom σ}) ⟩
+         (vars M ∩ ⁅ x ⁆) ∪ (vars M ∩ dom σ)  ⊆⟨ p⊆r→q⊆s→p∪q⊆r∪s (x∉p→p∩⁅x⁆⊆∅ _ _ x∉M) M∩σ⊆∅ ⟩
+         ∅ ∪ ∅                                ⊆⟨ ⊆-reflexive (p∪∅≡p _) ⟩
+         ∅                                    ■
+      G1 =                            begin
           subst ((` x ≐ M) ∷ σ) (` x)  ≡⟨ subst-var-eq {x}{M}{σ} ⟩
           M                            ≡⟨ sym (M∩domσ⊆∅→subst-id H) ⟩
-          subst ((` x ≐ M) ∷ σ) M
-          ∎
+          subst ((` x ≐ M) ∷ σ) M      ∎
       G2 : ((` x ≐ M) ∷ σ) unifies σ
       G2 = no-vars→ext-unifies (unifies-refl {σ} SΣ) x∉σ x∉σ
 ```
@@ -281,7 +279,9 @@ assumption that `subst σ (` x) ≡ subst σ M`.
 ```
 
 Here is the corollary, that substitution preserves the unification of
-one equation.
+one equation. We reason equationally in three steps, applying
+`subst-invariant` in reverse, then the second premise, and then
+`subst-invariant` in the forward direction.
 
 ```
   subst-pres-equation : ∀{L}{N}{x}{σ}{M}
@@ -295,7 +295,7 @@ one equation.
       subst σ ([ x := M ] N)    ∎
 ```
 
-The proof that substitution preserves unifiers now follows by a
+The proof that substitution preserves unifiers follows by a
 straightforward proof by induction.
 
 ```
@@ -323,17 +323,25 @@ The `append-eqs` operation also preserves unifiers.
 
 ### Substitution reflects unifiers
 
+Substitution also reflects unifiers. Thankfully, this is also a
+corollary of the `subst-invariant` lemma. We prove that substitution
+reflects the unification of one equation in a sequence of three
+steps, similar to the proof of `subst-pres-equation`.
+
 ```
-  subst-ref : ∀{L}{N}{z}{θ}{M}
+  subst-reflect-equation : ∀{L}{N}{z}{θ}{M}
     → subst θ (` z) ≡ subst θ M
     → subst θ ([ z := M ] L) ≡ subst θ ([ z := M ] N)
     → subst θ L ≡ subst θ N
-  subst-ref {L}{N}{z}{θ}{M} θzM θLM = begin
+  subst-reflect-equation {L}{N}{z}{θ}{M} θzM θLM = begin
       subst θ L                ≡⟨ subst-invariant {L} θzM ⟩
       subst θ ([ z := M ] L)   ≡⟨ θLM ⟩
       subst θ ([ z := M ] N)   ≡⟨ sym (subst-invariant {N} θzM) ⟩
       subst θ N   ∎
 ```
+
+The proof that substitution reflects unifiers follows by a
+straightforward proof by induction.
 
 ```
   subst-reflect : ∀{eqs θ x M}
@@ -342,8 +350,10 @@ The `append-eqs` operation also preserves unifiers.
     → θ unifies eqs
   subst-reflect {[]} {θ} {x} {M} θ[M/x]eqs θx=θM = tt
   subst-reflect {⟨ L , N ⟩ ∷ eqs} {θ} {x} {M} ⟨ θ[x:=M]L=θ[x:=M]N , θ[M/x]eqs ⟩ θx=θM =
-      ⟨ subst-ref {L = L}{N} θx=θM θ[x:=M]L=θ[x:=M]N , subst-reflect {eqs}{θ}{x}{M} θ[M/x]eqs θx=θM ⟩
+      ⟨ subst-reflect-equation {L = L}{N} θx=θM θ[x:=M]L=θ[x:=M]N , subst-reflect {eqs}{θ}{x}{M} θ[M/x]eqs θx=θM ⟩
 ```
+
+The `append-eqs` operation reflects unifiers.
 
 ```
   subst-vec-reflect : ∀{n}{Ms Ls : Vec Term n}{eqs}{θ}

@@ -118,6 +118,15 @@ Monday and Wednesday at 4:30-5:45pm in Luddy Hall Room 4101.
 8. March 13: do the `variants` exercise in
    [Subtyping and Records](./lecture-notes-Subtyping.lagda.md).
 
+9. March 27: do the `products` exercise in
+   [Bisimulation](https://plfa.github.io/Bisimulation/).
+   (I may also add an exercise about the untyped lambda calculus.)
+
+10. April 3: Project Description Due.
+    Write 1 page describing your project.  The description should
+	include a list of the formal artifacts (definitions, theorems)
+	that you plan to turn in.
+
 ## Project, due May 1
 
 Choose a language feature that is not spelled out in PLFA to formalize
@@ -155,20 +164,21 @@ an appropriate choice for your project.
 |          |  4  | [Confluence](https://plfa.github.io/Confluence/) of the Lambda Calculus |
 |          |  9  | [BigStep](https://plfa.github.io/BigStep/) Call-by-name Evaluation of the Lambda Calculus |
 |          | 11  | [Denotational](https://plfa.github.io/Denotational/) semantics of the Lambda Calculus |
-|          | 16  | [Compositional](https://plfa.github.io/Compositional/) |
-|          | 18  | [Soundness](https://plfa.github.io/Soundness/) |
-|          | 23  | [Adequacy](https://plfa.github.io/Adequacy/) |
-|          | 25  | [ContextualEquivalence](https://plfa.github.io/ContextualEquivalence/) |
-|          | 30  | [Unification](https://plfa.github.io/Unification) |
-| April    |  1  | [HM-TypeInference](https://plfa.github.io/HM-TypeInference) |
-|          |  6  | Gradual Typing |
-|          |  8  | Universal and Existential Types (Parametric Polymorphism) |
-|          | 13  | References and the Heap |
-|          | 15  | Classes and Objects (Featherweight Java) |
-|          | 20  | Recursive Types |
-|          | 22  | Intersection and Union Types |
-|          | 27  | Higher-Order Polymorphism |
+|          | 16  | Spring Break, no class |
+|          | 18  | Spring Break, no class |
+|          | 23  | [Compositional](https://plfa.github.io/Compositional/) |
+|          | 25  | [Soundness](https://plfa.github.io/Soundness/) |
+|          | 30  | [Adequacy](https://plfa.github.io/Adequacy/) |
+| April    |  1  | [ContextualEquivalence](https://plfa.github.io/ContextualEquivalence/) |
+|          |  6  | [Unification](https://plfa.github.io/Unification) |
+|          |  8  | [HM-TypeInference](https://plfa.github.io/HM-TypeInference) |
+|          | 13  | Gradual Typing |
+|          | 15  | Universal and Existential Types (Parametric Polymorphism) |
+|          | 20  | References and the Heap |
+|          | 22  | Classes and Objects (Featherweight Java) |
+|          | 27  | Recursive Types |
 |          | 29  | Dependent Types |
+
 
 ## Resources
 

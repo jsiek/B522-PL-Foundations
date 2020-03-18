@@ -54,7 +54,7 @@ Monday and Wednesday at 4:30-5:45pm in Luddy Hall Room 4101.
    `iff-erasure` (in [Decidable](https://plfa.github.io/Decidable/)),
    `foldr-++`,
    `foldr-∷`, and
-   `Any-++-⇔` (in [List](https://plfa.github.io/List/)).
+   `Any-++-⇔` (in [List](https://plfa.github.io/Lists/)).
 
 5. February 17: Exercises
    `mul`,

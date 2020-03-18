@@ -118,9 +118,10 @@ Monday and Wednesday at 4:30-5:45pm in Luddy Hall Room 4101.
 8. March 13: do the `variants` exercise in
    [Subtyping and Records](./lecture-notes-Subtyping.lagda.md).
 
-9. March 27: do the `products` exercise in
-   [Bisimulation](https://plfa.github.io/Bisimulation/).
-   (I may also add an exercise about the untyped lambda calculus.)
+9. March 30: do the `products` exercise in
+   [Bisimulation](https://plfa.github.io/Bisimulation/)
+   and the `big-alt-implies-multi` exercise
+   in [BigStep](https://plfa.github.io/BigStep/).
 
 10. April 3: Project Description Due.
     Write 1 page describing your project.  The description should

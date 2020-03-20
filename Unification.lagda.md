@@ -146,9 +146,12 @@ unifier for the equations if and only if one exists.
 
 ### The unifies relation is reflexive
 
-We shall prove that `σ unifies σ` provided that σ is idempotent.
-The proof is by induction on σ and the base case is trivial.
-For the induction step, we need to show that
+We shall prove that
+
+    σ unifies σ
+
+provided that σ is idempotent.  The proof is by induction on σ and the
+base case is trivial.  For the induction step, we need to show that
 
     (` x ≐ M) ∷ σ'  unifies  (` x ≐ M) ∷ σ'
 

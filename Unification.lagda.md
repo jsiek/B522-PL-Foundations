@@ -376,7 +376,9 @@ the number of operators (aka. function symbols) in `subst σ x`
 must be the same as the number of operators in `subst σ (f ⦅ Ms ⦆)`.
 However, we shall prove a lemma that if `x ∈ vars (f ⦅ Ms ⦆)`,
 then the number of operators in `subst σ x` is strictly less than
-the number of operators in `subst σ (f ⦅ Ms ⦆)`. Thus we have a contradiction. 
+the number of operators in `subst σ (f ⦅ Ms ⦆)`. After all,
+`f` counts for one operator and `subst σ Ms` contains
+at least one copy of `subst σ x`. Thus we have a contradiction. 
 
 We begin by defining functions for counting the number of operators in
 a term, in a vector of terms, and in a list of equations.

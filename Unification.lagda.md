@@ -737,7 +737,7 @@ We shall prove that the `unify` function is correct in that
 
 The `unify` function merely kicks things off, and all the real
 work is done in `unify-rec`. So we shall prove a soundness lemma
-and a compelteness lemma for `unify-rec`.
+and a completeness lemma for `unify-rec`.
 
 The `unify-rec` function has two preconditions:
 
@@ -765,14 +765,17 @@ private
       = prem
 ```
 
-We have some work to do regarding point 2, that the current equations
-does not contain any variables in the domain of σ.
+We have some work to do regarding point 2, that the variables in the
+domain of the new substitution do not occur in the new list of
+equations.
 
-UNDER CONSTRUCTION
+When we remove a trivial equation of the form `x ≐ x`, the
+substitution σ remains unchanged so its obvious that the domain of σ
+is still disjoint from the variables in the remaining equations.
 
 ```
   xx-eqs∩dom⊆∅ : ∀ {x eqs σ}
-     → (⁅ x ⁆ ∪ ⁅ x ⁆ ∪ vars-eqs eqs) ∩ dom σ ⊆ ∅
+     → vars-eqs ((` x ≐ ` x) ∷ eqs) ∩ dom σ ⊆ ∅
      → vars-eqs eqs ∩ dom σ ⊆ ∅
   xx-eqs∩dom⊆∅ {x}{eqs}{σ} prem
       rewrite sym (∪-assoc ⁅ x ⁆ ⁅ x ⁆ (vars-eqs eqs)) =
@@ -782,6 +785,15 @@ UNDER CONSTRUCTION
       ∅
       ■
 ```
+
+When we eliminate a variable by substitution (equations of the form
+`x ≐ M` or `M ≐ x` with `M ≡ op ⦅ Ms ⦆`),
+the new substition is `(x ≐ M) ∷ [ M / x ] σ` and the new equations are
+`[ M / x ] eqs`, so we need to show that
+
+    vars-eqs ([ M / x ] eqs) ∩ (⁅ x ⁆ ∪ dom ([ M / x ] σ)) ⊆ ∅
+
+
 
 ```
   [x∪p]∩q⊆∅→x∉q : ∀{x p q} → (⁅ x ⁆ ∪ p) ∩ q ⊆ ∅ → x ∉ q

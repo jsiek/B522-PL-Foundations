@@ -167,18 +167,18 @@ an appropriate choice for your project.
 |          | 11  | [Denotational](https://plfa.github.io/Denotational/) semantics of the Lambda Calculus |
 |          | 16  | Spring Break, no class |
 |          | 18  | Spring Break, no class |
-|          | 23  | [Compositional](https://plfa.github.io/Compositional/) |
-|          | 25  | [Soundness](https://plfa.github.io/Soundness/) |
-|          | 30  | [Adequacy](https://plfa.github.io/Adequacy/) |
-| April    |  1  | [ContextualEquivalence](https://plfa.github.io/ContextualEquivalence/) |
-|          |  6  | [Unification](./Unification.lagda.md) |
-|          |  8  | [HM-TypeInference](./HM-TypeInference.lagda.md) |
-|          | 13  | Gradual Typing |
-|          | 15  | Universal and Existential Types (Parametric Polymorphism) |
-|          | 20  | References and the Heap |
-|          | 22  | Classes and Objects (Featherweight Java) |
-|          | 27  | Recursive Types |
-|          | 29  | Dependent Types |
+|          | 23  | More Spring Break, no class |
+|          | 25  | More Spring Break, no class |
+|          | 30  | [Compositional](https://plfa.github.io/Compositional/) |
+| April    |  1  | [Soundness](https://plfa.github.io/Soundness/) |
+|          |  6  | [Adequacy](https://plfa.github.io/Adequacy/) |
+|          |  8  | [ContextualEquivalence](https://plfa.github.io/ContextualEquivalence/) |
+|          | 13  | [Unification](./Unification.lagda.md) |
+|          | 15  | [HM-TypeInference](./HM-TypeInference.lagda.md) |
+|          | 20  | Gradual Typing |
+|          | 22  | Universal and Existential Types (Parametric Polymorphism) |
+|          | 27  | References and the Heap |
+|          | 29  | Classes and Objects (Featherweight Java) |
 
 
 ## Resources

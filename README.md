@@ -171,8 +171,8 @@ an appropriate choice for your project.
 |          | 25  | [Soundness](https://plfa.github.io/Soundness/) |
 |          | 30  | [Adequacy](https://plfa.github.io/Adequacy/) |
 | April    |  1  | [ContextualEquivalence](https://plfa.github.io/ContextualEquivalence/) |
-|          |  6  | [Unification](https://plfa.github.io/Unification) |
-|          |  8  | [HM-TypeInference](https://plfa.github.io/HM-TypeInference) |
+|          |  6  | [Unification](./Unification.lagda.md) |
+|          |  8  | [HM-TypeInference](./HM-TypeInference.lagda.md) |
 |          | 13  | Gradual Typing |
 |          | 15  | Universal and Existential Types (Parametric Polymorphism) |
 |          | 20  | References and the Heap |

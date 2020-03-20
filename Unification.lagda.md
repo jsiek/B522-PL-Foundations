@@ -532,7 +532,7 @@ same. Of course, the number of equations decreases by one.
 
 ```
   measure1 : ∀{eqs}{θ}{x} → measure eqs θ <₃ measure ((` x ≐ ` x) ∷ eqs) θ
-  measure1 {eqs}{θ}{x} = third-< vars≤ ≤-refl (s≤s (s≤s ≤-refl))
+  measure1 {eqs}{θ}{x} = third-< vars≤ ≤-refl eqs<
       where
       vars≤ : ∣ vars-eqs eqs ∣ ≤ ∣ vars-eqs ((` x ≐ ` x) ∷ eqs) ∣
       vars≤ =                                       begin≤
@@ -540,6 +540,8 @@ same. Of course, the number of equations decreases by one.
             ∣ ⁅ x ⁆ ∪ vars-eqs eqs ∣                 ≤⟨ ∣q∣≤∣p∪q∣ {⁅ x ⁆} {⁅ x ⁆ ∪  vars-eqs eqs} ⟩
             ∣ ⁅ x ⁆ ∪ ⁅ x ⁆ ∪ vars-eqs eqs ∣         ≤⟨ ≤-refl ⟩
             ∣ vars-eqs ((` x ≐ ` x) ∷ eqs) ∣         QED
+      eqs< : suc (length eqs) < suc (length ((` x ≐ ` x) ∷ eqs))
+      eqs< = s≤s (s≤s ≤-refl)
 ```
 
 When we eliminate a variable by substitution, we reduce the number of
@@ -740,7 +742,8 @@ and a compelteness lemma for `unify-rec`.
 The `unify-rec` function has two preconditions:
 
 1. the current substitution σ is idempotent, and
-2. the current equations no longer contain the variables in the domain of σ.
+2. the variables in the domain of σ do not occur in the current equations
+   (because we've eliminated them).
 
 In the proofs of soundness and completeness, to invoke the induction
 hypothesis, we need to establish the above two preconditions for the
@@ -762,8 +765,8 @@ private
       = prem
 ```
 
-We have some work to do regarding point 2 (that the current equations
-does not contain any variables in the domain of σ).
+We have some work to do regarding point 2, that the current equations
+does not contain any variables in the domain of σ.
 
 UNDER CONSTRUCTION
 

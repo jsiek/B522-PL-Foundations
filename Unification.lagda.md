@@ -53,11 +53,11 @@ solved. For the example, a solution to the above equations is
 From a syntactic point of view, types are an instance of a more
 general construction known as _first-order terms_, which are
 recursively defined to include variables, and function symbols applied
-to zero or more first-order terms.  We define first-order terms,
-substitution, and properties about them in the module
-[FirstOrderTerms](./FirstOrderTerms.lagda.md). The module also defines
-a predicate `IdemSubst` for _idempotent substitutions_, that is,
-substitutions σ such that
+to zero or more first-order terms.
+The module [FirstOrderTerms](./FirstOrderTerms.lagda.md)
+defines first-order terms, substitution, and properties about them.
+The module also defines a predicate `IdemSubst` for _idempotent substitutions_
+which are substitutions σ such that
 
     subst σ (sust σ M) ≡ subst σ M
 
@@ -133,13 +133,13 @@ The rest of this Chapter is organized as follows.  We first prove some
 properties about `unifies`, in particular, that `unifies` is
 reflexive, that `unifies` is preserved and reflected by substitution,
 and that there are no unifiers for an equation of the form `x ≐ M`
-when `x` occurs in `M`. Next we turn to the proof of termination of
+when `x` occurs in `M`. Then we turn to the proof of termination of
 Martelli and Montanari's unification algorithm, defining a measure
-function and proving lemmas that show the measure decreases for each of
-the recursive calls. We then define the `unify` function by
-well-founded recursion on the measure and prove that `unify` is
-correct, which is to say that it returns a unifier for the equations
-if and only if one exists.
+function and proving lemmas that show the measure decreases for each
+of the recursive calls. Those lemmas then enable the definition of the
+`unify` function by well-founded recursion on the measure. Finally, we
+prove that `unify` is correct, which is to say that it returns a
+unifier for the equations if and only if one exists.
 
 ## Properties of Unifiers
 

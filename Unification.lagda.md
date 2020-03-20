@@ -146,11 +146,7 @@ unifier for the equations if and only if one exists.
 
 ### The unifies relation is reflexive
 
-We prove that
-
-      IdemSubst σ
-    → σ unifies σ
-
+We shall prove that `σ unifies σ` provided that σ is idempotent.
 The proof is by induction on σ and the base case is trivial.
 For the induction step, we need to show that
 

@@ -371,8 +371,8 @@ The `append-eqs` operation reflects unifiers.
 
 An equation of the form `x ≐ f ⦅ Ms ⦆` where `x ∈ vars (f ⦅ Ms ⦆)` has no unifiers.
 We shall prove this by contradiction, assuming that there is a unifier `σ`
-and proving false. From `subst σ (` x) ≡ subst σ (f ⦅ Ms ⦆)`, we know that
-the number of operators (aka. function symbols) in `subst σ (` x)`
+and deriving false. From `subst σ x ≡ subst σ (f ⦅ Ms ⦆)`, we know that
+the number of operators (aka. function symbols) in `subst σ x`
 must be the same as the number of operators in `subst σ (f ⦅ Ms ⦆)`.
 However, we shall prove a lemma that if `x ∈ vars (f ⦅ Ms ⦆)`,
 then the number of operators in `subst σ x` is strictly less than

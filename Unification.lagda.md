@@ -966,8 +966,10 @@ equations. The explanation of the proof follows the below Agda code.
   ... | yes refl
       with unify-rec-sound {eqs}{σ}{σ'} {rs _ (measure1 {eqs}{σ'})}
               Sσ (xx-eqs∩dom⊆∅ {x}{eqs}{σ} eqs∩domσ⊆∅) unify[eqs,σ]≡σ'
-  ... | ⟨ σ'eqs , σ'σ ⟩ =    
+  ... | ⟨ σ'eqs , σ'σ ⟩ = {!!}
+  {-
         ⟨ ⟨ refl , σ'eqs ⟩ , σ'σ ⟩
+  -}
   unify-rec-sound {⟨ ` x , ` y ⟩ ∷ eqs} {σ} {σ'} {acc rs} Sσ eqs∩domσ⊆∅ unify[eqs,σ]≡σ'
       | no xy
       with unify-rec-sound {[ ` y / x ] eqs}{(⟨ ` x , ` y ⟩ ∷ [ ` y / x ] σ)}{σ'}
@@ -1019,6 +1021,15 @@ equations. The explanation of the proof follows the below Agda code.
       with unify[eqs,σ]≡σ'
   ... | ()    
 ```
+
+We proceed by induction on the measure used for proving the termination of `unify-rec`.
+We then proceed by cases on the equations `eqs`. If there are no more equations,
+then we trivially have `σ unifies []` and we have `σ unifies σ` because
+the `unifies` relation is reflexive (Lemma `unifies-refl`).
+If there are some equations to process, we proceed by cases on the first one.
+
+UNDER CONSTRUCTION
+
 
 ```
 unify-sound : ∀{eqs}{σ'}

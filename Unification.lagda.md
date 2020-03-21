@@ -213,11 +213,16 @@ private
           cong₂ _∷_ (ext-subst {σ}{x}{M}{L} (λ x∈L → x∉L∪Ls (p⊆p∪q _ _ x∈L)) x∉σ)
                     (ext-subst-vec {σ}{x}{M}{n}{Ls} (λ x∈Ls → x∉L∪Ls (q⊆p∪q _ _ x∈Ls)) x∉σ)
         
-      [x=M]σL=[x=M]σN = begin
-          subst ((` x ≐ M) ∷ σ) L       ≡⟨ ext-subst {σ}{x}{M}{L} x∉L x∉σ ⟩
-          subst σ L                     ≡⟨ σL=σN ⟩
-          subst σ N                     ≡⟨ sym (ext-subst {σ}{x}{M}{N} x∉N x∉σ) ⟩
-          subst ((` x ≐ M) ∷ σ) N       ∎
+      [x=M]σL=[x=M]σN =
+          begin
+              subst ((` x ≐ M) ∷ σ) L
+          ≡⟨ ext-subst {σ}{x}{M}{L} x∉L x∉σ ⟩
+              subst σ L
+          ≡⟨ σL=σN ⟩
+              subst σ N
+          ≡⟨ sym (ext-subst {σ}{x}{M}{N} x∉N x∉σ) ⟩
+              subst ((` x ≐ M) ∷ σ) N
+          ∎
 ```
 
 The following formalizes the proof of the reflexivity property.
@@ -228,15 +233,22 @@ The following formalizes the proof of the reflexivity property.
   unifies-refl {(` x ≐ M) ∷ σ} (insert x∉M x∉σ M∩σ⊆∅ SΣ) =
       ⟨ G1 , G2 ⟩
       where
-      H =                                      begin⊆
-         vars M ∩ (⁅ x ⁆ ∪ dom σ)             ⊆⟨ ⊆-reflexive (∪-distribˡ-∩ {vars M}) ⟩
-         (vars M ∩ ⁅ x ⁆) ∪ (vars M ∩ dom σ)  ⊆⟨ p⊆r→q⊆s→p∪q⊆r∪s (x∉p→p∩⁅x⁆⊆∅ _ _ x∉M) M∩σ⊆∅ ⟩
-         ∅ ∪ ∅                                ⊆⟨ ⊆-reflexive (p∪∅≡p _) ⟩
-         ∅                                    ■
-      G1 =                            begin
-          subst ((` x ≐ M) ∷ σ) (` x)  ≡⟨ subst-var-eq {x}{M}{σ} ⟩
-          M                            ≡⟨ sym (M∩domσ⊆∅→subst-id H) ⟩
-          subst ((` x ≐ M) ∷ σ) M      ∎
+      H = begin⊆
+              vars M ∩ (⁅ x ⁆ ∪ dom σ)
+          ⊆⟨ ⊆-reflexive (∪-distribˡ-∩ {vars M}) ⟩
+              (vars M ∩ ⁅ x ⁆) ∪ (vars M ∩ dom σ)
+          ⊆⟨ p⊆r→q⊆s→p∪q⊆r∪s (x∉p→p∩⁅x⁆⊆∅ _ _ x∉M) M∩σ⊆∅ ⟩
+              ∅ ∪ ∅
+          ⊆⟨ ⊆-reflexive (p∪∅≡p _) ⟩
+              ∅
+          ■
+      G1 = begin
+               subst ((` x ≐ M) ∷ σ) (` x)
+           ≡⟨ subst-var-eq {x}{M}{σ} ⟩
+               M
+           ≡⟨ sym (M∩domσ⊆∅→subst-id H) ⟩
+               subst ((` x ≐ M) ∷ σ) M
+           ∎
       G2 : ((` x ≐ M) ∷ σ) unifies σ
       G2 = no-vars→ext-unifies (unifies-refl {σ} SΣ) x∉σ x∉σ
 ```
@@ -289,11 +301,16 @@ forward direction.
     → subst σ (` x) ≡ subst σ M
     → subst σ L ≡ subst σ N
     → subst σ ([ x := M ] L) ≡ subst σ ([ x := M ] N)
-  subst-pres-equation {L}{N}{x}{σ}{M} σxM σLM =   begin
-      subst σ ([ x := M ] L)    ≡⟨ sym (subst-invariant {L} σxM) ⟩
-      subst σ L                 ≡⟨ σLM ⟩
-      subst σ N                 ≡⟨ subst-invariant {N} σxM ⟩
-      subst σ ([ x := M ] N)    ∎
+  subst-pres-equation {L}{N}{x}{σ}{M} σxM σLM =
+      begin
+          subst σ ([ x := M ] L)
+      ≡⟨ sym (subst-invariant {L} σxM) ⟩
+          subst σ L
+      ≡⟨ σLM ⟩
+          subst σ N
+      ≡⟨ subst-invariant {N} σxM ⟩
+          subst σ ([ x := M ] N)
+      ∎
 ```
 
 The proof that substitution preserves unifiers follows by a
@@ -334,11 +351,16 @@ steps, similar to the proof of `subst-pres-equation`.
     → subst θ (` z) ≡ subst θ M
     → subst θ ([ z := M ] L) ≡ subst θ ([ z := M ] N)
     → subst θ L ≡ subst θ N
-  subst-reflect-equation {L}{N}{z}{θ}{M} θzM θLM = begin
-      subst θ L                ≡⟨ subst-invariant {L} θzM ⟩
-      subst θ ([ z := M ] L)   ≡⟨ θLM ⟩
-      subst θ ([ z := M ] N)   ≡⟨ sym (subst-invariant {N} θzM) ⟩
-      subst θ N   ∎
+  subst-reflect-equation {L}{N}{z}{θ}{M} θzM θLM =
+      begin
+          subst θ L
+      ≡⟨ subst-invariant {L} θzM ⟩
+          subst θ ([ z := M ] L)
+      ≡⟨ θLM ⟩
+          subst θ ([ z := M ] N)
+      ≡⟨ sym (subst-invariant {N} θzM) ⟩
+          subst θ N
+      ∎
 ```
 
 The proof that substitution reflects unifiers follows by a
@@ -351,7 +373,8 @@ straightforward proof by induction.
     → θ unifies eqs
   subst-reflect {[]} {θ} {x} {M} θ[M/x]eqs θx=θM = tt
   subst-reflect {⟨ L , N ⟩ ∷ eqs} {θ} {x} {M} ⟨ θ[x:=M]L=θ[x:=M]N , θ[M/x]eqs ⟩ θx=θM =
-      ⟨ subst-reflect-equation {L = L}{N} θx=θM θ[x:=M]L=θ[x:=M]N , subst-reflect {eqs}{θ}{x}{M} θ[M/x]eqs θx=θM ⟩
+      ⟨ subst-reflect-equation {L = L}{N} θx=θM θ[x:=M]L=θ[x:=M]N ,
+        subst-reflect {eqs}{θ}{x}{M} θ[M/x]eqs θx=θM ⟩
 ```
 
 The `append-eqs` operation reflects unifiers.
@@ -429,27 +452,34 @@ The proof is a straightforward induction on the term `M`.
       | inj₂ x∈Ms =
       let IH = num-ops-less-vec {n} {Ms}{x}{σ} x∈Ms in
       begin≤
-      num-ops (subst σ (` x))         ≤⟨ IH ⟩
-      num-ops-vec (subst-vec σ Ms)    ≤⟨ m≤n+m _ _ ⟩
-      num-ops (subst σ (` y)) + num-ops-vec (subst-vec σ Ms)
+          num-ops (subst σ (` x))
+      ≤⟨ IH ⟩
+          num-ops-vec (subst-vec σ Ms)
+      ≤⟨ m≤n+m _ _ ⟩
+          num-ops (subst σ (` y)) + num-ops-vec (subst-vec σ Ms)
       QED
   num-ops-less-vec {suc n} {(op ⦅ Ls ⦆) ∷ Ms} {x} {σ} x∈MMs
       with ∈p∪q→∈p⊎∈q x∈MMs
   ... | inj₁ x∈M =
       let σx<1+σLS = num-ops-less {(op ⦅ Ls ⦆)}{x}{σ} x∈M tt in
       begin≤
-         num-ops (subst σ (` x))       ≤⟨ ≤-pred σx<1+σLS ⟩
-         num-ops-vec (subst-vec σ Ls)  ≤⟨ m≤m+n _ _ ⟩
-         num-ops-vec (subst-vec σ Ls) + num-ops-vec (subst-vec σ Ms) ≤⟨ n≤1+n _ ⟩
-         suc (num-ops-vec (subst-vec σ Ls) + num-ops-vec (subst-vec σ Ms))
-        QED
+          num-ops (subst σ (` x))
+      ≤⟨ ≤-pred σx<1+σLS ⟩
+          num-ops-vec (subst-vec σ Ls)
+      ≤⟨ m≤m+n _ _ ⟩
+          num-ops-vec (subst-vec σ Ls) + num-ops-vec (subst-vec σ Ms)
+      ≤⟨ n≤1+n _ ⟩
+          suc (num-ops-vec (subst-vec σ Ls) + num-ops-vec (subst-vec σ Ms))
+      QED
   num-ops-less-vec {suc n} {M ∷ Ms} {x} {σ} x∈MMs
       | inj₂ x∈Ms =
       let IH = num-ops-less-vec {n} {Ms}{x}{σ} x∈Ms in
       begin≤
-      num-ops (subst σ (` x))         ≤⟨ IH ⟩
-      num-ops-vec (subst-vec σ Ms)    ≤⟨ m≤n+m _ _ ⟩
-      num-ops (subst σ M) + num-ops-vec (subst-vec σ Ms)
+          num-ops (subst σ (` x))
+      ≤⟨ IH ⟩
+          num-ops-vec (subst-vec σ Ms)
+      ≤⟨ m≤n+m _ _ ⟩
+          num-ops (subst σ M) + num-ops-vec (subst-vec σ Ms)
       QED
 ```
 
@@ -535,11 +565,16 @@ same. Of course, the number of equations decreases by one.
   measure1 {eqs}{θ}{x} = third-< vars≤ ≤-refl eqs<
       where
       vars≤ : ∣ vars-eqs eqs ∣ ≤ ∣ vars-eqs ((` x ≐ ` x) ∷ eqs) ∣
-      vars≤ =                                       begin≤
-            ∣ vars-eqs eqs ∣                         ≤⟨ ∣q∣≤∣p∪q∣ {⁅ x ⁆} {vars-eqs eqs} ⟩
-            ∣ ⁅ x ⁆ ∪ vars-eqs eqs ∣                 ≤⟨ ∣q∣≤∣p∪q∣ {⁅ x ⁆} {⁅ x ⁆ ∪  vars-eqs eqs} ⟩
-            ∣ ⁅ x ⁆ ∪ ⁅ x ⁆ ∪ vars-eqs eqs ∣         ≤⟨ ≤-refl ⟩
-            ∣ vars-eqs ((` x ≐ ` x) ∷ eqs) ∣         QED
+      vars≤ =
+          begin≤
+              ∣ vars-eqs eqs ∣
+          ≤⟨ ∣q∣≤∣p∪q∣ {⁅ x ⁆} {vars-eqs eqs} ⟩
+              ∣ ⁅ x ⁆ ∪ vars-eqs eqs ∣
+          ≤⟨ ∣q∣≤∣p∪q∣ {⁅ x ⁆} {⁅ x ⁆ ∪  vars-eqs eqs} ⟩
+              ∣ ⁅ x ⁆ ∪ ⁅ x ⁆ ∪ vars-eqs eqs ∣
+          ≤⟨ ≤-refl ⟩
+              ∣ vars-eqs ((` x ≐ ` x) ∷ eqs) ∣
+          QED
       eqs< : suc (length eqs) < suc (length ((` x ≐ ` x) ∷ eqs))
       eqs< = s≤s (s≤s ≤-refl)
 ```
@@ -551,14 +586,20 @@ variables in the equation.
   vars-eqs-sub-less : ∀{M x eqs}
      → ¬ x ∈ vars M
      → ∣ vars-eqs ([ M / x ] eqs) ∣ < ∣ vars-eqs ((` x ≐ M) ∷ eqs) ∣
-  vars-eqs-sub-less {M}{x}{eqs} x∉M = begin≤
-           suc ∣ vars-eqs ([ M / x ] eqs) ∣          ≤⟨ s≤s (p⊆q⇒∣p∣≤∣q∣ (vars-eqs-subst-∪ {eqs}{x}{M})) ⟩
-           suc ∣ vars M ∪ (vars-eqs eqs - ⁅ x ⁆) ∣   ≤⟨ ≤-reflexive (cong (λ □ → suc ∣ □ ∣)
-                                                                   (distrib-∪-2 (vars M) _ _ (x∉p→p∩⁅x⁆⊆∅ _ _ x∉M))) ⟩
-           suc ∣ (vars M ∪ vars-eqs eqs) - ⁅ x ⁆ ∣   ≤⟨ ∣p-x∣<∣p∪x∣ _ _ ⟩
-           ∣ (vars M ∪ vars-eqs eqs) ∪ ⁅ x ⁆ ∣       ≤⟨ ≤-reflexive (cong (λ □ → ∣ □ ∣) (∪-comm _ _)) ⟩
-           ∣ ⁅ x ⁆ ∪ vars M ∪ vars-eqs eqs ∣         ≤⟨ ≤-refl ⟩
-           ∣ vars-eqs ((` x ≐ M) ∷ eqs) ∣           QED
+  vars-eqs-sub-less {M}{x}{eqs} x∉M =
+      begin≤
+          suc ∣ vars-eqs ([ M / x ] eqs) ∣
+      ≤⟨ s≤s (p⊆q⇒∣p∣≤∣q∣ (vars-eqs-subst-∪ {eqs}{x}{M})) ⟩
+          suc ∣ vars M ∪ (vars-eqs eqs - ⁅ x ⁆) ∣
+      ≤⟨ ≤-reflexive (cong (λ □ → suc ∣ □ ∣) (distrib-∪-2 (vars M) _ _ (x∉p→p∩⁅x⁆⊆∅ _ _ x∉M))) ⟩
+          suc ∣ (vars M ∪ vars-eqs eqs) - ⁅ x ⁆ ∣
+      ≤⟨ ∣p-x∣<∣p∪x∣ _ _ ⟩
+          ∣ (vars M ∪ vars-eqs eqs) ∪ ⁅ x ⁆ ∣
+      ≤⟨ ≤-reflexive (cong (λ □ → ∣ □ ∣) (∪-comm _ _)) ⟩
+          ∣ ⁅ x ⁆ ∪ vars M ∪ vars-eqs eqs ∣
+      ≤⟨ ≤-refl ⟩
+          ∣ vars-eqs ((` x ≐ M) ∷ eqs) ∣
+      QED
 ```
 
 For an equation of the form `x ≐ M`, the above lemma directly shows
@@ -623,7 +664,8 @@ equation with the same number of operators as there are in its input.
       G (num-ops M) (num-ops L) (num-ops-vec Ms) (num-ops-vec Ls) (num-ops-eqs eqs)
       where
       open +-*-Solver
-      G : (nM nL nMs nLs neqs : ℕ) → (nM + nL) + ((nMs + nLs) + neqs) ≡ ((nM + nMs) + (nL + nLs)) + neqs
+      G : (nM nL nMs nLs neqs : ℕ)
+          → (nM + nL) + ((nMs + nLs) + neqs) ≡ ((nM + nMs) + (nL + nLs)) + neqs
       G = solve 5 (λ nM nL nMs nLs neqs →
             (nM :+ nL) :+ ((nMs :+ nLs) :+ neqs) := ((nM :+ nMs) :+ (nL :+ nLs)) :+ neqs) refl
 ```
@@ -732,7 +774,7 @@ unify eqs = unify-rec eqs [] (<₃-wellFounded (measure eqs []))
 We shall prove that the `unify` function is correct in that
 
 1. (Soundness) If it returns a substitution σ, then σ unifies the equations.
-2. (Completeness) if it returns `no-solution`, then
+2. (Completeness) If it returns `no-solution`, then
    there are no substitutions that unify the equations.
 
 The `unify` function merely kicks things off, and all the real
@@ -836,6 +878,7 @@ and therefore need to show
 
 We prove (1) from `x ∉ M` and `vars M ∩ dom σ ⊆ ∅`.
 We prove (2) from `vars-eqs eqs ∩ dom σ ⊆ ∅`.
+The following is the Agda formalization of this proof.
 
 ```
   eqs∩x∪σ⊆∅ : ∀{x}{M}{σ}{eqs}
@@ -843,12 +886,18 @@ We prove (2) from `vars-eqs eqs ∩ dom σ ⊆ ∅`.
      → (⁅ x ⁆ ∪ vars M ∪ vars-eqs eqs) ∩ dom σ ⊆ ∅
      → vars-eqs ([ M / x ] eqs) ∩ (⁅ x ⁆ ∪ dom ([ M / x ] σ)) ⊆ ∅
   eqs∩x∪σ⊆∅ {x}{M}{σ}{eqs} x∉M eqs∩domσ⊆∅ {- {y} y∈ -}
-      rewrite subst-dom {x}{M}{σ} ([x∪p]∩q⊆∅→x∉q eqs∩domσ⊆∅) =                  begin⊆
-      vars-eqs ([ M / x ] eqs) ∩ (⁅ x ⁆ ∪ dom σ)                                ⊆⟨ p⊆r→q⊆s→p∩q⊆r∩s (vars-eqs-subst-∪ {eqs = eqs}{M = M}) ⊆-refl ⟩
-      (vars M  ∪ (vars-eqs eqs - ⁅ x ⁆)) ∩ (⁅ x ⁆ ∪ dom σ)                      ⊆⟨ ⊆-reflexive ∪-distrib-∩ ⟩
-      (vars M ∩ (⁅ x ⁆ ∪ dom σ)) ∪ ((vars-eqs eqs - ⁅ x ⁆) ∩ (⁅ x ⁆ ∪ dom σ))   ⊆⟨ p⊆r→q⊆s→p∪q⊆r∪s G1 G2 ⟩
-      ∅ ∪ ∅                                                                     ⊆⟨ ⊆-reflexive (p∪∅≡p _) ⟩
-      ∅                                                                         ■
+      rewrite subst-dom {x}{M}{σ} ([x∪p]∩q⊆∅→x∉q eqs∩domσ⊆∅) =
+      begin⊆
+          vars-eqs ([ M / x ] eqs) ∩ (⁅ x ⁆ ∪ dom σ)
+      ⊆⟨ p⊆r→q⊆s→p∩q⊆r∩s (vars-eqs-subst-∪ {eqs = eqs}{M = M}) ⊆-refl ⟩
+          (vars M  ∪ (vars-eqs eqs - ⁅ x ⁆)) ∩ (⁅ x ⁆ ∪ dom σ)
+      ⊆⟨ ⊆-reflexive ∪-distrib-∩ ⟩
+          (vars M ∩ (⁅ x ⁆ ∪ dom σ)) ∪ ((vars-eqs eqs - ⁅ x ⁆) ∩ (⁅ x ⁆ ∪ dom σ))
+      ⊆⟨ p⊆r→q⊆s→p∪q⊆r∪s G1 G2 ⟩
+          ∅ ∪ ∅
+      ⊆⟨ ⊆-reflexive (p∪∅≡p _) ⟩
+          ∅
+      ■
       where
       G1a : vars M ∩ dom σ ⊆ ∅
       G1a rewrite ∪-distrib-∩ {⁅ x ⁆}{vars M ∪ vars-eqs eqs}{dom σ}
@@ -856,27 +905,34 @@ We prove (2) from `vars-eqs eqs ∩ dom σ ⊆ ∅`.
             proj₁ (p∪q⊆∅→p⊆∅×q⊆∅ _ _ (proj₂ (p∪q⊆∅→p⊆∅×q⊆∅ _ _ eqs∩domσ⊆∅)))
       G1 : vars M  ∩ (⁅ x ⁆ ∪ dom σ) ⊆ ∅
       G1 = begin⊆
-           vars M  ∩ (⁅ x ⁆ ∪ dom σ)             ⊆⟨ ⊆-reflexive ∪-distribˡ-∩ ⟩
-           (vars M ∩ ⁅ x ⁆) ∪ (vars M ∩ dom σ)   ⊆⟨  p⊆r→q⊆s→p∪q⊆r∪s (x∉p→p∩⁅x⁆⊆∅ _ _ x∉M) G1a ⟩
-           ∅ ∪ ∅                                 ⊆⟨ ⊆-reflexive (p∪∅≡p _) ⟩
-           ∅                                     ■
+               vars M  ∩ (⁅ x ⁆ ∪ dom σ)
+           ⊆⟨ ⊆-reflexive ∪-distribˡ-∩ ⟩
+               (vars M ∩ ⁅ x ⁆) ∪ (vars M ∩ dom σ)
+           ⊆⟨  p⊆r→q⊆s→p∪q⊆r∪s (x∉p→p∩⁅x⁆⊆∅ _ _ x∉M) G1a ⟩
+               ∅ ∪ ∅
+           ⊆⟨ ⊆-reflexive (p∪∅≡p _) ⟩
+               ∅
+           ■
       G2a : vars-eqs eqs ∩ dom σ ⊆ ∅
       G2a rewrite ∪-distrib-∩ {⁅ x ⁆}{vars M ∪ vars-eqs eqs}{dom σ}
           | ∪-distrib-∩ {vars M}{vars-eqs eqs}{dom σ} =
             proj₂ (p∪q⊆∅→p⊆∅×q⊆∅ _ _ (proj₂ (p∪q⊆∅→p⊆∅×q⊆∅ _ _ eqs∩domσ⊆∅)))
       G2 : (vars-eqs eqs - ⁅ x ⁆) ∩ (⁅ x ⁆ ∪ dom σ) ⊆ ∅
       G2 = begin⊆
-           (vars-eqs eqs - ⁅ x ⁆) ∩ (⁅ x ⁆ ∪ dom σ)    ⊆⟨ [p-q]∩[q∪r]⊆p∩r ⟩
-           vars-eqs eqs ∩ dom σ                        ⊆⟨ G2a ⟩
-           ∅
+               (vars-eqs eqs - ⁅ x ⁆) ∩ (⁅ x ⁆ ∪ dom σ)
+           ⊆⟨ [p-q]∩[q∪r]⊆p∩r ⟩
+               vars-eqs eqs ∩ dom σ
+           ⊆⟨ G2a ⟩
+               ∅
            ■
 ```
 
-```
-  var-eqs-append-⊆ : ∀ {n} (Ms Ls : Vec Term n) eqs
-     → vars-eqs (append-eqs Ms Ls eqs) ⊆ vars-vec Ms ∪ vars-vec Ls ∪ vars-eqs eqs
-  var-eqs-append-⊆ {n} Ms Ls eqs rewrite var-eqs-append-≡ {n} Ms Ls eqs = ⊆-refl
-```
+When we decompose an equality between two function symbol
+applications, the substitution remains the same but we append the
+corresponding sub-terms to the list of equations. The fact that
+the domain of the substitution is disjoint from the variables in
+the new equations follows from the lemma `var-eqs-append-≡`
+that we proved above.
 
 ```
   MsLseqs∩domσ⊆∅ : ∀{n}{Ms Ls : Vec Term n}{eqs}{σ}
@@ -884,12 +940,19 @@ We prove (2) from `vars-eqs eqs ∩ dom σ ⊆ ∅`.
      → vars-eqs (append-eqs Ms Ls eqs) ∩ dom σ ⊆ ∅
   MsLseqs∩domσ⊆∅ {n}{Ms}{Ls}{eqs}{σ} prem =
      begin⊆
-       vars-eqs (append-eqs Ms Ls eqs) ∩ dom σ              ⊆⟨ p⊆r→q⊆s→p∩q⊆r∩s (var-eqs-append-⊆ Ms Ls eqs) ⊆-refl ⟩
-       (vars-vec Ms ∪ vars-vec Ls ∪ vars-eqs eqs) ∩ dom σ   ⊆⟨ prem ⟩
-       ∅
+         vars-eqs (append-eqs Ms Ls eqs) ∩ dom σ
+     ⊆⟨ p⊆r→q⊆s→p∩q⊆r∩s (⊆-reflexive (var-eqs-append-≡ {n} Ms Ls eqs)) ⊆-refl ⟩
+         (vars-vec Ms ∪ vars-vec Ls ∪ vars-eqs eqs) ∩ dom σ
+     ⊆⟨ prem ⟩
+         ∅
      ■
 ```
 
+We are now ready to prove that `unify-rec` is sound, i.e., that the
+output substitution unifies the input equations and substitutions,
+provided that hte input substitution is idempotent and the domain of
+the input substitution is disjoint from the variables in the
+equations. The explanation of the proof follows the below Agda code.
 
 ```
   unify-rec-sound : ∀{eqs}{σ}{σ'}{ac}

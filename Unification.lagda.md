@@ -793,20 +793,88 @@ the new substition is `(x ≐ M) ∷ [ M / x ] σ` and the new equations are
 
     vars-eqs ([ M / x ] eqs) ∩ (⁅ x ⁆ ∪ dom ([ M / x ] σ)) ⊆ ∅
 
+assuming that
 
+    vars-eqs ((x ≐ M) ∷ eqs) ∩ dom σ ⊆ ∅
+
+which is to say
+
+    (⁅ x ⁆ ∪ vars M ∪ vars-eqs eqs) ∩ dom σ ⊆ ∅
+
+First, notice that because `x ∉ dom σ`,
+
+    dom ([ M / x ] σ) ≡ dom σ
+
+which is lemma `subst-dom` in [FirstOrderTerms](./FirstOrderTerms.lagda.md).
+We use the following mini-lemma to derive `x ∉ dom σ`
+from `(⁅ x ⁆ ∪ vars M ∪ vars-eqs eqs) ∩ dom σ ⊆ ∅`.
 
 ```
   [x∪p]∩q⊆∅→x∉q : ∀{x p q} → (⁅ x ⁆ ∪ p) ∩ q ⊆ ∅ → x ∉ q
   [x∪p]∩q⊆∅→x∉q {x}{p}{q} xpq x∈q =
       let x∈∅ = xpq {x} (proj₂ (∈∩ _ _ _) ⟨ (p⊆p∪q _ _ (x∈⁅x⁆ x)) , x∈q ⟩) in
       ⊥-elim (∉∅ x∈∅)
+```
+So it remains to prove
 
+    vars-eqs ([ M / x ] eqs) ∩ (⁅ x ⁆ ∪ dom σ) ⊆ ∅
+
+By the lemma `vars-eqs-subst-∪` in [FirstOrderTerms](./FirstOrderTerms.lagda.md),
+we know that `vars-eqs ([ M / x ] eqs) ⊆ vars M  ∪ (vars-eqs eqs - ⁅ x ⁆)`,
+so we just need to show that
+
+    (vars M  ∪ (vars-eqs eqs - ⁅ x ⁆)) ∩ (⁅ x ⁆ ∪ dom σ) ⊆ ∅
+
+If we distribute the intersection, we have
+
+    (vars M  ∩ (⁅ x ⁆ ∪ dom σ))  ∪  ((vars-eqs eqs - ⁅ x ⁆) ∩ (⁅ x ⁆ ∪ dom σ)) ⊆ ∅
+
+and therefore need to show
+
+    (1)  vars M  ∩ (⁅ x ⁆ ∪ dom σ) ⊆ ∅
+    (2)  (vars-eqs eqs - ⁅ x ⁆) ∩ (⁅ x ⁆ ∪ dom σ) ⊆ ∅
+
+We prove (1) from `x ∉ M` and `vars M ∩ dom σ ⊆ ∅`.
+We prove (2) from `vars-eqs eqs ∩ dom σ ⊆ ∅` and
+because `x ∉ vars-eqs eqs - ⁅ x ⁆`.
+
+
+    (⁅ x ⁆ ∪ vars M ∪ vars-eqs eqs) ∩ dom σ ⊆ ∅
+    (⁅ x ⁆ ∩ dom σ) ∪ (vars M ∩ dom σ) ∪ (vars-eqs eqs ∩ dom σ)  ⊆ ∅
+    ⁅ x ⁆ ∩ dom σ ⊆ ∅
+    vars M ∩ dom σ ⊆ ∅
+    vars-eqs eqs ∩ dom σ ⊆ ∅
+
+    
+    use lemma p∪q⊆∅→p⊆∅×q⊆∅
+
+```
   eqs∩x∪σ⊆∅ : ∀{x}{M}{σ}{eqs}
      → x ∉ vars M
      → (⁅ x ⁆ ∪ vars M ∪ vars-eqs eqs) ∩ dom σ ⊆ ∅
      → vars-eqs ([ M / x ] eqs) ∩ (⁅ x ⁆ ∪ dom ([ M / x ] σ)) ⊆ ∅
-  eqs∩x∪σ⊆∅ {x}{M}{σ}{eqs} x∉M eqs∩domσ⊆∅ {y} y∈
-      rewrite subst-dom {x}{M}{σ} ([x∪p]∩q⊆∅→x∉q eqs∩domσ⊆∅)
+  eqs∩x∪σ⊆∅ {x}{M}{σ}{eqs} x∉M eqs∩domσ⊆∅ {- {y} y∈ -}
+      rewrite subst-dom {x}{M}{σ} ([x∪p]∩q⊆∅→x∉q eqs∩domσ⊆∅) =                  begin⊆
+      vars-eqs ([ M / x ] eqs) ∩ (⁅ x ⁆ ∪ dom σ)                                ⊆⟨ p⊆r→q⊆s→p∩q⊆r∩s (vars-eqs-subst-∪ {eqs = eqs}{M = M}) ⊆-refl ⟩
+      (vars M  ∪ (vars-eqs eqs - ⁅ x ⁆)) ∩ (⁅ x ⁆ ∪ dom σ)                      ⊆⟨ ⊆-reflexive ∪-distrib-∩ ⟩
+      (vars M ∩ (⁅ x ⁆ ∪ dom σ)) ∪ ((vars-eqs eqs - ⁅ x ⁆) ∩ (⁅ x ⁆ ∪ dom σ))   ⊆⟨ p⊆r→q⊆s→p∪q⊆r∪s G1 G2 ⟩
+      ∅ ∪ ∅                                                                     ⊆⟨ ⊆-reflexive (p∪∅≡p _) ⟩
+      ∅                                                                         ■
+      where
+      G1a : vars M ∩ dom σ ⊆ ∅
+      G1a rewrite ∪-distrib-∩ {⁅ x ⁆}{vars M ∪ vars-eqs eqs}{dom σ}
+          | ∪-distrib-∩ {vars M}{vars-eqs eqs}{dom σ} =
+            proj₁ (p∪q⊆∅→p⊆∅×q⊆∅ _ _ (proj₂ (p∪q⊆∅→p⊆∅×q⊆∅ _ _ eqs∩domσ⊆∅)))
+      G1 : vars M  ∩ (⁅ x ⁆ ∪ dom σ) ⊆ ∅
+      G1 = begin⊆
+           vars M  ∩ (⁅ x ⁆ ∪ dom σ)             ⊆⟨ ⊆-reflexive ∪-distribˡ-∩ ⟩
+           (vars M ∩ ⁅ x ⁆) ∪ (vars M ∩ dom σ)   ⊆⟨  p⊆r→q⊆s→p∪q⊆r∪s (x∉p→p∩⁅x⁆⊆∅ _ _ x∉M) G1a ⟩
+           ∅ ∪ ∅                                 ⊆⟨ ⊆-reflexive (p∪∅≡p _) ⟩
+           ∅                                     ■
+      G2 : (vars-eqs eqs - ⁅ x ⁆) ∩ (⁅ x ⁆ ∪ dom σ) ⊆ ∅
+      G2 = {!!}
+      
+{-
       with proj₁ (∈∩ y _ _) y∈
   ... | ⟨ y∈[M/x]eqs , y∈[x]∪domσ ⟩
       with proj₁ (∈∪ y _ _) (vars-eqs-subst-∪ {eqs}{x}{M} y∈[M/x]eqs)
@@ -828,6 +896,7 @@ the new substition is `(x ≐ M) ∷ [ M / x ] σ` and the new equations are
       where
       G : y ∈ ⁅ x ⁆ ∪ vars M ∪ vars-eqs eqs
       G = p⊆r→p⊆q∪r _ _ _ (p⊆p∪q _ _) y∈M
+-}
 ```
 
 ```

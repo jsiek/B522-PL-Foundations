@@ -459,7 +459,7 @@ abstract
   ∪-identityʳ₁ : ∀ p → p ⊆ p ∪ ∅
   ∪-identityʳ₁ [] ()
   ∪-identityʳ₁ (b ∷ p) {x} x∈ = x∈
-  
+
   p∩r⊆∅→p-r≡p : ∀ p r
      → p ∩ r ⊆ ∅
      → p - r ≡ p
@@ -516,4 +516,58 @@ abstract
       G2 {suc x} = proj₂ IH
   p∪q⊆∅→p⊆∅×q⊆∅ (false ∷ p) (true ∷ q) p∪q⊆∅ = ⊥-elim (p∪q⊆∅ {0} tt)
   p∪q⊆∅→p⊆∅×q⊆∅ (true ∷ p) (c ∷ q) p∪q⊆∅ = ⊥-elim (p∪q⊆∅ {0} tt)
+
+  {- todo: shorten the following proof -}
+  [p-q]∩[q∪r]⊆p∩r : ∀ {p q r} → (p - q) ∩ (q ∪ r) ⊆ p ∩ r
+  [p-q]∩[q∪r]⊆p∩r {[]} {q} {r} = λ z → z
+  [p-q]∩[q∪r]⊆p∩r {x ∷ p} {[]} {r} = λ z → z
+  [p-q]∩[q∪r]⊆p∩r {false ∷ p} {false ∷ q} {[]} {suc x} x∈
+      with [p-q]∩[q∪r]⊆p∩r {p}{q}{[]}
+  ... | xx
+      rewrite p∪∅≡p q | p∩∅≡∅ p =
+      xx x∈
+  [p-q]∩[q∪r]⊆p∩r {false ∷ p} {false ∷ q} {b ∷ r} {suc x} x∈ =
+      [p-q]∩[q∪r]⊆p∩r {p}{q}{r} {x} x∈
+  [p-q]∩[q∪r]⊆p∩r {false ∷ p} {true ∷ q} {[]} {suc x} x∈ =
+      H IH
+      where
+      G : x ∈ p - q ∩ (q ∪ [])
+      G rewrite p∪∅≡p q = x∈
+      IH : x ∈ p ∩ ∅
+      IH = [p-q]∩[q∪r]⊆p∩r {p}{q}{[]} {x} G
+      H : x ∈ p ∩ ∅ → ⊥
+      H rewrite p∩∅≡∅ p = λ z → z
+  [p-q]∩[q∪r]⊆p∩r {false ∷ p} {true ∷ q} {b ∷ r} {suc x} x∈ =
+      [p-q]∩[q∪r]⊆p∩r {p}{q}{r} {x} x∈
+  [p-q]∩[q∪r]⊆p∩r {true ∷ p} {false ∷ q} {[]} {suc x} x∈ =
+      {- duplicate reasoning! -}
+      H IH
+      where
+      G : x ∈ p - q ∩ (q ∪ [])
+      G rewrite p∪∅≡p q = x∈
+      IH : x ∈ p ∩ ∅
+      IH = [p-q]∩[q∪r]⊆p∩r {p}{q}{[]} {x} G
+      H : x ∈ p ∩ ∅ → ⊥
+      H rewrite p∩∅≡∅ p = λ z → z
+  [p-q]∩[q∪r]⊆p∩r {true ∷ p} {false ∷ q} {false ∷ r} {suc x} x∈ =
+      let IH = [p-q]∩[q∪r]⊆p∩r {p}{q}{r} in
+      IH x∈
+  [p-q]∩[q∪r]⊆p∩r {true ∷ p} {false ∷ q} {true ∷ r} {zero} x∈ = tt
+  [p-q]∩[q∪r]⊆p∩r {true ∷ p} {false ∷ q} {true ∷ r} {suc x} x∈ =
+      let IH = [p-q]∩[q∪r]⊆p∩r {p}{q}{r} in
+      IH x∈
+  [p-q]∩[q∪r]⊆p∩r {true ∷ p} {true ∷ q} {[]} {suc x} x∈ =
+      {- duplicate reasoning! -}
+      H IH
+      where
+      G : x ∈ p - q ∩ (q ∪ [])
+      G rewrite p∪∅≡p q = x∈
+      IH : x ∈ p ∩ ∅
+      IH = [p-q]∩[q∪r]⊆p∩r {p}{q}{[]} {x} G
+      H : x ∈ p ∩ ∅ → ⊥
+      H rewrite p∩∅≡∅ p = λ z → z
+  [p-q]∩[q∪r]⊆p∩r {true ∷ p} {true ∷ q} {false ∷ r} {suc x} x∈ =
+      [p-q]∩[q∪r]⊆p∩r {p}{q}{r} {x} x∈
+  [p-q]∩[q∪r]⊆p∩r {true ∷ p} {true ∷ q} {true ∷ r} {suc x} x∈ =
+      [p-q]∩[q∪r]⊆p∩r {p}{q}{r} {x} x∈
 

@@ -835,18 +835,7 @@ and therefore need to show
     (2)  (vars-eqs eqs - ⁅ x ⁆) ∩ (⁅ x ⁆ ∪ dom σ) ⊆ ∅
 
 We prove (1) from `x ∉ M` and `vars M ∩ dom σ ⊆ ∅`.
-We prove (2) from `vars-eqs eqs ∩ dom σ ⊆ ∅` and
-because `x ∉ vars-eqs eqs - ⁅ x ⁆`.
-
-
-    (⁅ x ⁆ ∪ vars M ∪ vars-eqs eqs) ∩ dom σ ⊆ ∅
-    (⁅ x ⁆ ∩ dom σ) ∪ (vars M ∩ dom σ) ∪ (vars-eqs eqs ∩ dom σ)  ⊆ ∅
-    ⁅ x ⁆ ∩ dom σ ⊆ ∅
-    vars M ∩ dom σ ⊆ ∅
-    vars-eqs eqs ∩ dom σ ⊆ ∅
-
-    
-    use lemma p∪q⊆∅→p⊆∅×q⊆∅
+We prove (2) from `vars-eqs eqs ∩ dom σ ⊆ ∅`.
 
 ```
   eqs∩x∪σ⊆∅ : ∀{x}{M}{σ}{eqs}
@@ -871,32 +860,16 @@ because `x ∉ vars-eqs eqs - ⁅ x ⁆`.
            (vars M ∩ ⁅ x ⁆) ∪ (vars M ∩ dom σ)   ⊆⟨  p⊆r→q⊆s→p∪q⊆r∪s (x∉p→p∩⁅x⁆⊆∅ _ _ x∉M) G1a ⟩
            ∅ ∪ ∅                                 ⊆⟨ ⊆-reflexive (p∪∅≡p _) ⟩
            ∅                                     ■
+      G2a : vars-eqs eqs ∩ dom σ ⊆ ∅
+      G2a rewrite ∪-distrib-∩ {⁅ x ⁆}{vars M ∪ vars-eqs eqs}{dom σ}
+          | ∪-distrib-∩ {vars M}{vars-eqs eqs}{dom σ} =
+            proj₂ (p∪q⊆∅→p⊆∅×q⊆∅ _ _ (proj₂ (p∪q⊆∅→p⊆∅×q⊆∅ _ _ eqs∩domσ⊆∅)))
       G2 : (vars-eqs eqs - ⁅ x ⁆) ∩ (⁅ x ⁆ ∪ dom σ) ⊆ ∅
-      G2 = {!!}
-      
-{-
-      with proj₁ (∈∩ y _ _) y∈
-  ... | ⟨ y∈[M/x]eqs , y∈[x]∪domσ ⟩
-      with proj₁ (∈∪ y _ _) (vars-eqs-subst-∪ {eqs}{x}{M} y∈[M/x]eqs)
-  ... | inj₂ y∈eqs-x
-      with proj₁ (∈∪ y _ _) y∈[x]∪domσ
-  ... | inj₁ y∈[x] rewrite (x∈⁅y⁆→x≡y _ _ y∈[x]) = ⊥-elim (x∉p-⁅x⁆ _ _ y∈eqs-x)
-  ... | inj₂ y∈domσ = eqs∩domσ⊆∅ {y} (proj₂ (∈∩ y _ _) ⟨ y∈[x]∪M∪eqs , y∈domσ ⟩)
-      where
-      y∈eqs : y ∈ vars-eqs eqs
-      y∈eqs = p-q⊆p _ _ y∈eqs-x
-      y∈[x]∪M∪eqs : y ∈ ⁅ x ⁆ ∪ vars M ∪ vars-eqs eqs
-      y∈[x]∪M∪eqs = p⊆r→p⊆q∪r _ _ _ (q⊆p∪q _ _) y∈eqs
-  eqs∩x∪σ⊆∅ {x}{M}{σ}{eqs} x∉M eqs∩domσ⊆∅ {y} y∈
-      | ⟨ y∈[M/x]eqs , y∈[x]∪domσ ⟩
-      | inj₁ y∈M
-      with proj₁ (∈∪ y _ _) y∈[x]∪domσ
-  ... | inj₁ y∈[x] rewrite x∈⁅y⁆→x≡y _ _ y∈[x] = ⊥-elim (x∉M y∈M)
-  ... | inj₂ y∈domσ = eqs∩domσ⊆∅ {y} (proj₂ (∈∩ y _ _) ⟨ G , y∈domσ ⟩)
-      where
-      G : y ∈ ⁅ x ⁆ ∪ vars M ∪ vars-eqs eqs
-      G = p⊆r→p⊆q∪r _ _ _ (p⊆p∪q _ _) y∈M
--}
+      G2 = begin⊆
+           (vars-eqs eqs - ⁅ x ⁆) ∩ (⁅ x ⁆ ∪ dom σ)    ⊆⟨ [p-q]∩[q∪r]⊆p∩r ⟩
+           vars-eqs eqs ∩ dom σ                        ⊆⟨ G2a ⟩
+           ∅
+           ■
 ```
 
 ```
@@ -916,7 +889,6 @@ because `x ∉ vars-eqs eqs - ⁅ x ⁆`.
        ∅
      ■
 ```
-
 
 
 ```

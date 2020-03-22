@@ -967,7 +967,14 @@ equations. The explanation of the proof follows the below Agda code.
       with unify-rec-sound {eqs}{σ}{σ'} {rs _ (measure1 {eqs}{σ'})}
               Sσ (xx-eqs∩dom⊆∅ {x}{eqs}{σ} eqs∩domσ⊆∅) unify[eqs,σ]≡σ'
   ... | ⟨ σ'eqs , σ'σ ⟩ =
-        ⟨ ⟨ refl , σ'eqs ⟩ , σ'σ ⟩
+        ⟨ ⟨ G1a , G1b ⟩ , G2 ⟩
+      where
+      G1a : subst σ' (` x) ≡ subst σ' (` x)
+      G1a = refl
+      G1b : σ' unifies eqs
+      G1b = σ'eqs
+      G2 : σ' unifies σ
+      G2 = σ'σ
   unify-rec-sound {⟨ ` x , ` y ⟩ ∷ eqs} {σ} {σ'} {acc rs} Sσ eqs∩domσ⊆∅ unify[eqs,σ]≡σ'
       | no xy
       with unify-rec-sound {[ ` y / x ] eqs}{(⟨ ` x , ` y ⟩ ∷ [ ` y / x ] σ)}{σ'}
@@ -976,7 +983,14 @@ equations. The explanation of the proof follows the below Agda code.
                (eqs∩x∪σ⊆∅ {x}{` y}{σ}{eqs} (x∉⁅y⁆ x y xy) eqs∩domσ⊆∅)
                unify[eqs,σ]≡σ'
   ... | ⟨ σ'[y/x]eqs , ⟨ σ'x=σ'y , σ'[y/x]σ ⟩ ⟩ =
-        ⟨ ⟨ σ'x=σ'y , subst-reflect σ'[y/x]eqs σ'x=σ'y ⟩ , subst-reflect σ'[y/x]σ σ'x=σ'y ⟩
+        ⟨ ⟨ G1a , G1b ⟩ , G2 ⟩
+      where
+      G1a : subst σ' (` x) ≡ subst σ' (` y)
+      G1a = σ'x=σ'y
+      G1b : σ' unifies eqs
+      G1b = subst-reflect σ'[y/x]eqs σ'x=σ'y
+      G2 : σ' unifies σ
+      G2 = subst-reflect σ'[y/x]σ σ'x=σ'y
   unify-rec-sound {⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ eqs} {σ} {σ'}{acc rs} Sσ eqs∩domσ⊆∅ unify[eqs,σ]≡σ'
       with occurs? x (op ⦅ Ms ⦆)
   ... | yes x∈M
@@ -989,8 +1003,15 @@ equations. The explanation of the proof follows the below Agda code.
                (insert-subst {x}{op ⦅ Ms ⦆}{σ}{eqs} x∉M eqs∩domσ⊆∅ Sσ)
                (eqs∩x∪σ⊆∅ {x}{op ⦅ Ms ⦆}{σ}{eqs} x∉M eqs∩domσ⊆∅)
                unify[eqs,σ]≡σ'
-  ... | ⟨ σ'eqs , ⟨ σ'xM , σ'σ ⟩ ⟩ =
-      ⟨ ⟨ σ'xM , subst-reflect σ'eqs σ'xM ⟩ , subst-reflect σ'σ σ'xM ⟩
+  ... | ⟨ σ'[M/x]eqs , ⟨ σ'xM , σ'[M/x]σ ⟩ ⟩ =
+      ⟨ ⟨ G1a , G1b ⟩ , G2 ⟩
+      where
+      G1a : subst σ' (` x) ≡ subst σ' (op ⦅ Ms ⦆)
+      G1a = σ'xM
+      G1b : σ' unifies eqs
+      G1b = subst-reflect σ'[M/x]eqs σ'xM
+      G2 : σ' unifies σ
+      G2 = subst-reflect σ'[M/x]σ σ'xM
   unify-rec-sound {⟨ op ⦅ Ms ⦆ , ` x ⟩ ∷ eqs} {σ} {σ'}{acc rs} Sσ eqs∩domσ⊆∅ unify[eqs,σ]≡σ'
       with occurs? x (op ⦅ Ms ⦆)
   ... | yes x∈M
@@ -1003,8 +1024,15 @@ equations. The explanation of the proof follows the below Agda code.
                ((insert-subst {x}{op ⦅ Ms ⦆}{σ}{eqs} x∉M (M∪x∪eqs {op ⦅ Ms ⦆}{x}{eqs}{σ} eqs∩domσ⊆∅) Sσ))
                (eqs∩x∪σ⊆∅ {x}{op ⦅ Ms ⦆}{σ}{eqs} x∉M (M∪x∪eqs {op ⦅ Ms ⦆}{x}{eqs}{σ} eqs∩domσ⊆∅))
                unify[eqs,σ]≡σ'
-  ... | ⟨ σ'eqs , ⟨ σ'xM , σ'σ ⟩ ⟩ =
-      ⟨ ⟨ sym σ'xM , subst-reflect σ'eqs σ'xM ⟩ , subst-reflect σ'σ σ'xM ⟩
+  ... | ⟨ σ'[M/x]eqs , ⟨ σ'xM , σ'[M/x]σ ⟩ ⟩ =
+      ⟨ ⟨ G1a , G1b ⟩ , G2 ⟩
+      where
+      G1a : subst σ' (op ⦅ Ms ⦆) ≡ subst σ' (` x)
+      G1a = sym σ'xM
+      G1b : σ' unifies eqs
+      G1b = subst-reflect σ'[M/x]eqs σ'xM
+      G2 : σ' unifies σ
+      G2 = subst-reflect σ'[M/x]σ σ'xM
   unify-rec-sound {⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs} {σ} {σ'}{acc rs} Sσ eqs∩domσ⊆∅ unify[eqs,σ]≡σ'
       with op-eq? op op'
   ... | yes refl
@@ -1013,7 +1041,14 @@ equations. The explanation of the proof follows the below Agda code.
   ... | ⟨ σ'Ms,Ls,eqs , σ'σ ⟩
       with subst-vec-reflect {Ms = Ms}{Ls} σ'Ms,Ls,eqs
   ... | ⟨ σ'Ms=σ'Ls , σ'eqs ⟩ =
-      ⟨ ⟨ cong (λ □ → op ⦅ □ ⦆) σ'Ms=σ'Ls  , σ'eqs ⟩ , σ'σ ⟩
+      ⟨ ⟨ G1a  , G1b ⟩ , G2 ⟩
+      where
+      G1a : (op ⦅ subst-vec σ' Ms ⦆) ≡ (op ⦅ subst-vec σ' Ls ⦆)
+      G1a = cong (λ □ → op ⦅ □ ⦆) σ'Ms=σ'Ls
+      G1b : σ' unifies eqs
+      G1b = σ'eqs
+      G2 : σ' unifies σ
+      G2 = σ'σ
   unify-rec-sound {⟨ op ⦅ Ms ⦆ , op' ⦅ Ls ⦆ ⟩ ∷ eqs} {σ} {σ'}{acc rs} Sσ eqs∩domσ⊆∅ unify[eqs,σ]≡σ'
       | no neq
       with unify[eqs,σ]≡σ'
@@ -1053,13 +1088,55 @@ termination of `unify-rec`.  We proceed by cases on the equations
         `insert-subst`, and `eqs∩x∪σ⊆∅` to satisfy its premises, to
         obtain
 
-            (3) σ' unifies ([ ` y / x ] eqs)
+            (3) σ' unifies ([ y / x ] eqs)
             (4a) subst σ' x ≡ subst σ' y
             (4b) σ' unifies [ y / x ] σ
 
         So (1a) is satisfied by (4a).
         We prove (1b) by lemma `subst-reflect`, using (3) and (4a).
         We also prove (2) by lemma `subst-reflect`, using (4b) and (4a).
+
+    * Cases `(x ≐ M) ∷ eqs` and `(M ≐ x) ∷ eqs` where `M ≡ op ⦅ Ms ⦆`.
+        If `x ∈ vars M`, then `unify-rec eqs σ ac ≡ no-solution`, but that contradicts
+        the premise that `unify-rec eqs σ ac ≡ finished σ'`.
+        So `x ∉ vars M`. The proofs proceeds similarly to the case for `x ≐ y`.
+        We need to show that
+
+            (1a) subst σ' x ≡ subst σ' M
+            (1b) σ' unifies eqs
+            (2) σ' unifies σ
+
+        We invoke the induction hypothesis, using lemmas `measure2`,
+        `insert-subst`, and `eqs∩x∪σ⊆∅` to satisfy its premises,
+        to obtain
+        
+            (3) σ' unifies ([ M / x ] eqs)
+            (4a) subst σ' x ≡ subst σ' M
+            (4b) σ' unifies [ M / x ] σ
+
+        So (1a) is satisfied by (4a).
+        We prove (1b) by lemma `subst-reflect`, using (3) and (4a).
+        We also prove (2) by lemma `subst-reflect`, using (4b) and (4a).
+
+    * Case (`op ⦅ Ms ⦆ ≐ op' ⦅ Ls ⦆)`.
+        If `op ≢ op'`, then we have `unify-rec eqs σ ac ≡ no-solution`, but that contradicts
+        the premise that `unify-rec eqs σ ac ≡ finished σ'`. So `op ≡ op'`.
+        
+        We need to show that
+
+            (1a) subst σ' (op ⦅ Ms ⦆) ≡ subst σ' (op ⦅ Ls ⦆)
+            (1b) σ' unifies eqs
+            (2) σ' unifies σ
+
+        We invoke the induction hypothesis, using lemmas `measure4` and
+        `MsLseqs∩domσ⊆∅` to satisfy its premises,
+        to obtain
+        
+            (3) σ' unifies append-eqs Ms Ls eqs
+            (4) σ' unifies σ
+
+        So (2) is satisfied by (4).
+        We apply lemma `subst-vec-reflect` to (3) to obtain (1a) and (1b).
 
 
 ```

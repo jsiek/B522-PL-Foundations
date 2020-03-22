@@ -1020,8 +1020,9 @@ equations. The explanation of the proof follows the below Agda code.
   ... | ()    
 ```
 
-We use induction on the measure used for proving the termination of `unify-rec`.
-We proceed by cases on the equations `eqs`.
+We use induction on the same measure that was used for proving the
+termination of `unify-rec`.  We proceed by cases on the equations
+`eqs`.
 
 * If there are no more equations, then we trivially have `σ unifies []`
   and we have `σ unifies σ` because the `unifies` relation is
@@ -1033,9 +1034,9 @@ We proceed by cases on the equations `eqs`.
     * Case `(x ≐ x) ∷ eqs`. 
         We need to show that
 
-        (1a) subst σ' x ≡ subst σ' x
-        (1b) σ' unifies eqs
-        (2) σ' unifies σ
+            (1a) subst σ' x ≡ subst σ' x
+            (1b) σ' unifies eqs
+            (2) σ' unifies σ
 
        (1a) is proved by refl.  We invoke the induction hypothesis,
        using lemmas `measure1` and `xx-eqs∩dom⊆∅` to satify the

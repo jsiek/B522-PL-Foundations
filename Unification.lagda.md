@@ -975,8 +975,8 @@ equations. The explanation of the proof follows the below Agda code.
                (insert-subst {x}{` y}{σ}{eqs} (x∉⁅y⁆ x y xy) eqs∩domσ⊆∅ Sσ)
                (eqs∩x∪σ⊆∅ {x}{` y}{σ}{eqs} (x∉⁅y⁆ x y xy) eqs∩domσ⊆∅)
                unify[eqs,σ]≡σ'
-  ... | ⟨ σ'eqs , ⟨ σ'x=σ'y , σ'σ ⟩ ⟩ =     
-         ⟨ ⟨ σ'x=σ'y , subst-reflect σ'eqs σ'x=σ'y ⟩ , subst-reflect σ'σ σ'x=σ'y ⟩
+  ... | ⟨ σ'[y/x]eqs , ⟨ σ'x=σ'y , σ'[y/x]σ ⟩ ⟩ =
+        ⟨ ⟨ σ'x=σ'y , subst-reflect σ'[y/x]eqs σ'x=σ'y ⟩ , subst-reflect σ'[y/x]σ σ'x=σ'y ⟩
   unify-rec-sound {⟨ ` x , op ⦅ Ms ⦆ ⟩ ∷ eqs} {σ} {σ'}{acc rs} Sσ eqs∩domσ⊆∅ unify[eqs,σ]≡σ'
       with occurs? x (op ⦅ Ms ⦆)
   ... | yes x∈M
@@ -1039,11 +1039,27 @@ termination of `unify-rec`.  We proceed by cases on the equations
             (2) σ' unifies σ
 
        (1a) is proved by refl.  We invoke the induction hypothesis,
-       using lemmas `measure1` and `xx-eqs∩dom⊆∅` to satify the
+       using lemmas `measure1` and `xx-eqs∩dom⊆∅` to satify its
        premises, to obtain (1b) and (2).
      
     * Case `(x ≐ y) ∷ eqs` and `x ≢ y`.
-        UNDER CONSTRUCTION
+        We need to show that
+
+            (1a) subst σ' x ≡ subst σ' y
+            (1b) σ' unifies eqs
+            (2) σ' unifies σ
+
+        We invoke the induction hypothesis, using lemmas `measure2`,
+        `insert-subst`, and `eqs∩x∪σ⊆∅` to satisfy its premises, to
+        obtain
+
+            (3) σ' unifies ([ ` y / x ] eqs)
+            (4a) subst σ' x ≡ subst σ' y
+            (4b) σ' unifies [ y / x ] σ
+
+        So (1a) is satisfied by (4a).
+        We prove (1b) by lemma `subst-reflect`, using (3) and (4a).
+        We also prove (2) by lemma `subst-reflect`, using (4b) and (4a).
 
 
 ```

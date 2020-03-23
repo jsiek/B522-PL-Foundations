@@ -1169,8 +1169,8 @@ termination of `unify-rec` and we proceed by cases on the equations
    equal (`op ⦅ Ms ⦆ ≐ op' ⦅ Ls ⦆` and `op ≢ op'`), then we
    immediately have a contradction.
 
-2. Instead of using the lemma that substitution reflects unifiers, we
-   instead of the lemma that substitution preserves unifiers.
+2. Instead of using the lemma that says substitution reflects unifiers, we
+   use the lemma that says substitution preserves unifiers.
 
 ```
 private

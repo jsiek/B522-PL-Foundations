@@ -1163,14 +1163,14 @@ again use induction on the same measure that was used for proving the
 termination of `unify-rec` and we proceed by cases on the equations
 `eqs`.  The proofs differ primarily in two respects.
 
-    1. In the cases where `unify-rec` returns `no-solution` we have to
-    show that no solution exists. In particular, if the occurs-check
-    fails, then we use lemma `occurs-no-soln`. If the operators are
-    not equal (`op ⦅ Ms ⦆ ≐ op' ⦅ Ls ⦆` and `op ≢ op'`), then we
-    immediately have a contradction.
+1. In the cases where `unify-rec` returns `no-solution` we have to
+   show that no solution exists. In particular, if the occurs-check
+   fails, then we use lemma `occurs-no-soln`. If the operators are not
+   equal (`op ⦅ Ms ⦆ ≐ op' ⦅ Ls ⦆` and `op ≢ op'`), then we
+   immediately have a contradction.
 
-    2. Instead of using the lemma that substitution reflects unifiers,
-    we instead of the lemma that substitution preserves unifiers.
+2. Instead of using the lemma that substitution reflects unifiers, we
+   instead of the lemma that substitution preserves unifiers.
 
 ```
 private

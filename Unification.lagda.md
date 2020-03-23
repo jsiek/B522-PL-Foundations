@@ -1138,19 +1138,39 @@ termination of `unify-rec`.  We proceed by cases on the equations
         So (2) is satisfied by (4).
         We apply lemma `subst-vec-reflect` to (3) to obtain (1a) and (1b).
 
+The soundness theorem follows directly from `unify-rec-sound`.
 
 ```
-unify-sound : ∀{eqs}{σ'}
-   → unify eqs ≡ finished σ'
-   → σ' unifies eqs
-unify-sound {eqs}{σ'} unify-eqs-σ' =
-    let m = (<₃-wellFounded (measure eqs [])) in
-    proj₁ (unify-rec-sound {eqs}{[]}{σ'}{m} empty G unify-eqs-σ')
+unify-sound : ∀{eqs}{σ}
+   → unify eqs ≡ finished σ
+   → σ unifies eqs
+unify-sound {eqs}{σ} unify-eqs-σ =
+    proj₁ (unify-rec-sound {eqs}{[]}{σ}{M} empty G unify-eqs-σ)
     where
+    M : Acc _<₃_ (measure eqs [])
+    M = <₃-wellFounded (measure eqs [])
     G : vars-eqs eqs ∩ ∅ ⊆ ∅
     G rewrite p∩∅≡∅ (vars-eqs eqs) = λ z → z
 ```
 
+We turn to the proof of the completeness theorem.  The proof is quite
+similar to the soundness theorem.  We first prove a completeness lemma
+for `unify-rec` and the completeness theorem is a corollary.  For
+`unify-rec`, we shall prove that if `unify-rec eqs σ ac ≡ no-solution`
+then there is no substitution θ that unifies eqs and σ. This proof is
+quite similar to the proof of the soundness lemma for `unify-rec`.  We
+again use induction on the same measure that was used for proving the
+termination of `unify-rec` and we proceed by cases on the equations
+`eqs`.  The proofs differ primarily in two respects.
+
+    1. In the cases where `unify-rec` returns `no-solution` we have to
+    show that no solution exists. In particular, if the occurs-check
+    fails, then we use lemma `occurs-no-soln`. If the operators are
+    not equal (`op ⦅ Ms ⦆ ≐ op' ⦅ Ls ⦆` and `op ≢ op'`), then we
+    immediately have a contradction.
+
+    2. Instead of using the lemma that substitution reflects unifiers,
+    we instead of the lemma that substitution preserves unifiers.
 
 ```
 private
@@ -1201,14 +1221,18 @@ private
       | no neq = neq (op≡-inversion θML)
 ```
 
+The completeness theorem for `unify` follows directly from the
+lemma `unify-rec-complete`.
+
 ```
 unify-complete :  ∀{eqs}
    → unify eqs ≡ no-solution
    → ∀ θ → ¬ θ unifies eqs
 unify-complete {eqs} unify[eqs]=no θ θeqs =
-    let m = (<₃-wellFounded (measure eqs [])) in
-    unify-rec-complete {eqs}{[]}{m} empty G unify[eqs]=no θ ⟨ θeqs , tt ⟩
+    unify-rec-complete {eqs}{[]}{M} empty G unify[eqs]=no θ ⟨ θeqs , tt ⟩
     where
+    M : Acc _<₃_ (measure eqs [])
+    M = (<₃-wellFounded (measure eqs []))
     G : vars-eqs eqs ∩ ∅ ⊆ ∅
     G rewrite p∩∅≡∅ (vars-eqs eqs) = λ z → z
 ```

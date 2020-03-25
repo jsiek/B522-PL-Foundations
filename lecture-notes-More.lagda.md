@@ -86,22 +86,17 @@ open Syntax Op sig
          ext-0; ext-suc)
   renaming (ABT to Term)
 
-pattern $ p k = (op-const p k) ⦅ nil ⦆
-
-pattern ƛ N  = op-lam ⦅ cons (bind (ast N)) nil ⦆
-
-pattern μ N  = op-rec ⦅ cons (bind (ast N)) nil ⦆
-
 infixl 7  _·_
-pattern _·_ L M = op-app ⦅ cons (ast L) (cons (ast M) nil) ⦆
 
-pattern `let L M = op-let ⦅ cons (ast L) (cons (bind (ast M)) nil) ⦆
-
-pattern _⦂⦂_ L M = op-insert ⦅ cons (ast L) (cons (ast M) nil) ⦆
-pattern 〈〉 = op-empty ⦅ nil ⦆
-pattern _!_ L M = op-index ⦅ cons (ast L) (cons (ast M) nil) ⦆
-
-pattern error = op-error ⦅ nil ⦆
+pattern $ p k      = (op-const p k) ⦅ nil ⦆
+pattern ƛ N        = op-lam         ⦅ cons (bind (ast N)) nil ⦆
+pattern μ N        = op-rec         ⦅ cons (bind (ast N)) nil ⦆
+pattern _·_ L M    = op-app         ⦅ cons (ast L) (cons (ast M) nil) ⦆
+pattern `let L M   = op-let         ⦅ cons (ast L) (cons (bind (ast M)) nil) ⦆
+pattern _⦂⦂_ L M    = op-insert      ⦅ cons (ast L) (cons (ast M) nil) ⦆
+pattern 〈〉        = op-empty       ⦅ nil ⦆
+pattern _!_ L M    = op-index       ⦅ cons (ast L) (cons (ast M) nil) ⦆
+pattern error      = op-error       ⦅ nil ⦆
 ```
 
 ```

@@ -70,14 +70,12 @@ data Op : Set where
   op-app : Op
   op-rec : Op
   op-const : (p : Prim) → rep p → Op
-  op-let : Op
 
 sig : Op → List ℕ
 sig op-lam = 1 ∷ []
 sig op-app = 0 ∷ 0 ∷ []
 sig op-rec = 1 ∷ []
 sig (op-const p k) = []
-sig op-let = 0 ∷ 1 ∷ []
 
 open Syntax Op sig
   using (`_; _⦅_⦆; cons; nil; bind; ast; _[_];
@@ -94,8 +92,6 @@ pattern μ N  = op-rec ⦅ cons (bind (ast N)) nil ⦆
 
 infixl 7  _·_
 pattern _·_ L M = op-app ⦅ cons (ast L) (cons (ast M) nil) ⦆
-
-pattern `let L M = op-let ⦅ cons (ast L) (cons (bind (ast M)) nil) ⦆
 ```
 
 ```
@@ -212,12 +208,6 @@ data _⊢_⦂_ : Context → Term → Type → Set where
      → A ≡ typeof p
        -------------
      → Γ ⊢ $ p k ⦂ A
-
-  ⊢let : ∀{Γ A B M N}
-    → Γ ⊢ M ⦂ A
-    → Γ , A ⊢ N ⦂ B
-      -----------------
-    → Γ ⊢ `let M N ⦂ B
 ```
 
 
@@ -289,8 +279,6 @@ subst-pres-types {σ} {Γ} {B} {.(_ · _)} (⊢· Γ⊢L:A→B Γ⊢M:A) =
 subst-pres-types {σ} {Γ} {A} {.(μ _)} (⊢μ Γ⊢N:A) = ⊢μ (subst-pres-types Γ⊢N:A)
 subst-pres-types {σ} {Γ} {A} {$ p k} (⊢$ eq)
     rewrite eq = ⊢$ (subst-id-prim{σ}{p})
-subst-pres-types {σ} {Γ} {A} {.(`let _ _)} (⊢let Γ⊢N:A Γ⊢N:A₁) =
-    ⊢let (subst-pres-types Γ⊢N:A) (subst-pres-types Γ⊢N:A₁)
 ```
 
 ```
@@ -360,18 +348,6 @@ Milner's Algorithm 𝒲.
          ⟨ (subst-ty θ (tyvar γ)) ,
          ⟨ ⊢·  θσ'σΓ⊢L:θσ'A  θσ'σΓ⊢M:θB ,
            (suc γ) ⟩ ⟩ ⟩
-𝒲 Γ (`let L M) (WF-op (WF-cons (WF-ast wfL) (WF-cons (WF-bind (WF-ast wfM)) WF-nil))) α
-    with 𝒲 Γ L wfL α
-... | nothing = nothing
-... | just ⟨ σ , ⟨ A , ⟨ σΓ⊢L:A , β ⟩ ⟩ ⟩
-    rewrite cong (λ □ → WF (suc □) M) (sym (len-subst-env Γ σ))
-    with 𝒲 (subst-env σ Γ , A) M wfM β
-... | nothing = nothing
-... | just ⟨ σ' , ⟨ B , ⟨ σ'σΓ⊢M:B , γ ⟩ ⟩ ⟩
-    with subst-pres-types {σ'} σΓ⊢L:A
-... | σ'σΓ⊢L:σ'A
-    rewrite sym (subst-env-compose σ σ' Γ) =
-    just ⟨ σ' ∘ σ , ⟨ B , ⟨ (⊢let σ'σΓ⊢L:σ'A σ'σΓ⊢M:B) , γ ⟩ ⟩ ⟩
 ```
 
 
@@ -403,7 +379,6 @@ of each term constructor. Think of the `□` symbol is a hole in the term.
 data Frame : Set where
   □·_ : Term → Frame
   _·□ : (M : Term) → (v : Value M) → Frame
-  let□ : Term → Frame
 ```
 
 The `plug` function fills a frame's hole with a term.
@@ -412,7 +387,6 @@ The `plug` function fills a frame's hole with a term.
 plug : Term → Frame → Term
 plug L (□· M)        = L · M
 plug M ((L ·□) v)    = L · M
-plug M (let□ N)      = `let M N
 ```
 
 ## Reduction
@@ -440,11 +414,6 @@ data _—→_ : Term → Term → Set where
   δ : ∀ {b p f k}
       ---------------------------------------------
     → ($ (pfun b p) f) · ($ (base b) k) —→ ($ p (f k))
-
-  β-let : ∀{V N}
-    → Value V
-      -------------------
-    → `let V N —→ N [ V ]
 ```
 
 ## Multi-step reduction
@@ -547,10 +516,6 @@ progress (⊢· {L = L}{M}{A}{B} ⊢L ⊢M)
                 with canonical-base refl ⊢M VM
 ...             | base-const                = step δ
 progress (⊢μ ⊢M)                            = step β-μ
-progress (⊢let {N = N} ⊢L ⊢N)
-    with progress ⊢L
-... | step L—→L′                            = step (ξ (let□ N) L—→L′)
-... | done VL                               = step (β-let VL)
 ```
 
 ## Renaming and substitution
@@ -582,8 +547,6 @@ rename-pres {ρ = ρ} ⊢ρ (⊢ƛ ⊢N)   =  ⊢ƛ (rename-pres (ext-pres {ρ =
 rename-pres ⊢ρ (⊢· ⊢L ⊢M)        =  ⊢· (rename-pres ⊢ρ ⊢L) (rename-pres ⊢ρ ⊢M)
 rename-pres {ρ = ρ} ⊢ρ (⊢μ ⊢M)   =  ⊢μ (rename-pres (ext-pres {ρ = ρ} ⊢ρ) ⊢M)
 rename-pres ⊢ρ (⊢$ eq)           = ⊢$ eq
-rename-pres {ρ = ρ} ⊢ρ (⊢let ⊢M ⊢N) =
-    ⊢let (rename-pres ⊢ρ ⊢M) (rename-pres (ext-pres {ρ = ρ} ⊢ρ) ⊢N)
 ```
 
 ```
@@ -612,9 +575,7 @@ subst Γ⊢σ (⊢` eq)              = Γ⊢σ eq
 subst {σ = σ} Γ⊢σ (⊢ƛ ⊢N)      = ⊢ƛ (subst (exts-pres {σ = σ} Γ⊢σ) ⊢N) 
 subst Γ⊢σ (⊢· ⊢L ⊢M)           = ⊢· (subst Γ⊢σ ⊢L) (subst Γ⊢σ ⊢M) 
 subst {σ = σ} Γ⊢σ (⊢μ ⊢M)      = ⊢μ (subst (exts-pres {σ = σ} Γ⊢σ) ⊢M) 
-subst Γ⊢σ (⊢$ e) = ⊢$ e 
-subst {σ = σ} Γ⊢σ (⊢let ⊢M ⊢N) =
-    ⊢let (subst Γ⊢σ ⊢M) (subst (exts-pres {σ = σ} Γ⊢σ) ⊢N) 
+subst Γ⊢σ (⊢$ e)               = ⊢$ e 
 ```
 
 ```
@@ -642,8 +603,6 @@ plug-inversion {M} {□· N} {A} (⊢· {A = A'} ⊢M ⊢N) =
     ⟨ A' ⇒ A , ⟨ ⊢M , (λ M' z → ⊢· z ⊢N) ⟩ ⟩
 plug-inversion {M} {(L ·□) v} {A} (⊢· {A = A'} ⊢L ⊢M) =
     ⟨ A' , ⟨ ⊢M , (λ M' → ⊢· ⊢L) ⟩ ⟩
-plug-inversion {M} {let□ N} {A} (⊢let {A = A'} ⊢M ⊢N) =
-    ⟨ A' , ⟨ ⊢M , (λ M' z → ⊢let z ⊢N) ⟩ ⟩
 ```
 
 ## Preservation
@@ -660,6 +619,5 @@ preserve ⊢M (ξ {M}{M′} F M—→M′)
 preserve (⊢· (⊢ƛ ⊢N) ⊢M) (β-ƛ vV) = substitution ⊢M ⊢N
 preserve (⊢μ ⊢M) β-μ = substitution (⊢μ ⊢M) ⊢M
 preserve (⊢· (⊢$ refl) (⊢$ refl)) δ = ⊢$ refl
-preserve (⊢let ⊢M ⊢N) (β-let vV) = substitution ⊢M ⊢N
 ```
 

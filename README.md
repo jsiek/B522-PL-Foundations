@@ -174,7 +174,7 @@ an appropriate choice for your project.
 |          |  6  | [Adequacy](https://plfa.github.io/Adequacy/) |
 |          |  8  | [ContextualEquivalence](https://plfa.github.io/ContextualEquivalence/) |
 |          | 13  | [Unification](./Unification.lagda.md) |
-|          | 15  | [HM-TypeInference](./HM-TypeInference.lagda.md) |
+|          | 15  | [TypeInference](./TypeInference.lagda.md) |
 |          | 20  | Gradual Typing |
 |          | 22  | Universal and Existential Types (Parametric Polymorphism) |
 |          | 27  | References and the Heap |

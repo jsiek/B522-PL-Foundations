@@ -128,6 +128,10 @@ Monday and Wednesday at 4:30-5:45pm in Luddy Hall Room 4101.
 	include a list of the formal artifacts (definitions, theorems)
 	that you plan to turn in.
 
+11. April 10: do the `denot-plusᶜ` and `denot-church`
+    in [Denotational](https://plfa.github.io/Denotational/).
+    (More exercises TBD.)
+
 ## Project, due May 1
 
 Choose a language feature that is not spelled out in PLFA to formalize

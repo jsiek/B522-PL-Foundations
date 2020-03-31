@@ -135,11 +135,14 @@ Monday and Wednesday at 4:30-5:45pm in Luddy Hall Room 4101.
 ## Project, due May 1
 
 Choose a language feature that is not spelled out in PLFA to formalize
-in Agda. Your formalization should include both a static semantics
-(aka. type system), a dynamic semantics, and a proof of type
-safety. For the dynamic semantics you must use a different style than
-the approach used in PLFA, that is, do not use a reduction
-semantics. Examples of other styles you can use are
+and prove type safety in Agda. (If you have a different kind of
+project in mind, I'm happy to consider alternatives, so long as it
+includes proving some non-trivial property of a programming language.)
+Your formalization should include both a static semantics (aka. type
+system), a dynamic semantics, and a proof of type safety. For the
+dynamic semantics you must use a different style than the approach
+used in PLFA, that is, do not use a reduction semantics. Examples of
+other styles you can use are
 
 * small-step reduction with evaluation contexts
 * big-step semantics

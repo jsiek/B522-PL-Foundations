@@ -139,12 +139,28 @@ in Agda. Your formalization should include both a static semantics
 (aka. type system), a dynamic semantics, and a proof of type
 safety. For the dynamic semantics you must use a different style than
 the approach used in PLFA, that is, do not use a reduction
-semantics. Examples of other styles you can use are contextual
-dynamics (i.e., using evaluation contexts), abstract machines,
-definitional interpreters (i.e., a recursive function), and
-denotational semantics. The book _Types and Programming Languages_ by
-Benjamin Pierce has many examples of language features that would be
-an appropriate choice for your project.
+semantics. Examples of other styles you can use are
+
+* small-step reduction with evaluation contexts
+* big-step semantics
+* definitional interpreter (recursive function with gas)
+* abstract machine (e.g. CEK)
+* virtual machine (CAM)
+* denotational semantics
+
+The book _Types and Programming Languages_ (TAPL) by Benjamin Pierce
+has many examples of language features that would be an appropriate
+choice for your project.
+
+Ideas for project language features:
+
+* Let polymorphism (extend [TypeInference](./TypeInference.lagda.md))
+* Continuations
+* Featherweight Java (TAPL Chapter 19)
+* Exceptions (TAPL Chapter 14)
+* Recursive Types (TAPL Chapter 20)
+* Bounded Quantification (TAPL Chapter 26)
+* Higher-Order Polymorphism (TAPL Chapter 30)
 
 
 ## Schedule
@@ -173,16 +189,16 @@ an appropriate choice for your project.
 |          | 18  | Spring Break, no class |
 |          | 23  | More Spring Break, no class |
 |          | 25  | More Spring Break, no class |
-|          | 30  | [Compositional](https://plfa.github.io/Compositional/) |
-| April    |  1  | [Soundness](https://plfa.github.io/Soundness/) |
-|          |  6  | [Adequacy](https://plfa.github.io/Adequacy/) |
-|          |  8  | [ContextualEquivalence](https://plfa.github.io/ContextualEquivalence/) |
-|          | 13  | [Unification](./Unification.lagda.md) |
-|          | 15  | [TypeInference](./TypeInference.lagda.md) |
-|          | 20  | Gradual Typing |
-|          | 22  | Universal and Existential Types (Parametric Polymorphism) |
-|          | 27  | References and the Heap |
-|          | 29  | Classes and Objects (Featherweight Java) |
+|          | 30  | [Denotational](https://plfa.github.io/Denotational/) continued, [Recording](https://iu.mediaspace.kaltura.com/media/Lecture+March+30%2C+Denotational+Semantics/1_da4xq013) |
+| April    |  1  | [Compositional](https://plfa.github.io/Compositional/) |
+|          |  6  | [Soundness](https://plfa.github.io/Soundness/) |
+|          |  8  | [Adequacy](https://plfa.github.io/Adequacy/) |
+|          | 13  | [ContextualEquivalence](https://plfa.github.io/ContextualEquivalence/) |
+|          | 15  | [Unification](./Unification.lagda.md) |
+|          | 20  | [TypeInference](./TypeInference.lagda.md) |
+|          | 22  | Gradual Typing |
+|          | 27  | Universal and Existential Types (Parametric Polymorphism) |
+|          | 29  | References and the Heap |
 
 
 ## Resources

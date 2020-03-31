@@ -147,6 +147,7 @@ semantics. Examples of other styles you can use are
 * abstract machine (e.g. CEK)
 * virtual machine (CAM)
 * denotational semantics
+* axiomatic semantics (e.g. Hoare Logic)
 
 Books and resources:
 
@@ -158,22 +159,30 @@ Books and resources:
   Findler, and Flatt is a good resource for evaluation contexts,
   abstract machines, and
   continuations. The earlier book draft
-  [_Programming Languages and Lambda Calculi_](http://www.cs.utah.edu/plt/publications/pllc.pdf) by Felleisen and Flatt covers similar material.
+  [_Programming Languages and Lambda Calculi_](http://www.cs.utah.edu/plt/publications/pllc.pdf) (PLLC) by Felleisen and Flatt covers similar material.
 
-* _Practical Foundations for Programming Languages_ by Robert Harper includes
-  material on logical relations.
+* _The Formal Semantics of Programming Languages_ (FSPL) by Winskel
+  includes lots of semantics styles (small-step, big-step, axiomatic,
+  denotational), eager and lazy evaluation, nondeterminism and
+  parallelism.
+
+* _Practical Foundations for Programming Languages_ (PFPL) by Robert
+  Harper includes material on logical relations.
+
 
 Ideas for project language features:
 
 * Lazy evaluation (aka. call-by-need)
   (e.g., see my paper _Improving the lazy Krivine machine_)
 * Let polymorphism (extend [TypeInference](./TypeInference.lagda.md))
-* Continuations
+* Continuations (PLLC)
 * Featherweight Java (TAPL Chapter 19)
 * Exceptions (TAPL Chapter 14)
-* While loops and variable assignment (the WHILE or IMP languages)
+* While loops and variable assignment (the IMP language in FSPL)
 * Recursive Types (TAPL Chapter 20)
-* Reasoning about program equality using logical relations
+* Nondeterminism
+* Parallelism
+* Reasoning about program equality using logical relations (PFPL)
 * Bounded Quantification (TAPL Chapter 26)
 * Higher-Order Polymorphism (TAPL Chapter 30)
 

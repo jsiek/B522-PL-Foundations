@@ -148,17 +148,32 @@ semantics. Examples of other styles you can use are
 * virtual machine (CAM)
 * denotational semantics
 
-The book _Types and Programming Languages_ (TAPL) by Benjamin Pierce
-has many examples of language features that would be an appropriate
-choice for your project.
+Books and resources:
+
+* The book _Types and Programming Languages_ (TAPL) by Benjamin Pierce
+  has many examples of language features that would be an appropriate
+  choice for your project.
+  
+* The book _Semantics Engineering with PLT Redex_ by Felleisen,
+  Findler, and Flatt is a good resource for evaluation contexts,
+  abstract machines, and
+  continuations. The earlier book draft
+  [_Programming Languages and Lambda Calculi_](http://www.cs.utah.edu/plt/publications/pllc.pdf) by Felleisen and Flatt covers similar material.
+
+* _Practical Foundations for Programming Languages_ by Robert Harper includes
+  material on logical relations.
 
 Ideas for project language features:
 
+* Lazy evaluation (aka. call-by-need)
+  (e.g., see my paper _Improving the lazy Krivine machine_)
 * Let polymorphism (extend [TypeInference](./TypeInference.lagda.md))
 * Continuations
 * Featherweight Java (TAPL Chapter 19)
 * Exceptions (TAPL Chapter 14)
+* While loops and variable assignment (the WHILE or IMP languages)
 * Recursive Types (TAPL Chapter 20)
+* Reasoning about program equality using logical relations
 * Bounded Quantification (TAPL Chapter 26)
 * Higher-Order Polymorphism (TAPL Chapter 30)
 

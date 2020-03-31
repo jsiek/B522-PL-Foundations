@@ -135,7 +135,7 @@ Monday and Wednesday at 4:30-5:45pm in Luddy Hall Room 4101.
 ## Project, due May 1
 
 Choose a language feature that is not spelled out in PLFA to formalize
-and prove type safety in Agda. (If you have a different kind of
+and prove type safe in Agda. (If you have a different kind of
 project in mind, I'm happy to consider alternatives, so long as it
 includes proving some non-trivial property of a programming language.)
 Your formalization should include both a static semantics (aka. type

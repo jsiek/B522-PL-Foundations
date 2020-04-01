@@ -152,7 +152,7 @@ other styles you can use are
 * denotational semantics
 * axiomatic semantics (e.g. Hoare Logic)
 
-Books and resources:
+Resources:
 
 * The book _Types and Programming Languages_ (TAPL) by Benjamin Pierce
   has many examples of language features that would be an appropriate
@@ -172,6 +172,9 @@ Books and resources:
 * _Practical Foundations for Programming Languages_ (PFPL) by Robert
   Harper includes material on logical relations.
 
+* [Type Safety in Three Easy Lemmas](http://siek.blogspot.com/2013/05/type-safety-in-three-easy-lemmas.html) is a blog post of mine
+  that shows how to prove type safety using a definitional
+  interpreter with gas.
 
 Ideas for project language features:
 

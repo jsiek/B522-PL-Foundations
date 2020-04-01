@@ -176,6 +176,10 @@ Resources:
   that shows how to prove type safety using a definitional
   interpreter with gas.
 
+* [Type Safety in Five Easy Lemmas](http://siek.blogspot.com/2012/08/type-safety-in-five-easy-lemmas.html) is a blog post of mine
+  that shows how to prove type safety using an abstract machine.
+
+
 Ideas for project language features:
 
 * Lazy evaluation (aka. call-by-need)

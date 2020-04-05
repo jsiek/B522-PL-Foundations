@@ -130,7 +130,6 @@ Monday and Wednesday at 4:30-5:45pm in Luddy Hall Room 4101.
 
 11. April 10: do the `denot-plusᶜ` and `denot-church`
     in [Denotational](https://plfa.github.io/Denotational/).
-    (More exercises TBD.)
 
 ## Project, due May 1
 
@@ -224,7 +223,7 @@ Ideas for project language features:
 |          | 23  | More Spring Break, no class |
 |          | 25  | More Spring Break, no class |
 |          | 30  | [Denotational](https://plfa.github.io/Denotational/) continued, [Recording](https://iu.mediaspace.kaltura.com/media/Lecture+March+30%2C+Denotational+Semantics/1_da4xq013) |
-| April    |  1  | [Compositional](https://plfa.github.io/Compositional/) |
+| April    |  1  | [Compositional](https://plfa.github.io/Compositional/) (forgot to push record!) |
 |          |  6  | [Soundness](https://plfa.github.io/Soundness/) |
 |          |  8  | [Adequacy](https://plfa.github.io/Adequacy/) |
 |          | 13  | [ContextualEquivalence](https://plfa.github.io/ContextualEquivalence/) |

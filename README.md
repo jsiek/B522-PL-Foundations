@@ -224,7 +224,7 @@ Ideas for project language features:
 |          | 25  | More Spring Break, no class |
 |          | 30  | [Denotational](https://plfa.github.io/Denotational/) continued, [Recording](https://iu.mediaspace.kaltura.com/media/Lecture+March+30%2C+Denotational+Semantics/1_da4xq013) |
 | April    |  1  | [Compositional](https://plfa.github.io/Compositional/) (forgot to push record!) |
-|          |  6  | [Soundness](https://plfa.github.io/Soundness/) |
+|          |  6  | [Soundness](https://plfa.github.io/Soundness/) [Recording](https://iu.mediaspace.kaltura.com/media/Lecture+April+6%2C+Soundness+of+reduction+with+respect+to+denotational+semantics/1_o5gwttt7) |
 |          |  8  | [Adequacy](https://plfa.github.io/Adequacy/) |
 |          | 13  | [ContextualEquivalence](https://plfa.github.io/ContextualEquivalence/) |
 |          | 15  | [Unification](./Unification.lagda.md) |

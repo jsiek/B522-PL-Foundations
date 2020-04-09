@@ -225,7 +225,7 @@ Ideas for project language features:
 |          | 30  | [Denotational](https://plfa.github.io/Denotational/) continued, [Recording](https://iu.mediaspace.kaltura.com/media/Lecture+March+30%2C+Denotational+Semantics/1_da4xq013) |
 | April    |  1  | [Compositional](https://plfa.github.io/Compositional/) (forgot to push record!) |
 |          |  6  | [Soundness](https://plfa.github.io/Soundness/), [Recording](https://iu.mediaspace.kaltura.com/media/Lecture+April+6%2C+Soundness+of+reduction+with+respect+to+denotational+semantics/1_o5gwttt7) |
-|          |  8  | [Adequacy](https://plfa.github.io/Adequacy/) |
+|          |  8  | [Adequacy](https://plfa.github.io/Adequacy/), [Recording](https://iu.mediaspace.kaltura.com/media/Lecture+April+8%2C+Adequacy+of+Denotational+Semantics+with+respect+to+Operational+Semantics/1_1eoqorgy) |
 |          | 13  | [ContextualEquivalence](https://plfa.github.io/ContextualEquivalence/) |
 |          | 15  | [Unification](./Unification.lagda.md) |
 |          | 20  | [TypeInference](./TypeInference.lagda.md) |

@@ -25,7 +25,7 @@ open import plfa.part2.Untyped
 ```
 
 We need the following corollary of `⊑-refl`. (Perhaps it should
-defined in the Denotational chapter.)
+defined in the [Denotational](https://plfa.github.io/Denotational/) chapter.)
 
 ```
 ⊑-reflexive : ∀{v w : Value} → v ≡ w → v ⊑ w
@@ -96,9 +96,10 @@ denot-suc {n = n} {f} M↓D[n] =
 
 ## Addition of Scott Numerals via the Y Combinator
 
-Recall that in the Untyped chapter, addition of Scott numerals is
-defined as a recursive function using the Y combinator.
-(Shown here with variable names instead of de Bruijn indices.)
+Recall that in the [Untyped](https://plfa.github.io/Untyped/) chapter,
+addition of Scott numerals is defined as a recursive function using
+the Y combinator.  (Shown here with variable names instead of de
+Bruijn indices.)
 
     plus = Y · (ƛ r ⇒ ƛ m ⇒ ƛ n ⇒ case m n (ƛ m' ⇒ `suc (r · m' · n)))
 

@@ -34,7 +34,14 @@ defined in the Denotational chapter.)
 
 ## Scott Numerals
 
-The `scott` function generates the nth Scott numeral.
+Recall that the Scott numerals are terms in the lambda calculus that
+represent the natural numbers:
+
+    zero = ƛ s ⇒ ƛ z ⇒ z
+    one  = ƛ s ⇒ ƛ z ⇒ s · zero
+    two  = ƛ s ⇒ ƛ z ⇒ s · one
+
+The below `scott` function generates the nth Scott numeral.
 
 ```
 scott : (n : ℕ) → ∀{Γ} → Γ ⊢ ★
@@ -42,48 +49,48 @@ scott 0 = ƛ ƛ (# 0)
 scott (suc n) = ƛ ƛ (# 1) · (scott n)
 ```
 
-The following function `Dˢ` gives the denotation of the nth Scott
-numeral.  Like the Church numerals, the Scott numerals are more
-general than natural numbers. The Scott numeral n represents taking n
-steps along a path.  In the following definition, the function `ls` is
-the path.
+The denotation `Dˢ` of the nth Scott numeral is defined below.  Like
+the Church numerals, the Scott numerals are more general than natural
+numbers. The Scott numeral for n represents taking n steps along a
+path.  In the definition of `Dˢ`, the function `f` represents the
+path.
 
 ```
-Dˢ : (n : ℕ) → (ls : ℕ → Value) → Value
-Dˢ zero ls = ⊥ ↦ (ls 0) ↦ (ls 0)
-Dˢ (suc n) ls =
-  let D[n] = Dˢ n ls in
-  (D[n] ↦ ls (suc n)) ↦ ⊥ ↦ ls (suc n)
+Dˢ : (n : ℕ) → (f : ℕ → Value) → Value
+Dˢ zero f = ⊥ ↦ (f 0) ↦ (f 0)
+Dˢ (suc n) f =
+  let D[n] = Dˢ n f in
+  (D[n] ↦ f (suc n)) ↦ ⊥ ↦ f (suc n)
 ```
 
 * The Scott numeral for `0` is a function that ignores its first
   argument and returns its second argument, i.e., the first element
-  of the path (which often corresponds to zero).
+  of the path.
 
 * The Scott numeral for `n + 1` is a function whose first argument is
-  a funny kind of successor function, one that maps 
-  the Scott numeral for `n` to the `n + 1` element of the path.
-  The second argument is ignored. The result is   
-  the `n + 1` element of the path.
+  a funny kind of successor function, one that maps the Scott numeral
+  for `n` to the `n + 1` element of the path.  The second argument is
+  ignored, so its value is `⊥`. The result is the `n + 1` element of
+  the path.
 
-A straightforward proof by induction on n verifies that `Dˢ n ls` is
-the denotation of `scott n` for any choice of path `ls`.
+A straightforward proof by induction on n verifies that `Dˢ n f` is
+the denotation of `scott n` for any path `f`.
 
 ```
-denot-scott : ∀{n : ℕ}{ls : ℕ → Value}{Γ}{γ : Env Γ}
-  → γ ⊢ scott n ↓ (Dˢ n ls)
-denot-scott {zero} {ls} = ↦-intro (↦-intro var)
-denot-scott {suc n} {ls} = ↦-intro (↦-intro (↦-elim var denot-scott))
+denot-scott : ∀{n : ℕ}{f : ℕ → Value}{Γ}{γ : Env Γ}
+  → γ ⊢ scott n ↓ (Dˢ n f)
+denot-scott {zero} {f} = ↦-intro (↦-intro var)
+denot-scott {suc n} {f} = ↦-intro (↦-intro (↦-elim var denot-scott))
 ```
 
 The successor function for Scott numerals does indeed produce the
 Scott numeral for `suc n` when given the Scott numeral for `n`.
 
 ```
-denot-suc : ∀{Γ}{M : Γ ⊢ ★}{n}{ls : ℕ → Value}{γ : Env Γ}
-  → γ ⊢ M ↓ Dˢ n ls
-  → γ ⊢ `suc M ↓ Dˢ (suc n) ls
-denot-suc {n = n} {ls} M↓D[n] =
+denot-suc : ∀{Γ}{M : Γ ⊢ ★}{n}{f : ℕ → Value}{γ : Env Γ}
+  → γ ⊢ M ↓ Dˢ n f
+  → γ ⊢ `suc M ↓ Dˢ (suc n) f
+denot-suc {n = n} {f} M↓D[n] =
     ↦-elim (↦-intro (↦-intro (↦-intro (↦-elim var var)))) M↓D[n]
 ```
 
@@ -96,27 +103,26 @@ defined as a recursive function using the Y combinator.
     plus = Y · (ƛ r ⇒ ƛ m ⇒ ƛ n ⇒ case m n (ƛ m' ⇒ `suc (r · m' · n)))
 
 We shall prove that the denotation of `plus` applied to the Scott numerals
-for `m` and `n` is `Dˢ (m + n) rs` for any list `rs`.
+for `m` and `n` is `Dˢ (m + n) g` for any path `r`.
 
-
-    plus[m,n] : ∀{m n : ℕ}{rs : ℕ → Value}
-       → `∅ ⊢ (plus · scott m) · (scott n) ↓ Dˢ (m + n) rs
+    plus[m,n] : ∀{m n : ℕ}{g : ℕ → Value}
+       → `∅ ⊢ (plus · scott m) · (scott n) ↓ Dˢ (m + n) g
 
 In the `plus` function, the recursion is on `m`, i.e., the base case
-is when `m` is zero, and the recursive call to `r` is given
-`m' = m - 1`. So let's think about the denotation of `plus`
-when `m` is `0`, then `1`, and then `2`.
+is when `m` is zero, and the recursive call to `r` is given `m' = m -
+1`. So let's think about the denotation of `plus` when `m` is `0` and
+then `1`.
 
 When `m` is `0`, the denotation of `plus` looks like
 
-    (⊥ ↦ Dˢ n rs ↦ Dˢ n rs)  ↦  Dˢ n rs  ↦  Dˢ n rs
+    (⊥ ↦ Dˢ n g ↦ Dˢ n g)  ↦  Dˢ n g  ↦  Dˢ n g
 
-Let's look closely at why this works, analyzing the denotation
-of the term `ƛ m ⇒ ƛ n ⇒ case m n ...`.
-So the parameter `m` and `n` have the following denotations.
+Let's see why this works by analyzing the denotation of the term
+`ƛ m ⇒ ƛ n ⇒ case m n ...`.  So the parameter `m` and `n` have the
+following denotations.
 
-    ⟦m₀⟧ = ⊥ ↦ Dˢ n rs ↦ Dˢ n rs
-    ⟦n⟧ = Dˢ n rs
+    ⟦m₀⟧ = ⊥ ↦ Dˢ n g ↦ Dˢ n g
+    ⟦n⟧ = Dˢ n g
 
 Recall that `case` on a Scott numeral is defined as follows.
 
@@ -126,76 +132,75 @@ So for the `plus` function, the `case m n ...` is really
 
     m · (ƛ m' ⇒ `suc (r · m' · n)) · n
 
-We analyze the application of `m` to its two arguments
-`(ƛ m' ⇒ ...)` and `n`. Guided by the value for parameter `m`,
-the first argument should have value `⊥`. Indeed, any
-term can have value `⊥`.  The second argument, which `n`, should
-have value `Dˢ n rs`, which indeed it does. The result of the application
-is `Dˢ n rs`, which matches the expected result of `Dˢ (0 + n) rs`.
+Guided by the value for parameter `m`, the term `(ƛ m' ⇒ ...)`
+should have value `⊥`. Indeed, any term can have value `⊥`.  Next, `n`
+should have value `Dˢ n g`, which indeed it does. The result of the
+application is `Dˢ n g`, which matches the expected result
+`Dˢ (0 + n) g`.
 
-Next consider when `m` is `1`.
+Next consider the meaning of `plus` when `m` is `1`.
 
-      ((⟦m₀⟧ ↦ Dˢ (1 + n) rs) ↦ ⊥ ↦ Dˢ (1 + n) rs)
-    ↦ Dˢ n rs
-    ↦ Dˢ (1 + n) rs
+      ((⟦m₀⟧ ↦ Dˢ (1 + n) g) ↦ ⊥ ↦ Dˢ (1 + n) g)
+    ↦ Dˢ n g
+    ↦ Dˢ (1 + n) g
 
 Again we analyze the term `ƛ m ⇒ ƛ n ⇒ case m n ...`.
 So the parameters `m` and `n` have the following denotations.
 
-    ⟦m₁⟧ = (⟦m₀⟧ ↦ Dˢ (1 + n) rs) ↦ ⊥ ↦ Dˢ (1 + n) rs
-    ⟦n⟧ = Dˢ n rs
+    ⟦m₁⟧ = (⟦m₀⟧ ↦ Dˢ (1 + n) g) ↦ ⊥ ↦ Dˢ (1 + n) g
+    ⟦n⟧ = Dˢ n g
 
 Next we analyze the application of `m` to its two arguments.
 This time we must check that the argument `(ƛ m' ⇒ ...)`
 produces the value
 
-    ⟦m₀⟧ ↦ Dˢ (1 + n) rs
+    ⟦m₀⟧ ↦ Dˢ (1 + n) g
 
 So parameter m' has the denotation `⟦m₀⟧`
-and we need to show that `suc (r · m' · n)` produces `Dˢ (1 + n) rs`.
+and we need to show that `suc (r · m' · n)` produces `Dˢ (1 + n) g`.
 This can be obtained from the `denot-suc` lemma,
-so long as `r · m' · n` produces `Dˢ n rs`.
+so long as `r · m' · n` produces `Dˢ n g`.
 This will be the case so long as `r` has the value
 
-    ⟦m₀⟧  ↦  Dˢ n rs  ↦  Dˢ n rs
+    ⟦m₀⟧  ↦  Dˢ n g  ↦  Dˢ n g
 
 which was the denotation of plus for `m` at zero.
-Thus, we have finished analyzing the first argument `(ƛ m' ⇒ ...)`.
+Thus, we have finished analyzing the term `(ƛ m' ⇒ ...)`.
 
 The second argument in the application of `m`, which
 is `n`, must have value `⊥`, which of course it does.
 Thus, the result of applying `m` to `(ƛ m' ⇒ ...)`
-and `n` is indeed `Dˢ (1 + n) rs` when `m` is 1.
+and `n` is indeed `Dˢ (1 + n) g` when `m` is 1.
 
 We have seen the denotation of `plus` for `m` at zero and one, and now
 we need to generalize to arbitrary numbers. So let us review
 the denotations that we obtained for `m`:
 
-    ⟦m₀⟧ = ⊥ ↦ Dˢ n rs ↦ Dˢ n rs
-    ⟦m₁⟧ = (⟦m₀⟧ ↦ Dˢ (1 + n) rs) ↦ ⊥ ↦ Dˢ (1 + n) rs
+    ⟦m₀⟧ = ⊥ ↦ Dˢ n g ↦ Dˢ n g
+    ⟦m₁⟧ = (⟦m₀⟧ ↦ Dˢ (1 + n) g) ↦ ⊥ ↦ Dˢ (1 + n) g
 
 Indeed, these are denotations of a Scott numeral, but over an
 interesting choice of path:
 
-    Dˢ n rs, Dˢ (1 + n) rs, Dˢ (2 + n) rs, ..., Dˢ (m + n) rs
+    Dˢ n g, Dˢ (1 + n) g, Dˢ (2 + n) g, ..., Dˢ (m + n) g
 
 We define the following function `ms` to produce this path.
 
 ```
 ms : (n : ℕ) → (ℕ → Value) → (ℕ → Value)
-ms n rs i = Dˢ (i + n) rs
+ms n g i = Dˢ (i + n) g
 ```
 
 The denotations for each `mᵢ` can now be expressed using `Dˢ` and `ms`:
 
-    ⟦mᵢ⟧ = Dˢ i (ms n rs)
+    ⟦mᵢ⟧ = Dˢ i (ms n g)
 
 Now that we have a succinct way to write the denotation of the `m`
 parameter, we can write down the ith denotation of `plus`.
 
 ```
 plusᵐ : (m n : ℕ) → (ℕ → Value) → Value
-plusᵐ m n rs = Dˢ m (ms n rs) ↦  Dˢ n rs  ↦  Dˢ (m + n) rs
+plusᵐ m n g = Dˢ m (ms n g) ↦  Dˢ n g  ↦  Dˢ (m + n) g
 ```
 
 Recall that the denotation of the `r` parameter needs to be the
@@ -205,8 +210,8 @@ function gives the denotation for `plus` at `m - 1`.
 
 ```
 prev-plusᵐ : (m n : ℕ) → (ℕ → Value) → Value
-prev-plusᵐ 0 n rs = ⊥
-prev-plusᵐ (suc m) n rs = plusᵐ m n rs
+prev-plusᵐ 0 n g = ⊥
+prev-plusᵐ (suc m) n g = plusᵐ m n g
 ```
 
 We are now ready to formally verify the denotation
@@ -221,44 +226,44 @@ CASE : ∅ , ★ , ★ , ★ ⊢ ★
 CASE = case (# 1) (# 0) (`suc (# 3 · # 0 · # 1))
 ```
 
-The show that the denotation of `CASE` is `Dˢ (m + n) rs`
+The show that the denotation of `CASE` is `Dˢ (m + n) g`
 under the assumptions that the denotation
-of parameter `r` is `prev-plusᵐ m n rs`,
-parameter `m` is `Dˢ m (ms n rs)`, and parameter `n` is `Dˢ n rs`.
+of parameter `r` is `prev-plusᵐ m n g`,
+parameter `m` is `Dˢ m (ms n g)`, and parameter `n` is `Dˢ n g`.
 We proceed by induction on `m`.
 
 ```
-CASE↓ : (m n : ℕ) (rs : ℕ → Value)
-      → `∅ `, prev-plusᵐ m n rs `, Dˢ m (ms n rs) `, Dˢ n rs
-        ⊢ CASE ↓ Dˢ (m + n) rs
-CASE↓ zero n rs = ↦-elim (↦-elim var ⊥-intro) var
-CASE↓ (suc m') n rs = ↦-elim (↦-elim var Sbranch) ⊥-intro
+CASE↓ : (m n : ℕ) (g : ℕ → Value)
+      → `∅ `, prev-plusᵐ m n g `, Dˢ m (ms n g) `, Dˢ n g
+        ⊢ CASE ↓ Dˢ (m + n) g
+CASE↓ zero n g = ↦-elim (↦-elim var ⊥-intro) var
+CASE↓ (suc m') n g = ↦-elim (↦-elim var Sbranch) ⊥-intro
     where
-    γ = `∅ `, prev-plusᵐ (suc m') n rs `, Dˢ (suc m') (ms n rs) `, Dˢ n rs
+    γ = `∅ `, prev-plusᵐ (suc m') n g `, Dˢ (suc m') (ms n g) `, Dˢ n g
     Sbranch : γ ⊢ ƛ (`suc ((# 3) · (# 0) · (# 1)))
-                ↓ Dˢ m' (ms n rs) ↦ Dˢ (suc m' + n) rs
+                ↓ Dˢ m' (ms n g) ↦ Dˢ (suc m' + n) g
     Sbranch = ↦-intro (denot-suc (↦-elim (↦-elim var var) var))
 ```
 
-* When `m ≡ 0`, the denotation of m is `⊥ ↦ Dˢ n rs ↦  Dˢ n rs`.
+* When `m ≡ 0`, the denotation of m is `⊥ ↦ Dˢ n g ↦  Dˢ n g`.
   The non-zero branch has value `⊥` by `⊥-intro`, and `n`
-  has value `Dˢ n rs`, so the result of the case is `Dˢ n rs`.
+  has value `Dˢ n g`, so the result of the case is `Dˢ n g`.
 
 * When `m ≡ suc m'`, the denotation of m is
 
-        ⟦m⟧ = Dˢ (suc m') (ms n rs)
-           = (Dˢ m' (ms n rs) ↦ Dˢ (suc m' + n) rs) ↦ ⊥ ↦ Dˢ (suc m' + n) rs
+        ⟦m⟧ = Dˢ (suc m') (ms n g)
+           = (Dˢ m' (ms n g) ↦ Dˢ (suc m' + n) g) ↦ ⊥ ↦ Dˢ (suc m' + n) g
 
   so we need to show that the non-zero branch has the value
 
-        Dˢ m' (ms n rs) ↦ Dˢ (suc m' + n) rs
+        Dˢ m' (ms n g) ↦ Dˢ (suc m' + n) g
 
   Going under the `ƛ`, we need to show that
-  `suc (r · m' · n)` produces `Dˢ (suc m' + n) rs`.
+  `suc (r · m' · n)` produces `Dˢ (suc m' + n) g`.
   Working backwards using the `denot-suc` lemma,
-  it suffices to show that `r · m' · n` produces `Dˢ (m' + n) rs`.
-  The denotation of `r` is `plusᵐ m' n rs`, so applying it
-  to `m'` and `n` indeed produces `Dˢ (m' + n) rs`.
+  it suffices to show that `r · m' · n` produces `Dˢ (m' + n) g`.
+  The denotation of `r` is `plusᵐ m' n g`, so applying it
+  to `m'` and `n` indeed produces `Dˢ (m' + n) g`.
 
 Moving outwards, we now analyze the expression
 
@@ -266,17 +271,17 @@ Moving outwards, we now analyze the expression
 
 We shall show that is has the denotation
 
-      (prev-plusᵐ 0 n rs ↦ plusᵐ 0 n rs)
-    ⊔ (prev-plusᵐ 1 n rs ↦ plusᵐ 1 n rs)
-    ⊔ (prev-plusᵐ 2 n rs ↦ plusᵐ 2 n rs)
+      (prev-plusᵐ 0 n g ↦ plusᵐ 0 n g)
+    ⊔ (prev-plusᵐ 1 n g ↦ plusᵐ 1 n g)
+    ⊔ (prev-plusᵐ 2 n g ↦ plusᵐ 2 n g)
       ...
 
 which we construct with the following `Pᵐ` function (P for plus).
 
 ```
 Pᵐ : (m n : ℕ) → (ℕ → Value) → Value
-Pᵐ 0 n rs = ⊥ ↦ plusᵐ 0 n rs
-Pᵐ (suc m') n rs = Pᵐ m' n rs ⊔ (plusᵐ m' n rs ↦ plusᵐ (suc m') n rs)
+Pᵐ 0 n g = ⊥ ↦ plusᵐ 0 n g
+Pᵐ (suc m') n g = Pᵐ m' n g ⊔ (plusᵐ m' n g ↦ plusᵐ (suc m') n g)
 ```
 
 We proceed by induction, using the `CASE↓` lemma to analyze the `CASE`
@@ -284,26 +289,26 @@ expression and using the induction hypothesis to accumulate all of the
 smaller denotations for plus.
 
 ```
-P↓Pᵐ : ∀ m n → (rs : ℕ → Value) → `∅ ⊢ ƛ (ƛ (ƛ CASE)) ↓ Pᵐ m n rs
-P↓Pᵐ zero n rs = ↦-intro (↦-intro (↦-intro (CASE↓ 0 n rs)))
-P↓Pᵐ (suc m') n rs =
-   ⊔-intro (P↓Pᵐ m' n rs)
-           (↦-intro (↦-intro (↦-intro (CASE↓ (suc m') n rs))))
+P↓Pᵐ : ∀ m n → (g : ℕ → Value) → `∅ ⊢ ƛ (ƛ (ƛ CASE)) ↓ Pᵐ m n g
+P↓Pᵐ zero n g = ↦-intro (↦-intro (↦-intro (CASE↓ 0 n g)))
+P↓Pᵐ (suc m') n g =
+   ⊔-intro (P↓Pᵐ m' n g)
+           (↦-intro (↦-intro (↦-intro (CASE↓ (suc m') n g))))
 ```
 
 We shall need the following lemma, which extracts a single entry from `Pᵐ`.
 
 ```
-prev↦plus⊑Pᵐ : (m k n : ℕ) → (rs : ℕ → Value)
-    → prev-plusᵐ m n rs ↦ plusᵐ m n rs ⊑ Pᵐ (m + k) n rs
-prev↦plus⊑Pᵐ zero zero n rs = ⊑-refl
-prev↦plus⊑Pᵐ (suc m') zero n rs =
-    ⊑-conj-R2 (⊑-fun (⊑-reflexive (cong (λ □ → plusᵐ □ n rs) (+-comm m' 0)))
-                  (⊑-reflexive (cong (λ □ → plusᵐ (suc □) n rs) (+-comm 0 m'))))
-prev↦plus⊑Pᵐ m' (suc k) n rs =
-      let IH = prev↦plus⊑Pᵐ m' k n rs in
+prev↦plus⊑Pᵐ : (m k n : ℕ) → (g : ℕ → Value)
+    → prev-plusᵐ m n g ↦ plusᵐ m n g ⊑ Pᵐ (m + k) n g
+prev↦plus⊑Pᵐ zero zero n g = ⊑-refl
+prev↦plus⊑Pᵐ (suc m') zero n g =
+    ⊑-conj-R2 (⊑-fun (⊑-reflexive (cong (λ □ → plusᵐ □ n g) (+-comm m' 0)))
+                  (⊑-reflexive (cong (λ □ → plusᵐ (suc □) n g) (+-comm 0 m'))))
+prev↦plus⊑Pᵐ m' (suc k) n g =
+      let IH = prev↦plus⊑Pᵐ m' k n g in
       ⊑-trans IH (⊑-trans (⊑-conj-R1 ⊑-refl)
-                    (⊑-reflexive (cong (λ □ → Pᵐ □ n rs) (sym (+-suc m' k)))))
+                    (⊑-reflexive (cong (λ □ → Pᵐ □ n g) (sym (+-suc m' k)))))
 ```
 
 The final step of this proof is to analyze the denotation of the Y
@@ -324,12 +329,12 @@ Y = ƛ M · M
 The M is short for Matryoshka dolls (aka russian doll), which are
 wooden dolls that nest smaller and smaller copies inside themselves.
 In particular, for each m, the term M is a function from all the
-previous denotations for M to `plusᵐ m n rs`.
+previous denotations for M to `plusᵐ m n g`.
 
     ⟦M₀⟧ = ⊥
-    ⟦M₁⟧ = (⟦M₀⟧) ↦ plusᵐ 0 n rs
-    ⟦M₂⟧ = (⟦M₀⟧ ⊔ ⟦M₁⟧) ↦ plusᵐ 1 n rs
-    ⟦M₃⟧ = (⟦M₀⟧ ⊔ ⟦M₁⟧ ⊔ ⟦M₂⟧) ↦ plusᵐ 2 n rs
+    ⟦M₁⟧ = (⟦M₀⟧) ↦ plusᵐ 0 n g
+    ⟦M₂⟧ = (⟦M₀⟧ ⊔ ⟦M₁⟧) ↦ plusᵐ 1 n g
+    ⟦M₃⟧ = (⟦M₀⟧ ⊔ ⟦M₁⟧ ⊔ ⟦M₂⟧) ↦ plusᵐ 2 n g
     ...
 
 We define the function `Mᵐ` to compute the above denotations
@@ -339,26 +344,26 @@ previous denotations of M.
 ```
 Mᵐ : (m n : ℕ) → (ℕ → Value) → Value
 Ms : (m n : ℕ) → (ℕ → Value) → Value
-Mᵐ 0 n rs = ⊥
-Mᵐ (suc m') n rs = (Ms m' n rs)  ↦  plusᵐ m' n rs
-Ms zero n rs = ⊥
-Ms (suc m') n rs = Ms m' n rs ⊔  Mᵐ (suc m') n rs
+Mᵐ 0 n g = ⊥
+Mᵐ (suc m') n g = (Ms m' n g)  ↦  plusᵐ m' n g
+Ms zero n g = ⊥
+Ms (suc m') n g = Ms m' n g ⊔  Mᵐ (suc m') n g
 ```
 
 We prove by cases that the term M has
-the denotation `Mᵐ i n rs` for any i from 0 to m + 1,
-assuming the `f` parameter has the denotation `Pᵐ m n rs`.
+the denotation `Mᵐ i n g` for any i from 0 to m + 1,
+assuming the `f` parameter has the denotation `Pᵐ m n g`.
 
 ```
-M↓ : (i k m n : ℕ) (rs : ℕ → Value) {lt : suc m ≡ i + k}
-   → `∅ `, Pᵐ m n rs ⊢ M ↓ Mᵐ i n rs
-M↓ zero k m n rs = ⊥-intro
-M↓ (suc i) k m n rs {lt} = ↦-intro (↦-elim (sub var H) x·x↓)
+M↓ : (i k m n : ℕ) (g : ℕ → Value) {lt : suc m ≡ i + k}
+   → `∅ `, Pᵐ m n g ⊢ M ↓ Mᵐ i n g
+M↓ zero k m n g = ⊥-intro
+M↓ (suc i) k m n g {lt} = ↦-intro (↦-elim (sub var H) x·x↓)
   where
-  H : prev-plusᵐ i n rs ↦ plusᵐ i n rs ⊑ Pᵐ m n rs
-  H = ⊑-trans (prev↦plus⊑Pᵐ i k n rs)
-              (⊑-reflexive (cong (λ □ → Pᵐ □ n rs) (sym (suc-injective lt))))
-  x·x↓ : ∀{i} → `∅ `, Pᵐ m n rs `, Ms i n rs ⊢ (# 0) · (# 0) ↓ prev-plusᵐ i n rs
+  H : prev-plusᵐ i n g ↦ plusᵐ i n g ⊑ Pᵐ m n g
+  H = ⊑-trans (prev↦plus⊑Pᵐ i k n g)
+              (⊑-reflexive (cong (λ □ → Pᵐ □ n g) (sym (suc-injective lt))))
+  x·x↓ : ∀{i} → `∅ `, Pᵐ m n g `, Ms i n g ⊢ (# 0) · (# 0) ↓ prev-plusᵐ i n g
   x·x↓ {zero} = ⊥-intro
   x·x↓ {suc i} = ↦-elim (sub var (⊑-conj-R2 ⊑-refl))
                      (sub var (⊑-conj-R1 ⊑-refl))
@@ -369,88 +374,88 @@ M↓ (suc i) k m n rs {lt} = ↦-intro (↦-elim (sub var H) x·x↓)
 
 * For the non-zero case, we need to show that M has the value
 
-        Ms i n rs  ↦  plusᵐ i n rs
+        Ms i n g  ↦  plusᵐ i n g
 
   Going under the `ƛ x`, we need to show that `f · (x · x)`
-  has the value `plusᵐ i n rs`. The value of `x · x`
-  is `prev-plusᵐ i n rs`, which we prove by induction on i.
-  The case for 0 is trivial because `prev-plusᵐ 0 n rs ≡ ⊥`.
+  has the value `plusᵐ i n g`. The value of `x · x`
+  is `prev-plusᵐ i n g`, which we prove by induction on i.
+  The case for 0 is trivial because `prev-plusᵐ 0 n g ≡ ⊥`.
   In the case for `suc i`, we need to show that `x · x`
-  produces `plusᵐ i n rs`. Now the first `x` has the value
-  `Ms (suc i) n rs`, so by the `sub` rule and `⊑-conj-R2`,
-  it also has the value `Mᵐ (suc m') n rs`, which is equivalent to
+  produces `plusᵐ i n g`. Now the first `x` has the value
+  `Ms (suc i) n g`, so by the `sub` rule and `⊑-conj-R2`,
+  it also has the value `Mᵐ (suc m') n g`, which is equivalent to
 
-        Ms m' n rs  ↦  plusᵐ m' n rs
+        Ms m' n g  ↦  plusᵐ m' n g
 
   The second `x`, of course, has the value
-  `Ms (suc i) n rs`, so by the `sub` rule and `⊑-conj-R1`,
+  `Ms (suc i) n g`, so by the `sub` rule and `⊑-conj-R1`,
   is has the value
   
-        Ms m' n rs
+        Ms m' n g
 
-  So indeed, apply `x` to itself produces the value `plusᵐ m' n rs`.
+  So indeed, apply `x` to itself produces the value `plusᵐ m' n g`.
 
 
 With the above lemma in hand, it is also straightforward to prove that
-the term M also produces the value `Ms i n rs` for each i from 0 to m + 1.
+the term M also produces the value `Ms i n g` for each i from 0 to m + 1.
 We prove this by a straightforward induction on i.
 
 ```
-M↓Ms : (i k m n : ℕ) (rs : ℕ → Value) {lt : suc m ≡ i + k}
-   → `∅ `, Pᵐ m n rs ⊢ M ↓ Ms i n rs
-M↓Ms zero k m n rs {lt} = ⊥-intro
-M↓Ms (suc i) k m n rs {lt} =
-    ⊔-intro (M↓Ms i (suc k) m n rs {trans lt (sym (+-suc i k))})
-            (M↓ (suc i) k m n rs {lt})
+M↓Ms : (i k m n : ℕ) (g : ℕ → Value) {lt : suc m ≡ i + k}
+   → `∅ `, Pᵐ m n g ⊢ M ↓ Ms i n g
+M↓Ms zero k m n g {lt} = ⊥-intro
+M↓Ms (suc i) k m n g {lt} =
+    ⊔-intro (M↓Ms i (suc k) m n g {trans lt (sym (+-suc i k))})
+            (M↓ (suc i) k m n g {lt})
 ```
 
 Now for the meaning of the Y combinator. It takes the table of the
-plus functions (`Pᵐ m n rs`), the meaning of the Scott numeral for m
-(`Dˢ m (ms n rs)`), and the meaning of n (`Dˢ n rs`), and returns the
-meaning of the Scott numeral for `m + n` (`Dˢ (m + n) rs`).
+plus functions (`Pᵐ m n g`), the meaning of the Scott numeral for m
+(`Dˢ m (ms n g)`), and the meaning of n (`Dˢ n g`), and returns the
+meaning of the Scott numeral for `m + n` (`Dˢ (m + n) g`).
 
 ```
-Y↓ : ∀ m n (rs : ℕ → Value)
-   → `∅ ⊢ Y ↓ Pᵐ m n rs ↦ Dˢ m (ms n rs) ↦ Dˢ n rs ↦ Dˢ (m + n) rs
-Y↓ m n rs = ↦-intro (↦-elim M↓₁ M↓₂)
+Y↓ : ∀ m n (g : ℕ → Value)
+   → `∅ ⊢ Y ↓ Pᵐ m n g ↦ Dˢ m (ms n g) ↦ Dˢ n g ↦ Dˢ (m + n) g
+Y↓ m n g = ↦-intro (↦-elim M↓₁ M↓₂)
     where
-    M↓₁ : `∅ `, Pᵐ m n rs ⊢ M
-          ↓ Ms m n rs ↦ Dˢ m (ms n rs) ↦ Dˢ n rs ↦ Dˢ (m + n) rs
-    M↓₁ = (M↓ (suc m) 0 m n rs {cong suc (+-comm 0 m)})
+    M↓₁ : `∅ `, Pᵐ m n g ⊢ M
+          ↓ Ms m n g ↦ Dˢ m (ms n g) ↦ Dˢ n g ↦ Dˢ (m + n) g
+    M↓₁ = (M↓ (suc m) 0 m n g {cong suc (+-comm 0 m)})
     
-    M↓₂ : `∅ `, Pᵐ m n rs ⊢ M ↓ Ms m n rs
-    M↓₂ = (M↓Ms m 1 m n rs {+-comm 1 m})
+    M↓₂ : `∅ `, Pᵐ m n g ⊢ M ↓ Ms m n g
+    M↓₂ = (M↓Ms m 1 m n g {+-comm 1 m})
 ```
 
-We go under the `ƛ f`, so `f` has the value `Pᵐ m n rs`.
+We go under the `ƛ f`, so `f` has the value `Pᵐ m n g`.
 We then show that M applied to itself has the value
 
-    Dˢ m (ms n rs) ↦ Dˢ n rs ↦ Dˢ (m + n) rs
+    Dˢ m (ms n g) ↦ Dˢ n g ↦ Dˢ (m + n) g
 
 We apply the lemma `M↓` as `suc m` to show that the first M
 produces
 
-    Ms m n rs ↦ Dˢ m (ms n rs) ↦ Dˢ n rs ↦ Dˢ (m + n) rs
+    Ms m n g ↦ Dˢ m (ms n g) ↦ Dˢ n g ↦ Dˢ (m + n) g
 
 We apply the lemma `M↓Ms` to show that the second M produces
 
-    Ms m n rs
+    Ms m n g
 
 So putting the above two together, the application `M · M`
 produces the following, as desired.
 
-    Dˢ m (ms n rs) ↦ Dˢ n rs ↦ Dˢ (m + n) rs
+    Dˢ m (ms n g) ↦ Dˢ n g ↦ Dˢ (m + n) g
 
 
 We arrive at the finish line: our theorem that the addition of two
 Scott numerals produces the Scott numeral of the sum.
 
 ```  
-plus[m,n] : ∀{m n : ℕ}{rs : ℕ → Value}
-       → `∅ ⊢ (plus · scott m) · (scott n) ↓ Dˢ (m + n) rs
-plus[m,n] {m}{n}{rs} =
-  ↦-elim (↦-elim (↦-elim (Y↓ m n rs) (P↓Pᵐ m n rs)) (denot-scott{m}{ms n rs}))
-         (denot-scott{n}{rs})
+plus[m,n] : ∀{m n : ℕ}{g : ℕ → Value}
+       → `∅ ⊢ (plus · scott m) · (scott n) ↓ Dˢ (m + n) g
+plus[m,n] {m}{n}{g} =
+  ↦-elim (↦-elim (↦-elim (Y↓ m n g) (P↓Pᵐ m n g)) (denot-scott{m}{ms n g}))
+         (denot-scott{n}{g})
 ```
 
 The `plus` function is the Y combinator applied to `ƛ r ⇒ ƛ m ⇒ ƛ n ...`,

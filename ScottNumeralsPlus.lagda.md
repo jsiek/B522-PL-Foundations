@@ -175,7 +175,7 @@ and `n` is indeed `Dˢ (1 + n) g` when `m` is 1.
 
 We have seen the denotation of `plus` for `m` at zero and one, and now
 we need to generalize to arbitrary numbers. So let us review
-the denotations that we obtained for `m`:
+the denotations that we obtained for parameter `m`:
 
     ⟦m₀⟧ = ⊥ ↦ Dˢ n g ↦ Dˢ n g
     ⟦m₁⟧ = (⟦m₀⟧ ↦ Dˢ (1 + n) g) ↦ ⊥ ↦ Dˢ (1 + n) g

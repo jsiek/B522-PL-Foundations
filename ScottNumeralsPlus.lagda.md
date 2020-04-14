@@ -428,8 +428,9 @@ Y↓ m n g = ↦-intro (↦-elim M↓₁ M↓₂)
     M↓₂ = (M↓Ms m 1 m n g {+-comm 1 m})
 ```
 
-We go under the `ƛ f`, so `f` has the value `Pᵐ m n g`.
-We then show that M applied to itself has the value
+The proof is as follows. We first go under the `ƛ f` with `↦-intro`,
+so `f` has the value `Pᵐ m n g`.  We then show that M applied to
+itself has the value
 
     Dˢ m (ms n g) ↦ Dˢ n g ↦ Dˢ (m + n) g
 
@@ -448,8 +449,8 @@ produces the following, as desired.
     Dˢ m (ms n g) ↦ Dˢ n g ↦ Dˢ (m + n) g
 
 
-We arrive at the finish line: our theorem that the addition of two
-Scott numerals produces the Scott numeral of the sum.
+We now arrive at the finish line: the addition of two Scott numerals
+produces the Scott numeral of the sum.
 
 ```  
 plus[m,n] : ∀{m n : ℕ}{g : ℕ → Value}

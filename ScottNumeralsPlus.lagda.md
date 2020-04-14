@@ -238,12 +238,12 @@ CASE↓ : (m n : ℕ) (g : ℕ → Value)
       → `∅ `, prev-plusᵐ m n g `, Dˢ m (ms n g) `, Dˢ n g
         ⊢ CASE ↓ Dˢ (m + n) g
 CASE↓ zero n g = ↦-elim (↦-elim var ⊥-intro) var
-CASE↓ (suc m') n g = ↦-elim (↦-elim var Sbranch) ⊥-intro
+CASE↓ (suc m') n g = ↦-elim (↦-elim var nz-branch) ⊥-intro
     where
     γ = `∅ `, prev-plusᵐ (suc m') n g `, Dˢ (suc m') (ms n g) `, Dˢ n g
-    Sbranch : γ ⊢ ƛ (`suc ((# 3) · (# 0) · (# 1)))
+    nz-branch : γ ⊢ ƛ (`suc ((# 3) · (# 0) · (# 1)))
                 ↓ Dˢ m' (ms n g) ↦ Dˢ (suc m' + n) g
-    Sbranch = ↦-intro (denot-suc (↦-elim (↦-elim var var) var))
+    nz-branch = ↦-intro (denot-suc (↦-elim (↦-elim var var) var))
 ```
 
 * When `m ≡ 0`, the denotation of m is `⊥ ↦ Dˢ n g ↦  Dˢ n g`.

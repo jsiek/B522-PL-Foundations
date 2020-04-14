@@ -397,9 +397,9 @@ M↓ (suc i) k m n g {lt} = ↦-intro (↦-elim (sub var H) x·x↓)
   So indeed, apply `x` to itself produces the value `plusᵐ m' n g`.
 
 
-With the above lemma in hand, it is also straightforward to prove that
-the term M also produces the value `Ms i n g` for each i from 0 to m + 1.
-We prove this by a straightforward induction on i.
+With the lemma `M↓` in hand, we prove that the term M also produces
+the value `Ms i n g` for each i from 0 to m + 1.  We prove this by a
+straightforward induction on i.
 
 ```
 M↓Ms : (i k m n : ℕ) (g : ℕ → Value) {lt : suc m ≡ i + k}

@@ -455,6 +455,6 @@ plus[m,n] {m}{n}{rs} =
 
 The `plus` function is the Y combinator applied to `ƛ r ⇒ ƛ m ⇒ ƛ n ...`,
 So we obtain its meaning using `↦-elim` and the lemmas `Y↓` and `P↓Pᵐ`.
-We then apply the result to the denotations of the Scott numerals
+We conclude by appling the result to the denotations of the Scott numerals
 for `m` and `n`.
 

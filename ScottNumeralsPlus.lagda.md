@@ -227,7 +227,7 @@ CASE : ∅ , ★ , ★ , ★ ⊢ ★
 CASE = case (# 1) (# 0) (`suc (# 3 · # 0 · # 1))
 ```
 
-The show that the denotation of `CASE` is `Dˢ (m + n) g`
+We show that the denotation of `CASE` is `Dˢ (m + n) g`
 under the assumptions that the denotation
 of parameter `r` is `prev-plusᵐ m n g`,
 parameter `m` is `Dˢ m (ms n g)`, and parameter `n` is `Dˢ n g`.

@@ -197,7 +197,7 @@ The denotations for each `mᵢ` can now be expressed using `Dˢ` and `ms`:
     ⟦mᵢ⟧ = Dˢ i (ms n g)
 
 Now that we have a succinct way to write the denotation of the `m`
-parameter, we can write down the ith denotation of `plus`.
+parameter, we can write down the denotation of `plus`.
 
 ```
 plusᵐ : (m n : ℕ) → (ℕ → Value) → Value

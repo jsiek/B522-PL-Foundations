@@ -346,8 +346,8 @@ Ms (suc m') n rs = Ms m' n rs ⊔  Mᵐ (suc m') n rs
 ```
 
 We prove by cases that the term M has
-the denotation `Mᵐ i n rs` for each i from 0 to m + 1,
-using the `f` parameter has the denotation `Pᵐ m n rs`.
+the denotation `Mᵐ i n rs` for any i from 0 to m + 1,
+assuming the `f` parameter has the denotation `Pᵐ m n rs`.
 
 ```
 M↓ : (i k m n : ℕ) (rs : ℕ → Value) {lt : suc m ≡ i + k}
@@ -373,31 +373,88 @@ M↓ (suc i) k m n rs {lt} = ↦-intro (↦-elim (sub var H) x·x↓)
 
   Going under the `ƛ x`, we need to show that `f · (x · x)`
   has the value `plusᵐ i n rs`. The value of `x · x`
-  is `prev-plusᵐ i n rs`. 
+  is `prev-plusᵐ i n rs`, which we prove by induction on i.
+  The case for 0 is trivial because `prev-plusᵐ 0 n rs ≡ ⊥`.
+  In the case for `suc i`, we need to show that `x · x`
+  produces `plusᵐ i n rs`. Now the first `x` has the value
+  `Ms (suc i) n rs`, so by the `sub` rule and `⊑-conj-R2`,
+  it also has the value `Mᵐ (suc m') n rs`, which is equivalent to
+
+        Ms m' n rs  ↦  plusᵐ m' n rs
+
+  The second `x`, of course, has the value
+  `Ms (suc i) n rs`, so by the `sub` rule and `⊑-conj-R1`,
+  is has the value
   
+        Ms m' n rs
 
+  So indeed, apply `x` to itself produces the value `plusᵐ m' n rs`.
+
+
+With the above lemma in hand, it is also straightforward to prove that
+the term M also produces the value `Ms i n rs` for each i from 0 to m + 1.
+We prove this by a straightforward induction on i.
 
 ```
-M↓Ms : (m' k m n : ℕ) (rs : ℕ → Value) {lt : suc m ≡ m' + k}
-   → `∅ `, Pᵐ m n rs ⊢ M ↓ Ms m' n rs
+M↓Ms : (i k m n : ℕ) (rs : ℕ → Value) {lt : suc m ≡ i + k}
+   → `∅ `, Pᵐ m n rs ⊢ M ↓ Ms i n rs
 M↓Ms zero k m n rs {lt} = ⊥-intro
-M↓Ms (suc m') k m n rs {lt} =
-    ⊔-intro (M↓Ms m' (suc k) m n rs {trans lt (sym (+-suc m' k))})
-            (M↓ (suc m') k m n rs {lt})
+M↓Ms (suc i) k m n rs {lt} =
+    ⊔-intro (M↓Ms i (suc k) m n rs {trans lt (sym (+-suc i k))})
+            (M↓ (suc i) k m n rs {lt})
 ```
 
+Now for the meaning of the Y combinator. It takes the table of the
+plus functions (`Pᵐ m n rs`), the meaning of the Scott numeral for m
+(`Dˢ m (ms n rs)`), and the meaning of n (`Dˢ n rs`), and returns the
+meaning of the Scott numeral for `m + n` (`Dˢ (m + n) rs`).
+
+```
+Y↓ : ∀ m n (rs : ℕ → Value)
+   → `∅ ⊢ Y ↓ Pᵐ m n rs ↦ Dˢ m (ms n rs) ↦ Dˢ n rs ↦ Dˢ (m + n) rs
+Y↓ m n rs = ↦-intro (↦-elim M↓₁ M↓₂)
+    where
+    M↓₁ : `∅ `, Pᵐ m n rs ⊢ M
+          ↓ Ms m n rs ↦ Dˢ m (ms n rs) ↦ Dˢ n rs ↦ Dˢ (m + n) rs
+    M↓₁ = (M↓ (suc m) 0 m n rs {cong suc (+-comm 0 m)})
+    
+    M↓₂ : `∅ `, Pᵐ m n rs ⊢ M ↓ Ms m n rs
+    M↓₂ = (M↓Ms m 1 m n rs {+-comm 1 m})
+```
+
+We go under the `ƛ f`, so `f` has the value `Pᵐ m n rs`.
+We then show that M applied to itself has the value
+
+    Dˢ m (ms n rs) ↦ Dˢ n rs ↦ Dˢ (m + n) rs
+
+We apply the lemma `M↓` as `suc m` to show that the first M
+produces
+
+    Ms m n rs ↦ Dˢ m (ms n rs) ↦ Dˢ n rs ↦ Dˢ (m + n) rs
+
+We apply the lemma `M↓Ms` to show that the second M produces
+
+    Ms m n rs
+
+So putting the above two together, the application `M · M`
+produces the following, as desired.
+
+    Dˢ m (ms n rs) ↦ Dˢ n rs ↦ Dˢ (m + n) rs
 
 
+We arrive at the finish line: our theorem that the addition of two
+Scott numerals produces the Scott numeral of the sum.
 
 ```  
 plus[m,n] : ∀{m n : ℕ}{rs : ℕ → Value}
        → `∅ ⊢ (plus · scott m) · (scott n) ↓ Dˢ (m + n) rs
 plus[m,n] {m}{n}{rs} =
-  ↦-elim (↦-elim (↦-elim Y↓ (P↓Pᵐ m n rs)) (denot-scott{m}{ms n rs}))
+  ↦-elim (↦-elim (↦-elim (Y↓ m n rs) (P↓Pᵐ m n rs)) (denot-scott{m}{ms n rs}))
          (denot-scott{n}{rs})
-  where
-  Y↓ : `∅ ⊢ Y ↓ Pᵐ m n rs ↦ Dˢ m (ms n rs) ↦ Dˢ n rs ↦ Dˢ (m + n) rs
-  Y↓ = ↦-intro (↦-elim (M↓ (suc m) 0 m n rs {cong suc (+-comm 0 m)})
-                       (M↓Ms m 1 m n rs {+-comm 1 m}))
-  
 ```
+
+The `plus` function is the Y combinator applied to `ƛ r ⇒ ƛ m ⇒ ƛ n ...`,
+So we obtain its meaning using `↦-elim` and the lemmas `Y↓` and `P↓Pᵐ`.
+We then apply the result to the denotations of the Scott numerals
+for `m` and `n`.
+

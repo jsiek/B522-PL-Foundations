@@ -110,9 +110,9 @@ for `m` and `n` is `Dˢ (m + n) g` for any path `g`.
        → `∅ ⊢ (plus · scott m) · (scott n) ↓ Dˢ (m + n) g
 
 In the `plus` function, the recursion is on `m`, i.e., the base case
-is when `m` is zero, and the recursive call to `r` is given `m' = m -
-1`. So let's think about the denotation of `plus` when `m` is `0` and
-then `1`.
+is when `m` is zero and the recursion is on `m' = m - 1`.
+So let's think about the denotation of `plus` when `m` is `0` and
+then `1` on the way to identifying its denotation for arbitrary `m`.
 
 When `m` is `0`, the denotation of `plus` looks like
 

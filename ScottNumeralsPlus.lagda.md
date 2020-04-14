@@ -104,7 +104,7 @@ Bruijn indices.)
     plus = Y · (ƛ r ⇒ ƛ m ⇒ ƛ n ⇒ case m n (ƛ m' ⇒ `suc (r · m' · n)))
 
 We shall prove that the denotation of `plus` applied to the Scott numerals
-for `m` and `n` is `Dˢ (m + n) g` for any path `r`.
+for `m` and `n` is `Dˢ (m + n) g` for any path `g`.
 
     plus[m,n] : ∀{m n : ℕ}{g : ℕ → Value}
        → `∅ ⊢ (plus · scott m) · (scott n) ↓ Dˢ (m + n) g

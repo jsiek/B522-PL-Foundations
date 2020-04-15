@@ -157,7 +157,7 @@ base case is trivial.  For the induction step, we need to show that
 
 So we need to show that
 
-    (1)  subst ((` x ≐ M) ∷ σ') (` x) ≡ ((` x ≐ M) ∷ σ') M
+    (1)  subst ((` x ≐ M) ∷ σ') (` x) ≡ subst ((` x ≐ M) ∷ σ') M
     (2)  (` x ≐ M) ∷ σ'  unifies σ'
 
 For the proof of (1), we have

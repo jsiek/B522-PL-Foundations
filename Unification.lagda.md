@@ -38,7 +38,7 @@ open import FirstOrderTerms Op op-eq? arity public
 ## Introduction to Unification
 
 This chapter lays the groundwork for the chapter on Hindley-Milner
-type inference ([HM-TypeInference](./HM-TypeInference.lagda.md)).
+type inference ([TypeInference](./TypeInference.lagda.md)).
 Type inference produces equations over types, such as
 
     α = β ⇒ Nat

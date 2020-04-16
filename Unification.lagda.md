@@ -129,17 +129,22 @@ the solution, a substitution σ.
    provided that `f ≡ f'`. Otherwise report that there are no solutions.
 
 
-The rest of this Chapter is organized as follows.  We first prove some
-properties about `unifies`, in particular, that `unifies` is
-reflexive, that `unifies` is preserved and reflected by substitution,
-and that there are no unifiers for an equation of the form `x ≐ M`
-when `x` occurs in `M`. Then we turn to the proof of termination of
-Martelli and Montanari's unification algorithm, defining a measure
-function and proving lemmas that show the measure decreases for each
-of the recursive calls. Those lemmas then enable the definition of the
-`unify` function by well-founded recursion on the measure. Finally, we
-prove that `unify` is correct, which is to say that it returns a
-unifier for the equations if and only if one exists.
+The rest of this Chapter defines a `unify` function that implements
+the algorithm of Martelli and Montanari and proves that it is correct.
+We first prove some necessary properties about `unifies`, in
+particular, that `unifies` is reflexive, that `unifies` is preserved
+and reflected by substitution, and that there are no unifiers for an
+equation of the form `x ≐ M` when `x` occurs in `M`. Then we turn to
+the proof of termination of Martelli and Montanari's unification
+algorithm, defining a measure function and proving lemmas that show
+the measure decreases for each of the recursive calls. Those lemmas
+then enable the definition of the `unify` function by well-founded
+recursion on the measure. Finally, we prove that `unify` is correct,
+which is to say that `unify` is sound and complete:
+
+1. (Soundness) If it returns a substitution σ, then σ unifies the equations.
+2. (Completeness) If it returns `no-solution`, then
+   there are no substitutions that unify the equations.
 
 ## Properties of Unifiers
 
@@ -771,10 +776,12 @@ unify eqs = unify-rec eqs [] (<₃-wellFounded (measure eqs []))
 
 ## Proof that Unify is Correct
 
-We shall prove that the `unify` function is correct in that
+We shall now prove that the `unify` function is correct, i.e., that it
+is sound and complete with respect to `unifies`:
 
-1. (Soundness) If it returns a substitution σ, then σ unifies the equations.
-2. (Completeness) If it returns `no-solution`, then
+1. (Soundness) If `unify` returns a substitution σ,
+  then σ unifies the equations.
+2. (Completeness) If `unify` returns `no-solution`, then
    there are no substitutions that unify the equations.
 
 The `unify` function merely kicks things off, and all the real
@@ -787,10 +794,11 @@ The `unify-rec` function has two preconditions:
 2. the variables in the domain of σ do not occur in the current equations
    (because we've eliminated them).
 
-In the proofs of soundness and completeness, to invoke the induction
-hypothesis, we need to establish the above two preconditions for the
-new substitution and the new set of equations. Regarding idempotency,
-we shall use the `insert-subst` lemma from the module
+In the proofs of these soundness and completeness lemmas, to invoke
+the induction hypothesis, we need to establish the above two
+preconditions for the new substitution and the new set of
+equations. Regarding idempotency, we shall use the `insert-subst`
+lemma from the module
 [`TermSubstUnify`](./TermSubstUnify.lagda.md). To satisfy one of the
 premises of that lemma, we sometimes need the following simple lemma
 that commutes the union of two sets.
@@ -1141,10 +1149,10 @@ termination of `unify-rec`.  We proceed by cases on the equations
 The soundness theorem follows directly from `unify-rec-sound`.
 
 ```
-unify-sound : ∀{eqs}{σ}
+unify-sound : ∀ eqs σ
    → unify eqs ≡ finished σ
    → σ unifies eqs
-unify-sound {eqs}{σ} unify-eqs-σ =
+unify-sound eqs σ unify-eqs-σ =
     proj₁ (unify-rec-sound {eqs}{[]}{σ}{M} empty G unify-eqs-σ)
     where
     M : Acc _<₃_ (measure eqs [])
@@ -1225,10 +1233,10 @@ The completeness theorem for `unify` follows directly from the
 lemma `unify-rec-complete`.
 
 ```
-unify-complete :  ∀{eqs}
+unify-complete :  ∀ eqs
    → unify eqs ≡ no-solution
    → ∀ θ → ¬ θ unifies eqs
-unify-complete {eqs} unify[eqs]=no θ θeqs =
+unify-complete eqs unify[eqs]=no θ θeqs =
     unify-rec-complete {eqs}{[]}{M} empty G unify[eqs]=no θ ⟨ θeqs , tt ⟩
     where
     M : Acc _<₃_ (measure eqs [])
@@ -1236,3 +1244,6 @@ unify-complete {eqs} unify[eqs]=no θ θeqs =
     G : vars-eqs eqs ∩ ∅ ⊆ ∅
     G rewrite p∩∅≡∅ (vars-eqs eqs) = λ z → z
 ```
+
+
+

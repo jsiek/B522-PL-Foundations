@@ -158,7 +158,8 @@ We shall prove that
 provided that σ is idempotent.  The proof is by induction on σ and the
 base case is trivial.  For the induction step, we need to show that
 
-    (` x ≐ M) ∷ σ'  unifies  (` x ≐ M) ∷ σ'
+    σ' unifies σ'
+    → (` x ≐ M) ∷ σ'  unifies  (` x ≐ M) ∷ σ'
 
 So we need to show that
 
@@ -248,27 +249,29 @@ The following formalizes the proof of the reflexivity property.
 ```
   unifies-refl : ∀{σ} → IdemSubst σ → σ unifies σ
   unifies-refl {[]} empty = tt
-  unifies-refl {(` x ≐ M) ∷ σ} (insert x∉M x∉σ M∩σ⊆∅ SΣ) =
+  unifies-refl {(` x ≐ M) ∷ σ'} (insert x∉M x∉σ' M∩σ⊆∅ SΣ) =
       ⟨ G1 , G2 ⟩
       where
       H = begin⊆
-              vars M ∩ (⁅ x ⁆ ∪ dom σ)
+              vars M ∩ (⁅ x ⁆ ∪ dom σ')
           ⊆⟨ ⊆-reflexive (∪-distribˡ-∩ {vars M}) ⟩
-              (vars M ∩ ⁅ x ⁆) ∪ (vars M ∩ dom σ)
+              (vars M ∩ ⁅ x ⁆) ∪ (vars M ∩ dom σ')
           ⊆⟨ p⊆r→q⊆s→p∪q⊆r∪s (x∉p→p∩⁅x⁆⊆∅ _ _ x∉M) M∩σ⊆∅ ⟩
               ∅ ∪ ∅
           ⊆⟨ ⊆-reflexive (p∪∅≡p _) ⟩
               ∅
           ■
       G1 = begin
-               subst ((` x ≐ M) ∷ σ) (` x)
-           ≡⟨ subst-var-eq {x}{M}{σ} ⟩
+               subst ((` x ≐ M) ∷ σ') (` x)
+           ≡⟨ subst-var-eq {x}{M}{σ'} ⟩
                M
            ≡⟨ sym (M∩domσ⊆∅→subst-id H) ⟩
-               subst ((` x ≐ M) ∷ σ) M
+               subst ((` x ≐ M) ∷ σ') M
            ∎
-      G2 : ((` x ≐ M) ∷ σ) unifies σ
-      G2 = no-vars→ext-unifies (unifies-refl {σ} SΣ) x∉σ x∉σ
+      IH : σ' unifies σ'
+      IH = unifies-refl {σ'} SΣ
+      G2 : ((` x ≐ M) ∷ σ') unifies σ'
+      G2 = no-vars→ext-unifies IH x∉σ' x∉σ'
 ```
 
 ### Substitution preserves unifiers

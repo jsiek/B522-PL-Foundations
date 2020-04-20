@@ -171,12 +171,42 @@ For the proof of (1), we have
     M                             ≡    (σ is idempotent)
     ((` x ≐ M) ∷ σ') M                   
 
-We generalize (2) to the following lemma, which separates the two
-occurences of σ' into separate variables, enabling a proof by
-induction. The proof requires another lemma, `ext-subst` proved
-in the `where` clause, which states that extending a substitution with an
+We generalize (2) to the upcoming lemma named `no-vars→ext-unifies`,
+which separates the two occurences of σ' into separate variables,
+enabling a proof by induction. The proof requires another lemma,
+`ext-subst`, which states that extending a substitution with an
 equation `x ≐ M` does not change the result of applying the
-substitution to a term `L` if  `x` does not occur in `L`.
+substitution to a term `L` if  `x` does not occur in `L` or in `σ`.
+
+```
+private
+  ext-subst : ∀{σ}{x}{M}{L}
+     → x ∉ vars L  →  x ∉ vars-eqs σ
+     → subst ((` x ≐ M) ∷ σ) L ≡ subst σ L
+  ext-subst-vec : ∀{σ}{x}{M}{n}{Ls : Vec Term n}
+     → x ∉ vars-vec Ls  →  x ∉ vars-eqs σ
+     → subst-vec ((` x ≐ M) ∷ σ) Ls ≡ subst-vec σ Ls
+  ext-subst {σ} {x} {M} {` y} x∉L x∉σ
+      with x ≟ y
+  ... | yes refl = ⊥-elim (x∉L (x∈⁅x⁆ x))
+  ... | no xy = subst-var-neq xy
+  ext-subst {σ} {x} {M} {op ⦅ Ls ⦆} x∉L x∉σ =
+      cong (λ □ → op ⦅ □ ⦆) (ext-subst-vec {σ}{x}{M}{Ls = Ls} x∉L x∉σ)
+  ext-subst-vec {σ} {x} {M} {zero} {Ls} x∉Ls x∉σ = refl
+  ext-subst-vec {σ} {x} {M} {suc n} {L ∷ Ls} x∉L∪Ls x∉σ =
+      cong₂ _∷_ (ext-subst {σ}{x}{M}{L} (λ x∈L → x∉L∪Ls (p⊆p∪q _ _ x∈L)) x∉σ)
+                (ext-subst-vec {σ}{x}{M}{n}{Ls} (λ x∈Ls → x∉L∪Ls (q⊆p∪q _ _ x∈Ls)) x∉σ)
+```
+
+In the following proof of `no-vars→ext-unifies`, the important
+reasoning happens in the last part of the where clause, in the proof
+that
+
+    subst σ L ≡ subst σ N
+    → subst ((` x ≐ M) ∷ σ) L ≡ subst ((` x ≐ M) ∷ σ) N
+
+Working from right-to-left in the goal, we apply the `ext-subst` lemma,
+then the premise, and then the `ext-subst` lemma again but in reverse.
 
 ```
 private
@@ -200,23 +230,6 @@ private
       x∉eqs = λ x∈eqs →
         let x∈L∪N∪eqs = p⊆r→p⊆q∪r _ _ _ (p⊆r→p⊆q∪r _ _ _ ⊆-refl) x∈eqs in
         x∉L∪N∪eqs x∈L∪N∪eqs
-        
-      ext-subst : ∀{σ}{x}{M}{L}
-         → x ∉ vars L  →  x ∉ vars-eqs σ
-         → subst ((` x ≐ M) ∷ σ) L ≡ subst σ L
-      ext-subst-vec : ∀{σ}{x}{M}{n}{Ls : Vec Term n}
-         → x ∉ vars-vec Ls  →  x ∉ vars-eqs σ
-         → subst-vec ((` x ≐ M) ∷ σ) Ls ≡ subst-vec σ Ls
-      ext-subst {σ} {x} {M} {` y} x∉L x∉σ
-          with x ≟ y
-      ... | yes refl = ⊥-elim (x∉L (x∈⁅x⁆ x))
-      ... | no xy = subst-var-neq xy
-      ext-subst {σ} {x} {M} {op ⦅ Ls ⦆} x∉L x∉σ =
-          cong (λ □ → op ⦅ □ ⦆) (ext-subst-vec {σ}{x}{M}{Ls = Ls} x∉L x∉σ)
-      ext-subst-vec {σ} {x} {M} {zero} {Ls} x∉Ls x∉σ = refl
-      ext-subst-vec {σ} {x} {M} {suc n} {L ∷ Ls} x∉L∪Ls x∉σ =
-          cong₂ _∷_ (ext-subst {σ}{x}{M}{L} (λ x∈L → x∉L∪Ls (p⊆p∪q _ _ x∈L)) x∉σ)
-                    (ext-subst-vec {σ}{x}{M}{n}{Ls} (λ x∈Ls → x∉L∪Ls (q⊆p∪q _ _ x∈Ls)) x∉σ)
         
       [x=M]σL=[x=M]σN =
           begin

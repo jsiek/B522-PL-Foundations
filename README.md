@@ -228,10 +228,10 @@ Ideas for project language features:
 |          |  8  | [Adequacy](https://plfa.github.io/Adequacy/), [Recording](https://iu.mediaspace.kaltura.com/media/Lecture+April+8%2C+Adequacy+of+Denotational+Semantics+with+respect+to+Operational+Semantics/1_1eoqorgy) |
 |          | 13  | [ContextualEquivalence](https://plfa.github.io/ContextualEquivalence/) and [ScottNumeralsPlus](./ScottNumeralsPlus.lagda.md), [Recording](https://iu.mediaspace.kaltura.com/media/Lecture+April+13%2C+Contextual+Equivalence%2C+Addition+of+Scott+Numerals/1_xidyzfa5) |
 |          | 15  | [Unification](./Unification.lagda.md), [Recording](https://iu.mediaspace.kaltura.com/media/Lecture+April+15A+Scott+Numerals+continuedB+Unification/1_s9t5bm7r) |
-|          | 20  | [TypeInference](./TypeInference.lagda.md) |
-|          | 22  | Gradual Typing |
-|          | 27  | Universal and Existential Types (Parametric Polymorphism) |
-|          | 29  | References and the Heap |
+|          | 20  | [Unification](./Unification.lagda.md) continued, [Recording](https://iu.mediaspace.kaltura.com/media/Lecture+April+20A+Unification+continued/1_s965cxmw) |
+|          | 22  | [TypeInference](./TypeInference.lagda.md) |
+|          | 27  | Gradual Typing |
+|          | 29  | Universal and Existential Types (Parametric Polymorphism) |
 
 
 ## Resources

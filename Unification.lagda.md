@@ -32,7 +32,7 @@ module Unification
     (op-eq? : (x : Op) → (y : Op) → Dec (x ≡ y))
     (arity : Op → ℕ) where
 
-open import FirstOrderTerms Op op-eq? arity public
+open import FirstOrderTerms Op op-eq? arity
 ```
 
 ## Introduction to Unification

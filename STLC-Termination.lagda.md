@@ -1,4 +1,6 @@
 ```
+{-# OPTIONS --rewriting #-}
+
 module STLC-Termination where
 ```
 
@@ -36,9 +38,10 @@ sig op-zero = []
 sig op-suc = 0 ∷ []
 sig op-case = 0 ∷ 0 ∷ 1 ∷ []
 
-open Syntax Op sig
-  using (`_; _⦅_⦆; cons; nil; bind; ast;
-         _[_]; Subst; ⟪_⟫; ⟦_⟧; exts; _•_; id; exts-sub-cons; sub-id)
+open Syntax using (Rename; _•_; ↑; id; ext; ⦉_⦊)
+
+open Syntax.OpSig Op sig
+  using (`_; _⦅_⦆; cons; nil; bind; ast; _[_]; Subst; ⟪_⟫; ⟦_⟧; exts; exts-sub-cons)
   renaming (ABT to Term) public
 
 infixl 7  _·_
@@ -396,8 +399,8 @@ fundamental-property {B}{Γ}{L · M}{σ} (⊢· {A = A} ⊢L ⊢M) ⊢σ
           N [ M' ]              —↠⟨ →V ⟩
           V                     ∎
 fundamental-property ⊢zero ⊢σ = 𝒱→ℰ {`ℕ} tt
-fundamental-property (⊢suc ⊢M) ⊢σ 
-    with fundamental-property ⊢M ⊢σ
+fundamental-property {σ = σ} (⊢suc ⊢M) ⊢σ 
+    with fundamental-property {σ = σ} ⊢M ⊢σ
 ... | ⟨ V , ⟨ M→V , ⟨ vV , wtv ⟩ ⟩ ⟩ = 
       ⟨ (`suc V) , ⟨ suc-compat M→V , ⟨ (V-suc vV) , wtv ⟩ ⟩ ⟩
 fundamental-property {M = case L M N}{σ = σ} (⊢case ⊢L ⊢M ⊢N) ⊢σ
@@ -418,7 +421,7 @@ fundamental-property {M = case L M N}{σ = σ} (⊢case ⊢L ⊢M ⊢N) ⊢σ
 fundamental-property {M = case L M N}{σ} (⊢case {Γ}{A = A} ⊢L ⊢M ⊢N) ⊢σ
     | ⟨ L' , ⟨ L→L' , ⟨ vL , wtvL' ⟩ ⟩ ⟩
     | Nat-S {V = V} n
-    with fundamental-property {σ = V • σ} ⊢N (extend-sub wtvL' ⊢σ)
+    with fundamental-property {σ = V • σ} ⊢N (extend-sub {V}{σ = σ} wtvL' ⊢σ)
 ... | ⟨ N' , ⟨ N→N' , ⟨ vN , wtvN ⟩ ⟩ ⟩ =
       ⟨ N' , ⟨ R , ⟨ vN , wtvN ⟩ ⟩ ⟩
     where
@@ -442,6 +445,6 @@ terminate : ∀ {M A}
   → Σ[ V ∈ Term ] (M —↠ V) × Value V
 terminate {M} ⊢M
     with fundamental-property {σ = id} ⊢M (λ _ ())
-... | ⟨ V , ⟨ M—↠V , ⟨ vV , 𝒱V ⟩ ⟩ ⟩ rewrite sub-id {M} =
+... | ⟨ V , ⟨ M—↠V , ⟨ vV , 𝒱V ⟩ ⟩ ⟩ =
       ⟨ V , ⟨ M—↠V , vV ⟩ ⟩
 ```

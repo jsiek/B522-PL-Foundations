@@ -1,4 +1,6 @@
 ```
+{-# OPTIONS --rewriting #-}
+
 module lecture-notes-Subtyping where
 ```
 
@@ -465,11 +467,11 @@ sig op-let = 0 ∷ 1 ∷ []
 sig (op-rcd n fs) = repeat 0 n
 sig (op-member f) = 0 ∷ []
 
-open Syntax Op sig
-  using (`_; _⦅_⦆; cons; nil; bind; ast; _[_];
-         Rename; Subst; ⟪_⟫; ⟦_⟧; ⟪_⟫₊; exts; _•_; 
-         ↑; _⨟_; exts-0; exts-suc-rename; rename; ren-args; ext; ⦉_⦊;
-         ext-0; ext-suc; Args; Arg)
+open Syntax using (Rename; _•_; ↑; id; ext; ⦉_⦊)
+
+open Syntax.OpSig Op sig
+  using (`_; _⦅_⦆; cons; nil; bind; ast; _[_]; Subst; ⟪_⟫; ⟦_⟧; ⟪_⟫₊;
+         exts; _⨟_; exts-suc-rename; rename; ren-args; Args; Arg)
   renaming (ABT to Term)
 
 pattern $ p k = (op-const p k) ⦅ nil ⦆
@@ -808,10 +810,8 @@ ext-pres : ∀ {Γ Δ ρ B}
   → WTRename Γ ρ Δ
     --------------------------------
   → WTRename (Γ , B) (ext ρ) (Δ , B)
-ext-pres {ρ = ρ } ⊢ρ Z
-    rewrite ext-0 ρ =  Z
-ext-pres {ρ = ρ } ⊢ρ (S {x = x} ∋x)
-    rewrite ext-suc ρ x =  S (⊢ρ ∋x)
+ext-pres {ρ = ρ } ⊢ρ Z = Z
+ext-pres {ρ = ρ } ⊢ρ (S {x = x} ∋x) =  S (⊢ρ ∋x)
 ```
 
 ```
@@ -855,8 +855,7 @@ exts-pres : ∀ {Γ Δ σ B}
   → WTSubst Γ σ Δ
     --------------------------------
   → WTSubst (Γ , B) (exts σ) (Δ , B)
-exts-pres {σ = σ} Γ⊢σ Z
-    rewrite exts-0 σ = ⊢` Z
+exts-pres {σ = σ} Γ⊢σ Z = ⊢` Z
 exts-pres {σ = σ} Γ⊢σ (S {x = x} ∋x)
     rewrite exts-suc-rename σ x = rename-pres S (Γ⊢σ ∋x)
 ```
@@ -873,19 +872,21 @@ subst : ∀ {Γ Δ σ N A}
   → Γ ⊢ N ⦂ A
     ---------------
   → Δ ⊢ ⟪ σ ⟫ N ⦂ A
-subst Γ⊢σ (⊢` eq)              = Γ⊢σ eq
-subst {σ = σ} Γ⊢σ (⊢λ ⊢N)      = ⊢λ (subst (exts-pres {σ = σ} Γ⊢σ) ⊢N) 
-subst Γ⊢σ (⊢· ⊢L ⊢M)           = ⊢· (subst Γ⊢σ ⊢L) (subst Γ⊢σ ⊢M) 
-subst {σ = σ} Γ⊢σ (⊢μ ⊢M)      = ⊢μ (subst (exts-pres {σ = σ} Γ⊢σ) ⊢M) 
-subst Γ⊢σ (⊢$ e) = ⊢$ e 
+subst Γ⊢σ (⊢` eq)            = Γ⊢σ eq
+subst {σ = σ} Γ⊢σ (⊢λ ⊢N)    = ⊢λ (subst{σ = exts σ}(exts-pres {σ = σ} Γ⊢σ) ⊢N) 
+subst {σ = σ} Γ⊢σ (⊢· ⊢L ⊢M) = ⊢· (subst{σ = σ} Γ⊢σ ⊢L) (subst{σ = σ} Γ⊢σ ⊢M) 
+subst {σ = σ} Γ⊢σ (⊢μ ⊢M)    = ⊢μ (subst{σ = exts σ} (exts-pres{σ = σ} Γ⊢σ) ⊢M) 
+subst Γ⊢σ (⊢$ e)             = ⊢$ e 
 subst {σ = σ} Γ⊢σ (⊢let ⊢M ⊢N) =
-    ⊢let (subst Γ⊢σ ⊢M) (subst (exts-pres {σ = σ} Γ⊢σ) ⊢N) 
+    ⊢let (subst {σ = σ} Γ⊢σ ⊢M) (subst {σ = exts σ} (exts-pres {σ = σ} Γ⊢σ) ⊢N) 
 subst Γ⊢σ (⊢rcd ⊢Ms dfs) = ⊢rcd (subst-args Γ⊢σ ⊢Ms ) dfs
-subst Γ⊢σ (⊢# {d = d} ⊢R lif liA) = ⊢# {d = d} (subst Γ⊢σ ⊢R) lif liA
-subst Γ⊢σ (⊢<: ⊢N lt) = ⊢<: (subst Γ⊢σ ⊢N) lt
+subst {σ = σ} Γ⊢σ (⊢# {d = d} ⊢R lif liA) =
+    ⊢# {d = d} (subst {σ = σ} Γ⊢σ ⊢R) lif liA
+subst {σ = σ} Γ⊢σ (⊢<: ⊢N lt) = ⊢<: (subst {σ = σ} Γ⊢σ ⊢N) lt
 
 subst-args Γ⊢σ ⊢*nil = ⊢*nil
-subst-args Γ⊢σ (⊢*cons ⊢M ⊢Ms) = ⊢*cons (subst Γ⊢σ ⊢M) (subst-args Γ⊢σ ⊢Ms)
+subst-args {σ = σ} Γ⊢σ (⊢*cons ⊢M ⊢Ms) =
+    ⊢*cons (subst {σ = σ} Γ⊢σ ⊢M) (subst-args Γ⊢σ ⊢Ms)
 ```
 
 ```
@@ -894,7 +895,7 @@ substitution : ∀{Γ A B M N}
    → (Γ , A) ⊢ N ⦂ B
      ---------------
    → Γ ⊢ N [ M ] ⦂ B
-substitution {Γ}{A}{B}{M}{N} ⊢M ⊢N = subst G ⊢N
+substitution {Γ}{A}{B}{M}{N} ⊢M ⊢N = subst {σ = M • ↑ 0} G ⊢N
     where
     G : ∀ {A₁ : Type} {x : ℕ}
       → (Γ , A) ∋ x ⦂ A₁ → Γ ⊢ ⟪ M • ↑ 0 ⟫ (` x) ⦂ A₁

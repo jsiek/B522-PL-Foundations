@@ -1,4 +1,6 @@
 ```
+{-# OPTIONS --rewriting #-}
+
 module STLCWithRecursion where
 ```
 
@@ -75,7 +77,7 @@ sig op-app = 0 ∷ 0 ∷ []
 sig op-rec = 1 ∷ []
 sig (op-const p k) = []
 
-open Syntax using (Rename; ⦉_⦊; _•_; ↑; ext; ext-0; ext-suc)
+open Syntax using (Rename; ⦉_⦊; _•_; ↑; ext)
 open Syntax.OpSig Op sig
   using (`_; _⦅_⦆; cons; nil; bind; ast; _[_]; Subst; ⟪_⟫; rename;
         exts; exts-0; exts-suc-rename;
@@ -388,10 +390,8 @@ ext-pres : ∀ {Γ Δ ρ B}
   → WTRename Γ ρ Δ
     --------------------------------
   → WTRename (Γ , B) (ext ρ) (Δ , B)
-ext-pres {ρ = ρ } ⊢ρ Z
-    rewrite ext-0 ρ =  Z
-ext-pres {ρ = ρ } ⊢ρ (S {x = x} ∋x)
-    rewrite ext-suc ρ x =  S (⊢ρ ∋x)
+ext-pres {ρ = ρ } ⊢ρ Z =  Z
+ext-pres {ρ = ρ } ⊢ρ (S {x = x} ∋x) = S (⊢ρ ∋x)
 ```
 
 ```
@@ -430,9 +430,9 @@ subst : ∀ {Γ Δ σ N A}
     ---------------
   → Δ ⊢ ⟪ σ ⟫ N ⦂ A
 subst Γ⊢σ (⊢` eq)              = Γ⊢σ eq
-subst {σ = σ} Γ⊢σ (⊢ƛ ⊢N)      = ⊢ƛ (subst (exts-pres {σ = σ} Γ⊢σ) ⊢N) 
-subst Γ⊢σ (⊢· ⊢L ⊢M)           = ⊢· (subst Γ⊢σ ⊢L) (subst Γ⊢σ ⊢M) 
-subst {σ = σ} Γ⊢σ (⊢μ ⊢M)      = ⊢μ (subst (exts-pres {σ = σ} Γ⊢σ) ⊢M) 
+subst {σ = σ} Γ⊢σ (⊢ƛ ⊢N)      = ⊢ƛ (subst {σ = exts σ} (exts-pres {σ = σ} Γ⊢σ) ⊢N) 
+subst {σ = σ} Γ⊢σ (⊢· ⊢L ⊢M)           = ⊢· (subst {σ = σ} Γ⊢σ ⊢L) (subst {σ = σ} Γ⊢σ ⊢M) 
+subst {σ = σ} Γ⊢σ (⊢μ ⊢M)      = ⊢μ (subst {σ = exts σ} (exts-pres {σ = σ} Γ⊢σ) ⊢M) 
 subst Γ⊢σ (⊢$ e)               = ⊢$ e 
 ```
 
@@ -442,7 +442,7 @@ substitution : ∀{Γ A B M N}
    → (Γ , A) ⊢ N ⦂ B
      ---------------
    → Γ ⊢ N [ M ] ⦂ B
-substitution {Γ}{A}{B}{M}{N} ⊢M ⊢N = subst G ⊢N
+substitution {Γ}{A}{B}{M}{N} ⊢M ⊢N = subst {σ = M • ↑ 0} G ⊢N
     where
     G : ∀ {A₁ : Type} {x : ℕ}
       → (Γ , A) ∋ x ⦂ A₁ → Γ ⊢ ⟪ M • ↑ 0 ⟫ (` x) ⦂ A₁

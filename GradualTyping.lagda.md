@@ -15,7 +15,7 @@ open import Data.Product using (_×_; Σ; Σ-syntax; ∃; ∃-syntax; proj₁; p
    renaming (_,_ to ⟨_,_⟩)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; sym; cong; cong₂)
-
+open import Relation.Nullary using (¬_)
 ```
 
 ## Primitives
@@ -390,7 +390,7 @@ data _⊢_⦂_ : Context → cc-Term → Type → Set where
     → Γ ⊢ M ⦂ A
     → A ~ B
       -----------------------
-    → Γ ⊢ M ⟨ A ⇛ B ⟩ ⦂ A `⊎ B
+    → Γ ⊢ M ⟨ A ⇛ B ⟩ ⦂ B
 
   ⊢blame : ∀ {Γ A}
       -------------
@@ -562,6 +562,32 @@ data _—→_ : cc-Term → cc-Term → Set where
     → (v : Value V)
       ----------------------------------------------------------------
     → V ⟨ (A ⇒ B) ⇛ (C ⇒ D) ⟩ —→ ƛ (app V ((^ 0) ⟨ C ⇛ A ⟩)) ⟨ B ⇛ D ⟩
+
+  cast⋆ : ∀ {V : cc-Term} {A B : Type}
+    → (v : Value V) → A ~ B
+      ------------------------------------
+    → V ⟨ A ⇛ ⋆ ⟩ ⟨ ⋆ ⇛ B ⟩ —→ V ⟨ A ⇛ B ⟩
+
+  cast-fail : ∀ {V : cc-Term} {A B : Type}
+    → (v : Value V) → ¬ (A ~ B)
+      ------------------------------
+    → V ⟨ A ⇛ ⋆ ⟩ ⟨ ⋆ ⇛ B ⟩ —→ blame
+
+  cast× : ∀ {V : cc-Term} {A B C D : Type}
+    → (v : Value V)
+      -----------------------------------------------------------
+    → V ⟨ (A `× B) ⇛ (C `× D) ⟩ —→ cc-pair ((cc-fst V) ⟨ A ⇛ C ⟩)
+                                           ((cc-snd V) ⟨ B ⇛ D ⟩)
+
+  cast-inl : ∀ {V : cc-Term} {A B C D : Type}
+    → (v : Value V)
+      --------------------------------------------------------
+    → cc-inl V ⟨ (A `⊎ B) ⇛ (C `⊎ D) ⟩ —→ cc-inl (V ⟨ A ⇛ C ⟩)
+
+  cast-inr : ∀ {V : cc-Term} {A B C D : Type}
+    → (v : Value V)
+      --------------------------------------------------------
+    → cc-inr V ⟨ (A `⊎ B) ⇛ (C `⊎ D) ⟩ —→ cc-inr (V ⟨ B ⇛ D ⟩)
 
 infix  2 _—↠_
 infixr 2 _—→⟨_⟩_

@@ -1,3 +1,5 @@
+{-# OPTIONS --rewriting #-}
+
 module FiniteSet where
 
 {-
@@ -9,6 +11,8 @@ module FiniteSet where
 
 -}
 
+open import Agda.Builtin.Equality
+open import Agda.Builtin.Equality.Rewrite
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Nat
 open import Data.Nat.Properties using (∣n-n∣≡0; +-comm; ⊔-comm; ≤-refl; ≤-reflexive; ≤-step)
@@ -151,9 +155,13 @@ abstract
   ∣∅∣≡0 : ∣ ∅ ∣ ≡ 0  
   ∣∅∣≡0 = refl
 
+  {-# REWRITE ∣∅∣≡0 #-}
+
   ∣⁅x⁆∣≡1 : ∀ x → ∣ ⁅ x ⁆ ∣ ≡ 1
   ∣⁅x⁆∣≡1 zero = refl
   ∣⁅x⁆∣≡1 (suc x) = ∣⁅x⁆∣≡1 x
+
+  {-# REWRITE ∣⁅x⁆∣≡1 #-}
 
   x∈⁅x⁆ : ∀ x → x ∈ ⁅ x ⁆
   x∈⁅x⁆ zero = tt
@@ -215,11 +223,18 @@ abstract
   ∅∪p≡p [] = refl
   ∅∪p≡p (x ∷ p) = refl
 
-  {- correct location? -}
+  {-# REWRITE p∪∅≡p ∅∪p≡p #-}
+  
   p∩∅≡∅ : ∀ p → p ∩ ∅ ≡ ∅
   p∩∅≡∅ [] = refl
   p∩∅≡∅ (x ∷ p) = refl
 
+  ∅∩p≡∅ : ∀ p → ∅ ∩ p ≡ ∅
+  ∅∩p≡∅ [] = refl
+  ∅∩p≡∅ (x ∷ p) = refl
+
+  {-# REWRITE p∩∅≡∅ ∅∩p≡∅ #-}
+  
   {------------------------
    Domination Laws
    ------------------------}
@@ -238,6 +253,8 @@ abstract
   ∩-idem (false ∷ p) rewrite ∩-idem p = refl
   ∩-idem (true ∷ p) rewrite ∩-idem p = refl
 
+  {-# REWRITE ∪-idem ∩-idem #-}
+  
   {------------------------
    Complementation Laws
    ------------------------}
@@ -317,6 +334,8 @@ abstract
   ∩-assoc (a ∷ p) (b ∷ q) (c ∷ r)
       rewrite ∧-assoc a b c
       | ∩-assoc p q r = refl
+
+  {-# REWRITE ∪-assoc ∩-assoc #-}
 
   {-------------------------
    Distributive Laws
@@ -428,6 +447,8 @@ abstract
   p-∅≡p [] = refl
   p-∅≡p (x ∷ p) = refl
 
+  {-# REWRITE p-∅≡p #-}
+  
   ⁅y⁆-⁅x⁆≡⁅y⁆ : ∀ {x y } → x ≢ y → ⁅ y ⁆ - ⁅ x ⁆ ≡ ⁅ y ⁆
   ⁅y⁆-⁅x⁆≡⁅y⁆ {zero} {zero} xy = ⊥-elim (xy refl)
   ⁅y⁆-⁅x⁆≡⁅y⁆ {suc x} {zero} xy = refl

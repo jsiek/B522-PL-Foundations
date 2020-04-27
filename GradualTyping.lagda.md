@@ -221,8 +221,8 @@ data _⊢G_⦂_ : Context → Term → Type → Set where
     → Γ ⊢G M ⦂ B
     → A ▹ A₁ ⇒ A₂
     → A₁ ~ B
-      -------------
-    → Γ ⊢G L · M ⦂ B
+      --------------
+    → Γ ⊢G L · M ⦂ A₂
 
   ⊢$ : ∀{Γ p k A}
      → A ≡ typeof p

@@ -194,6 +194,12 @@ infix  4  _⨟_⊢_⦂_
 
 data _⨟_⊢_⦂_ : Context → ℕ → Term → Type → Set where
 
+  -- Constants
+  ⊢$ : ∀{Γ Δ p k A}
+     → A ≡ typeof p
+       -------------
+     → Γ ⨟ Δ ⊢ $ p k ⦂ A
+
   -- Axiom 
   ⊢` : ∀ {Γ Δ x A}
     → Γ ∋ x ⦂ A
@@ -214,16 +220,13 @@ data _⨟_⊢_⦂_ : Context → ℕ → Term → Type → Set where
       -------------
     → Γ ⨟ Δ ⊢ L · M ⦂ B
 
-  ⊢$ : ∀{Γ Δ p k A}
-     → A ≡ typeof p
-       -------------
-     → Γ ⨟ Δ ⊢ $ p k ⦂ A
-
+  -- all-I
   ⊢Λ : ∀ {Γ Δ A N}
     → Γ ⨟ suc Δ ⊢ N ⦂ A
       ----------------------
     → Γ ⨟ Δ ⊢ Λ N ⦂ all A
 
+  -- all-E
   ⊢[·] : ∀{Γ Δ A B N}
     → Δ ⊢ B
     → Γ ⨟ Δ ⊢ N ⦂ all A

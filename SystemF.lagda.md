@@ -10,7 +10,8 @@ module SystemF where
 ## Imports
 
 ```
-import Syntax
+open import Agda.Builtin.Equality
+open import Agda.Builtin.Equality.Rewrite
 open import Data.Bool using () renaming (Bool to 𝔹)
 open import Data.List using (List; []; _∷_)
 open import Data.Nat using (ℕ; zero; suc; _<_; _≤_; z≤n; s≤s)
@@ -19,7 +20,7 @@ open import Data.Product using (_×_; Σ; Σ-syntax; ∃; ∃-syntax; proj₁; p
    renaming (_,_ to ⟨_,_⟩)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; sym; cong; cong₂)
-
+import Syntax
 ```
 
 ## Primitives
@@ -110,8 +111,8 @@ tysig op-all = 1 ∷ []
 ```
 open Syntax.OpSig TyOp tysig
   using (_⨟_;
-         rename-subst-commute; ext-cons-shift; ren-tail; compose-rename;
-         rename→subst; rename-subst; sub-sub; exts-cons-shift; commute-subst)
+         rename-subst-commute; ext-cons-shift; compose-rename;
+         rename→subst; rename-subst; exts-cons-shift; commute-subst)
   renaming (ABT to Type; `_ to tyvar; _⦅_⦆ to _〘_〙;
             cons to tycons; nil to tynil; bind to tybind; ast to tyast;
             _[_] to _⦗_⦘; Subst to TySubst; ⟪_⟫ to ⸂_⸃; ⟦_⟧ to ⧼_⧽;
@@ -481,8 +482,7 @@ compose-ctx-subst : ∀{Γ}{σ₁}{σ₂}
   → ctx-subst σ₂ (ctx-subst σ₁ Γ) ≡ ctx-subst (σ₁ ⨟ σ₂) Γ
 compose-ctx-subst {∅} {σ₁} {σ₂} = refl
 compose-ctx-subst {Γ , A} {σ₁} {σ₂}
-  rewrite sub-sub {A}{σ₁}{σ₂}
-  | compose-ctx-subst {Γ} {σ₁} {σ₂} = refl
+  rewrite compose-ctx-subst {Γ} {σ₁} {σ₂} = refl
 ```
 
 ## Renaming Preserves Well-Formed Types
@@ -597,7 +597,6 @@ ty-rename {ρ} {Δ} {Δ'} {Γ} {_} {.(all _)} ΔρΔ′ (⊢Λ ⊢N)
 ... | IH
     rewrite compose-ctx-rename {Γ}{↑ 1}{ext ρ}
     | ext-cons-shift ρ
-    | ren-tail {ρ ⨟ᵣ ↑ 1}{0}
     | sym (compose-ctx-rename {Γ}{ρ}{↑ 1}) =
     ⊢Λ IH
 ty-rename {ρ} {Δ} {Δ'} {Γ} {_} {_} ΔρΔ′ (⊢[·] {A = A}{B = B} wf ⊢N)
@@ -659,7 +658,6 @@ substitution {Γ}{Δ}{A}{B}{M}{N} ⊢M ⊢N = subst {σ = M • ↑ 0 } G ⊢N
     G {A₁} {zero} Z = ⊢M
     G {A₁} {suc x} (S ∋x) = ⊢` ∋x
 ```
-
 
 ## Type Substitution Preserves Well-Formed Types
 

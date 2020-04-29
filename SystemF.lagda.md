@@ -732,21 +732,33 @@ ty-subst {σ} ΔσΔ′ (⊢` ∋x) = ⊢` (ctx-subst-pres ∋x)
 ty-subst {σ} ΔσΔ′ (⊢ƛ wf ⊢N) =
   ⊢ƛ (subst-pres-wf {σ} ΔσΔ′ wf) (ty-subst {σ} ΔσΔ′ ⊢N)
 ty-subst {σ} ΔσΔ′ (⊢· ⊢L ⊢M) = ⊢· (ty-subst {σ} ΔσΔ′ ⊢L) (ty-subst {σ} ΔσΔ′ ⊢M)
-ty-subst {σ}{Δ}{Δ′}{Γ}{Λ N}{A} ΔσΔ′ (⊢Λ ⊢N)
-    with ty-subst {σ = tyexts σ} (exts-pres-wf ΔσΔ′) ⊢N
-... | IH
-    rewrite ctx-rename-subst (↑ 1) Γ
-    | ctx-rename-subst (↑ 1) (ctx-subst σ Γ)
-    | compose-ctx-subst {Γ}{↑ 1}{tyexts σ}
-    | exts-cons-shift σ
-    | sym (compose-ctx-subst {Γ}{σ}{↑ 1})
-    | sym (ctx-rename-subst (↑ 1) (ctx-subst σ Γ)) =
-    ⊢Λ IH
-ty-subst {σ} ΔσΔ′ (⊢[·] {A = A}{B} wf ⊢N) 
-    with ⊢[·] (subst-pres-wf {σ} ΔσΔ′ wf) (ty-subst {σ} ΔσΔ′ ⊢N)
-... | ⊢N[·]
-    rewrite commute-subst {A}{B}{σ} = 
-    ⊢N[·]
+ty-subst {σ}{Δ}{Δ′}{Γ}{Λ N}{all A} ΔσΔ′ (⊢Λ ⊢N) =
+    let IH = ty-subst {σ = tyexts σ} (exts-pres-wf ΔσΔ′) ⊢N in
+    let ⊢N = subst (λ □ → suc Δ′ ⨟ □ ⊢ N ⦂ ⸂ tyexts σ ⸃ A) GEQ IH in 
+    ⊢Λ ⊢N
+    where
+    GEQ = begin
+            ctx-subst (tyexts σ) (ctx-rename (↑ 1) Γ)
+         ≡⟨ cong (λ □ → ctx-subst (tyexts σ) □) (ctx-rename-subst (↑ 1) Γ) ⟩
+            ctx-subst (tyexts σ) (ctx-subst (↑ 1) Γ)
+         ≡⟨ compose-ctx-subst ⟩
+            ctx-subst (↑ 1 ⨟ tyexts σ) Γ
+         ≡⟨ cong (λ □ → ctx-subst (↑ 1 ⨟ □) Γ) (exts-cons-shift σ)  ⟩
+            ctx-subst (↑ 1 ⨟ ((tyvar 0) • (σ ⨟ ↑ 1))) Γ
+         ≡⟨⟩
+            ctx-subst (σ ⨟ ↑ 1) Γ
+         ≡⟨ sym compose-ctx-subst ⟩
+            ctx-subst (↑ 1) (ctx-subst σ Γ)
+         ≡⟨ sym (ctx-rename-subst (↑ 1) (ctx-subst σ Γ)) ⟩
+            ctx-rename (↑ 1) (ctx-subst σ Γ)
+         ∎
+ty-subst {σ}{Δ}{Δ′}{Γ}{N [·]} ΔσΔ′ (⊢[·] {A = A}{B} wf ⊢N) =
+    let IH = ty-subst {σ} ΔσΔ′ ⊢N in
+    let ⊢N[·] = ⊢[·] (subst-pres-wf {σ} ΔσΔ′ wf) IH in
+    subst (λ □ → Δ′ ⨟ ctx-subst σ Γ ⊢ N [·] ⦂ □) EQ ⊢N[·]
+    where
+    EQ : ⸂ tyexts σ ⸃ A  ⦗ ⸂ σ ⸃ B ⦘ ≡ ⸂ σ ⸃ (A ⦗ B ⦘)
+    EQ = sym (commute-subst {A}{B}{σ})
 ```
 
 ```

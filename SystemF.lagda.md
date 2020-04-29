@@ -734,7 +734,7 @@ ty-subst {σ} ΔσΔ′ (⊢ƛ wf ⊢N) =
 ty-subst {σ} ΔσΔ′ (⊢· ⊢L ⊢M) = ⊢· (ty-subst {σ} ΔσΔ′ ⊢L) (ty-subst {σ} ΔσΔ′ ⊢M)
 ty-subst {σ}{Δ}{Δ′}{Γ}{Λ N}{A} ΔσΔ′ (⊢Λ ⊢N)
     with ty-subst {σ = tyexts σ} (exts-pres-wf ΔσΔ′) ⊢N
-... | IH 
+... | IH
     rewrite ctx-rename-subst (↑ 1) Γ
     | ctx-rename-subst (↑ 1) (ctx-subst σ Γ)
     | compose-ctx-subst {Γ}{↑ 1}{tyexts σ}

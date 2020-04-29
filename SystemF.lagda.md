@@ -740,6 +740,19 @@ ty-subst {σ} ΔσΔ′ (⊢[·] {A = A}{B} wf ⊢N)
     ⊢N[·]
 ```
 
+```
+type-substitution : ∀{B}{Δ}{Γ}{N}{A}
+  → Δ ⊢ B
+  → suc Δ ⨟ Γ ⊢ N ⦂ A
+    -----------------------------------------
+  → Δ ⨟ ctx-subst (B • id) Γ ⊢ N ⦂ A ⦗ B ⦘
+type-substitution {B}{Δ} wfB ⊢N = ty-subst {σ = B • id} G ⊢N
+    where
+    G : WFSubst (suc Δ) (B • id) Δ
+    G {zero} α<Δ = wfB
+    G {suc α} α<Δ = ⊢var (≤-pred α<Δ)
+```
+
 ## Plug Inversion
 
 ```
@@ -770,9 +783,5 @@ preserve ⊢M (ξ {M}{M′} F M—→M′)
 ... | ⟨ B , ⟨ ⊢M' , plug-wt ⟩ ⟩ = plug-wt M′ (preserve ⊢M' M—→M′)
 preserve (⊢· (⊢ƛ wf ⊢N) ⊢M) (β-ƛ vV) = substitution ⊢M ⊢N
 preserve (⊢· (⊢$ refl) (⊢$ refl)) δ = ⊢$ refl
-preserve (⊢[·] {B = B} wf (⊢Λ ⊢N)) β-Λ = ty-subst {σ = B • id} G ⊢N
-    where
-    G : WFSubst 1 (B • id) 0
-    G {zero} α<1 = wf
-    G {suc α} (s≤s ())
+preserve (⊢[·] {B = B} wf (⊢Λ ⊢N)) β-Λ = type-substitution wf ⊢N
 ```

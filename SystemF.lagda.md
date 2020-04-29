@@ -158,6 +158,17 @@ data _∋_⦂_ : Context → ℕ → Type → Set where
     → Γ , B ∋ (suc x) ⦂ A
 ```
 
+```
+ctx-rename : Rename → Context → Context
+ctx-rename ρ ∅ = ∅
+ctx-rename ρ (Γ , A) = ctx-rename ρ Γ , tyrename ρ A
+```
+
+```
+ctx-subst : TySubst → Context → Context
+ctx-subst σ ∅ = ∅
+ctx-subst σ (Γ , A) = ctx-subst σ Γ , ⸂ σ ⸃ A
+```
 
 ## Well-formed Types
 
@@ -191,12 +202,6 @@ data _⊢_ : ℕ → Type → Set where
 
 
 ## Typing judgement
-
-```
-ctx-rename : Rename → Context → Context
-ctx-rename ρ ∅ = ∅
-ctx-rename ρ (Γ , A) = ctx-rename ρ Γ , tyrename ρ A
-```
 
 ```
 infix  4  _⨟_⊢_⦂_
@@ -425,39 +430,7 @@ progress (⊢[·] wfB ⊢N)
 ... | Forall-Λ {M}                          = step β-Λ
 ```
 
-## Weakening Type Variable Environment
-
-```
-weaken-ty : ∀{Δ Δ′ A}
-   → Δ ≤ Δ′
-   → Δ ⊢ A
-   → Δ′ ⊢ A
-weaken-ty Δ≤Δ′ (⊢var α<Δ) = ⊢var (≤-trans α<Δ Δ≤Δ′)
-weaken-ty Δ≤Δ′ ⊢nat = ⊢nat
-weaken-ty Δ≤Δ′ ⊢bool = ⊢bool
-weaken-ty Δ≤Δ′ (⊢fun ⊢A ⊢B) = ⊢fun (weaken-ty Δ≤Δ′ ⊢A) (weaken-ty Δ≤Δ′ ⊢B)
-weaken-ty Δ≤Δ′ (⊢all ⊢A) = ⊢all (weaken-ty (s≤s Δ≤Δ′) ⊢A)
-```
-
-```
-weaken-tyenv : ∀{Γ Δ Δ′ M A}
-   → Δ ≤ Δ′
-   → Δ ⨟ Γ ⊢ M ⦂ A
-   → Δ′ ⨟ Γ ⊢ M ⦂ A
-weaken-tyenv Δ≤Δ′ (⊢$ x) = ⊢$ x
-weaken-tyenv Δ≤Δ′ (⊢` x) = ⊢` x
-weaken-tyenv Δ≤Δ′ (⊢ƛ wf ⊢N) = ⊢ƛ (weaken-ty Δ≤Δ′ wf) (weaken-tyenv Δ≤Δ′ ⊢N)
-weaken-tyenv Δ≤Δ′ (⊢· ⊢L ⊢M) = ⊢· (weaken-tyenv Δ≤Δ′ ⊢L) (weaken-tyenv Δ≤Δ′ ⊢M)
-weaken-tyenv Δ≤Δ′ (⊢Λ ⊢M) = ⊢Λ (weaken-tyenv (s≤s Δ≤Δ′) ⊢M)
-weaken-tyenv Δ≤Δ′ (⊢[·] wf ⊢M) = ⊢[·] (weaken-ty Δ≤Δ′ wf) (weaken-tyenv Δ≤Δ′ ⊢M)
-```
-
-## Renaming 
-
-```
-WTRename : Context → Rename → Context → Set
-WTRename Γ ρ Γ′ = ∀ {x A} → Γ ∋ x ⦂ A → Γ′ ∋ ⦉ ρ ⦊ x ⦂ A
-```
+## Properties of Renaming and Substitution on Contexts
 
 ```
 ctx-rename-pres : ∀{Γ x A ρ}
@@ -476,6 +449,79 @@ ctx-rename-reflect {ρ} {Γ , C} {suc x} (S ∋x)
     with ctx-rename-reflect {ρ} {Γ} {x} ∋x
 ... | ⟨ B , ⟨ refl , ∋x' ⟩ ⟩ =    
       ⟨ B , ⟨ refl , (S ∋x') ⟩ ⟩
+```
+
+```
+compose-ctx-rename : ∀{Γ}{ρ₁}{ρ₂}
+  → ctx-rename ρ₂ (ctx-rename ρ₁ Γ) ≡ ctx-rename (ρ₁ ⨟ᵣ ρ₂) Γ
+compose-ctx-rename {∅} {ρ₁} {ρ₂} = refl
+compose-ctx-rename {Γ , A} {ρ₁} {ρ₂}
+    rewrite compose-rename {A} {ρ₁} {ρ₂}
+    | compose-ctx-rename {Γ} {ρ₁} {ρ₂} = refl
+```
+
+```
+ctx-subst-pres : ∀{Γ x A σ}
+  → Γ ∋ x ⦂ A
+  → ctx-subst σ Γ ∋ x ⦂ ⸂ σ ⸃ A
+ctx-subst-pres Z = Z
+ctx-subst-pres (S ∋x) = S (ctx-subst-pres ∋x)
+```
+
+```
+ctx-rename-subst : ∀ ρ Γ → ctx-rename ρ Γ ≡ ctx-subst (rename→subst ρ) Γ
+ctx-rename-subst ρ ∅ = refl
+ctx-rename-subst ρ (Γ , A)
+    rewrite rename-subst ρ A
+    | ctx-rename-subst ρ Γ = refl
+```
+
+```
+compose-ctx-subst : ∀{Γ}{σ₁}{σ₂}
+  → ctx-subst σ₂ (ctx-subst σ₁ Γ) ≡ ctx-subst (σ₁ ⨟ σ₂) Γ
+compose-ctx-subst {∅} {σ₁} {σ₂} = refl
+compose-ctx-subst {Γ , A} {σ₁} {σ₂}
+  rewrite sub-sub {A}{σ₁}{σ₂}
+  | compose-ctx-subst {Γ} {σ₁} {σ₂} = refl
+```
+
+## Renaming Preserves Well-Formed Types
+
+```
+WFRename : ℕ → Rename → ℕ → Set
+WFRename Δ ρ Δ′ = ∀{α} → α < Δ → Δ′ ⊢ tyvar (⦉ ρ ⦊ α)
+```
+
+```
+ext-pres-wf : ∀{ρ Δ Δ′}
+  → WFRename Δ ρ Δ′
+  → WFRename (suc Δ) (ext ρ) (suc Δ′)
+ext-pres-wf {ρ} ⊢ρ {zero} α<Δ = ⊢var (s≤s z≤n)
+ext-pres-wf {ρ} ⊢ρ {suc α} α<Δ
+    with ⊢ρ {α} (≤-pred α<Δ)
+... | ⊢var lt = ⊢var (s≤s lt)
+```
+
+```
+rename-pres-wf : ∀{ρ}{Δ Δ′}{A}
+  → WFRename Δ ρ Δ′
+  → Δ ⊢ A
+  → Δ′ ⊢ tyrename ρ A
+rename-pres-wf ΔσΔ′ (⊢var α) = ΔσΔ′ α
+rename-pres-wf ΔσΔ′ ⊢nat = ⊢nat
+rename-pres-wf ΔσΔ′ ⊢bool = ⊢bool
+rename-pres-wf {σ} ΔσΔ′ (⊢fun ⊢A ⊢B) =
+    ⊢fun (rename-pres-wf {σ} ΔσΔ′ ⊢A) (rename-pres-wf {σ} ΔσΔ′ ⊢B)
+rename-pres-wf {ρ} ΔσΔ′ (⊢all ⊢A) =
+  let IH = rename-pres-wf {ρ = ext ρ} (ext-pres-wf ΔσΔ′) ⊢A in
+   ⊢all IH
+```
+
+## Term Renaming Preserves Well-Typed Terms
+
+```
+WTRename : Context → Rename → Context → Set
+WTRename Γ ρ Γ′ = ∀ {x A} → Γ ∋ x ⦂ A → Γ′ ∋ ⦉ ρ ⦊ x ⦂ A
 ```
 
 ```
@@ -515,12 +561,16 @@ rename-pres {ρ = ρ} ⊢ρ (⊢Λ ⊢N)      =
 rename-pres {ρ = ρ} ⊢ρ (⊢[·] wf ⊢N) = ⊢[·] wf (rename-pres {ρ = ρ} ⊢ρ ⊢N)
 ```
 
+## Type Renaming Preserves Well-Typed Terms
+
 ```
 rename-base : ∀ ρ b
    → tyrename ρ (typeof-base b) ≡ typeof-base b
 rename-base σ B-Nat = refl
 rename-base σ B-Bool = refl
+```
 
+```
 rename-prim : ∀ ρ p
    → tyrename ρ (typeof p) ≡ typeof p
 rename-prim σ (base B-Nat) = refl
@@ -528,46 +578,6 @@ rename-prim σ (base B-Bool) = refl
 rename-prim σ (b ⇛ p)
     with rename-base σ b | rename-prim σ p
 ... | eq1 | eq2 rewrite eq1 | eq2 = refl 
-```
-
-
-```
-WFRename : ℕ → Rename → ℕ → Set
-WFRename Δ ρ Δ′ = ∀{α} → α < Δ → Δ′ ⊢ tyvar (⦉ ρ ⦊ α)
-```
-
-```
-ext-pres-wf : ∀{ρ Δ Δ′}
-  → WFRename Δ ρ Δ′
-  → WFRename (suc Δ) (ext ρ) (suc Δ′)
-ext-pres-wf {ρ} ⊢ρ {zero} α<Δ = ⊢var (s≤s z≤n)
-ext-pres-wf {ρ} ⊢ρ {suc α} α<Δ
-    with ⊢ρ {α} (≤-pred α<Δ)
-... | ⊢var lt = ⊢var (s≤s lt)
-```
-
-```
-rename-pres-wf : ∀{ρ}{Δ Δ′}{A}
-  → WFRename Δ ρ Δ′
-  → Δ ⊢ A
-  → Δ′ ⊢ tyrename ρ A
-rename-pres-wf ΔσΔ′ (⊢var α) = ΔσΔ′ α
-rename-pres-wf ΔσΔ′ ⊢nat = ⊢nat
-rename-pres-wf ΔσΔ′ ⊢bool = ⊢bool
-rename-pres-wf {σ} ΔσΔ′ (⊢fun ⊢A ⊢B) =
-    ⊢fun (rename-pres-wf {σ} ΔσΔ′ ⊢A) (rename-pres-wf {σ} ΔσΔ′ ⊢B)
-rename-pres-wf {ρ} ΔσΔ′ (⊢all ⊢A) =
-  let IH = rename-pres-wf {ρ = ext ρ} (ext-pres-wf ΔσΔ′) ⊢A in
-   ⊢all IH
-```
-
-```
-compose-ctx-rename : ∀{Γ}{ρ₁}{ρ₂}
-  → ctx-rename ρ₂ (ctx-rename ρ₁ Γ) ≡ ctx-rename (ρ₁ ⨟ᵣ ρ₂) Γ
-compose-ctx-rename {∅} {ρ₁} {ρ₂} = refl
-compose-ctx-rename {Γ , A} {ρ₁} {ρ₂}
-    rewrite compose-rename {A} {ρ₁} {ρ₂}
-    | compose-ctx-rename {Γ} {ρ₁} {ρ₂} = refl
 ```
 
 ```
@@ -595,7 +605,7 @@ ty-rename {ρ} {Δ} {Δ'} {Γ} {_} {_} ΔρΔ′ (⊢[·] {A = A}{B = B} wf ⊢N
     ⊢[·] (rename-pres-wf {ρ} ΔρΔ′ wf) (ty-rename {ρ} ΔρΔ′ ⊢N)
 ```
 
-## Substitution
+## Term Substitution Preserves Well-Typed Terms
 
 ```
 WTSubst : Context → ℕ → Subst → Context → Set
@@ -650,39 +660,8 @@ substitution {Γ}{Δ}{A}{B}{M}{N} ⊢M ⊢N = subst {σ = M • ↑ 0 } G ⊢N
     G {A₁} {suc x} (S ∋x) = ⊢` ∋x
 ```
 
-## Type Substitution
 
-
-```
-subst-base : ∀ σ b
-   → ⸂ σ ⸃ (typeof-base b) ≡ typeof-base b
-subst-base σ B-Nat = refl
-subst-base σ B-Bool = refl
-
-subst-prim : ∀ σ p
-   → ⸂ σ ⸃ (typeof p) ≡ typeof p
-subst-prim σ (base B-Nat) = refl
-subst-prim σ (base B-Bool) = refl
-subst-prim σ (b ⇛ p)
-    with subst-base σ b | subst-prim σ p
-... | eq1 | eq2 rewrite eq1 | eq2 = refl 
-```
-
-
-```
-ctx-subst : TySubst → Context → Context
-ctx-subst σ ∅ = ∅
-ctx-subst σ (Γ , A) = ctx-subst σ Γ , ⸂ σ ⸃ A
-```
-
-
-```
-ctx-subst-pres : ∀{Γ x A σ}
-  → Γ ∋ x ⦂ A
-  → ctx-subst σ Γ ∋ x ⦂ ⸂ σ ⸃ A
-ctx-subst-pres Z = Z
-ctx-subst-pres (S ∋x) = S (ctx-subst-pres ∋x)
-```
+## Type Substitution Preserves Well-Formed Types
 
 ```
 WFSubst : ℕ → TySubst → ℕ → Set
@@ -714,21 +693,23 @@ subst-pres-wf {σ} ΔσΔ′ (⊢all ⊢A) =
   ⊢all IH
 ```
 
+## Type Substitution Preserves Well-Typed Terms
+
 ```
-ctx-rename-subst : ∀ ρ Γ → ctx-rename ρ Γ ≡ ctx-subst (rename→subst ρ) Γ
-ctx-rename-subst ρ ∅ = refl
-ctx-rename-subst ρ (Γ , A)
-    rewrite rename-subst ρ A
-    | ctx-rename-subst ρ Γ = refl
+subst-base : ∀ σ b
+   → ⸂ σ ⸃ (typeof-base b) ≡ typeof-base b
+subst-base σ B-Nat = refl
+subst-base σ B-Bool = refl
 ```
 
 ```
-compose-ctx-subst : ∀{Γ}{σ₁}{σ₂}
-  → ctx-subst σ₂ (ctx-subst σ₁ Γ) ≡ ctx-subst (σ₁ ⨟ σ₂) Γ
-compose-ctx-subst {∅} {σ₁} {σ₂} = refl
-compose-ctx-subst {Γ , A} {σ₁} {σ₂}
-  rewrite sub-sub {A}{σ₁}{σ₂}
-  | compose-ctx-subst {Γ} {σ₁} {σ₂} = refl
+subst-prim : ∀ σ p
+   → ⸂ σ ⸃ (typeof p) ≡ typeof p
+subst-prim σ (base B-Nat) = refl
+subst-prim σ (base B-Bool) = refl
+subst-prim σ (b ⇛ p)
+    with subst-base σ b | subst-prim σ p
+... | eq1 | eq2 rewrite eq1 | eq2 = refl 
 ```
 
 ```

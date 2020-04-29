@@ -74,7 +74,7 @@ sig (op-const p k) = []
 sig op-abs = 0 ∷ []
 sig op-tyapp = 0 ∷ []
 
-open Syntax using (Rename; _•_; ↑; id; ext; ⦉_⦊)
+open Syntax using (Rename; _•_; ↑; id; ext; ⦉_⦊; _⨟ᵣ_)
 
 open Syntax.OpSig Op sig
   using (`_; _⦅_⦆; cons; nil; bind; ast; _[_]; Subst; ⟪_⟫; ⟦_⟧; exts; rename)
@@ -109,7 +109,9 @@ tysig op-all = 1 ∷ []
 
 ```
 open Syntax.OpSig TyOp tysig
-  using (rename-subst-commute)
+  using (_⨟_;
+         rename-subst-commute; ext-cons-shift; ren-tail; compose-rename;
+         rename→subst; rename-subst; sub-sub; exts-cons-shift; commute-subst)
   renaming (ABT to Type; `_ to tyvar; _⦅_⦆ to _〘_〙;
             cons to tycons; nil to tynil; bind to tybind; ast to tyast;
             _[_] to _⦗_⦘; Subst to TySubst; ⟪_⟫ to ⸂_⸃; ⟦_⟧ to ⧼_⧽;
@@ -199,46 +201,46 @@ ctx-rename ρ (Γ , A) = ctx-rename ρ Γ , tyrename ρ A
 ```
 infix  4  _⨟_⊢_⦂_
 
-data _⨟_⊢_⦂_ : Context → ℕ → Term → Type → Set where
+data _⨟_⊢_⦂_ : ℕ → Context → Term → Type → Set where
 
   -- Constants
   ⊢$ : ∀{Γ Δ p k A}
      → A ≡ typeof p
        -------------
-     → Γ ⨟ Δ ⊢ $ p k ⦂ A
+     → Δ ⨟ Γ ⊢ $ p k ⦂ A
 
   -- Axiom 
   ⊢` : ∀ {Γ Δ x A}
     → Γ ∋ x ⦂ A
       -----------
-    → Γ ⨟ Δ ⊢ ` x ⦂ A
+    → Δ ⨟ Γ ⊢ ` x ⦂ A
 
   -- ⇒-I 
   ⊢ƛ : ∀ {Γ Δ N A B}
     → Δ ⊢ A
-    → Γ , A ⨟ Δ ⊢ N ⦂ B
+    → Δ ⨟ Γ , A ⊢ N ⦂ B
       -------------------
-    → Γ ⨟ Δ ⊢ ƛ N ⦂ A ⇒ B
+    → Δ ⨟ Γ ⊢ ƛ N ⦂ A ⇒ B
 
   -- ⇒-E
   ⊢· : ∀ {Γ Δ L M A B}
-    → Γ ⨟ Δ ⊢ L ⦂ A ⇒ B
-    → Γ ⨟ Δ ⊢ M ⦂ A
+    → Δ ⨟ Γ ⊢ L ⦂ A ⇒ B
+    → Δ ⨟ Γ ⊢ M ⦂ A
       -------------
-    → Γ ⨟ Δ ⊢ L · M ⦂ B
+    → Δ ⨟ Γ ⊢ L · M ⦂ B
 
   -- all-I
   ⊢Λ : ∀ {Γ Δ A N}
-    → ctx-rename (↑ 1) Γ ⨟ suc Δ ⊢ N ⦂ A
+    → suc Δ ⨟ ctx-rename (↑ 1) Γ ⊢ N ⦂ A
       ---------------------------------
-    → Γ ⨟ Δ ⊢ Λ N ⦂ all A
+    → Δ ⨟ Γ ⊢ Λ N ⦂ all A
 
   -- all-E
   ⊢[·] : ∀{Γ Δ A B N}
     → Δ ⊢ B
-    → Γ ⨟ Δ ⊢ N ⦂ all A
+    → Δ ⨟ Γ ⊢ N ⦂ all A
       ----------------------
-    → Γ ⨟ Δ ⊢ N [·] ⦂ A ⦗ B ⦘
+    → Δ ⨟ Γ ⊢ N [·] ⦂ A ⦗ B ⦘
 ```
 
 ## Values
@@ -338,7 +340,7 @@ data Function : Term → Set where
   Fun-prim : ∀{b p k} → Function ($ (b ⇛ p) k)
 
 canonical-fun : ∀{V A B}
-  → ∅ ⨟ 0 ⊢ V ⦂ A ⇒ B
+  → 0 ⨟ ∅ ⊢ V ⦂ A ⇒ B
   → Value V
     ----------
   → Function V
@@ -352,7 +354,7 @@ data Constant : Base → Term → Set where
 
 canonical-base : ∀{b V A}
   → A ≡ typeof-base b
-  → ∅ ⨟ 0 ⊢ V ⦂ A
+  → 0 ⨟ ∅ ⊢ V ⦂ A
   → Value V
     ------------
   → Constant b V
@@ -367,7 +369,7 @@ data Forall : Term → Set where
   Forall-Λ : ∀ {N} → Forall (Λ N)
 
 canonical-all : ∀{V A}
-  → ∅ ⨟ 0 ⊢ V ⦂ all A
+  → 0 ⨟ ∅ ⊢ V ⦂ all A
   → Value V
     --------
   → Forall V
@@ -394,7 +396,7 @@ data Progress (M : Term) : Set where
 
 ```
 progress : ∀ {M A}
-  → ∅ ⨟ 0 ⊢ M ⦂ A
+  → 0 ⨟ ∅ ⊢ M ⦂ A
     ------------
   → Progress M
 progress (⊢` ())
@@ -440,8 +442,8 @@ weaken-ty Δ≤Δ′ (⊢all ⊢A) = ⊢all (weaken-ty (s≤s Δ≤Δ′) ⊢A)
 ```
 weaken-tyenv : ∀{Γ Δ Δ′ M A}
    → Δ ≤ Δ′
-   → Γ ⨟ Δ ⊢ M ⦂ A
-   → Γ ⨟ Δ′ ⊢ M ⦂ A
+   → Δ ⨟ Γ ⊢ M ⦂ A
+   → Δ′ ⨟ Γ ⊢ M ⦂ A
 weaken-tyenv Δ≤Δ′ (⊢$ x) = ⊢$ x
 weaken-tyenv Δ≤Δ′ (⊢` x) = ⊢` x
 weaken-tyenv Δ≤Δ′ (⊢ƛ wf ⊢N) = ⊢ƛ (weaken-ty Δ≤Δ′ wf) (weaken-tyenv Δ≤Δ′ ⊢N)
@@ -499,9 +501,9 @@ ext-pres {ρ = ρ } ⊢ρ (S {x = x} ∋x) =  S (⊢ρ ∋x)
 ```
 rename-pres : ∀ {Γ Γ′ Δ ρ M A}
   → WTRename Γ ρ Γ′
-  → Γ ⨟ Δ ⊢ M ⦂ A
+  → Δ ⨟ Γ ⊢ M ⦂ A
     ------------------
-  → Γ′ ⨟ Δ ⊢ rename ρ M ⦂ A
+  → Δ ⨟ Γ′ ⊢ rename ρ M ⦂ A
 rename-pres ⊢ρ (⊢$ eq)              = ⊢$ eq
 rename-pres ⊢ρ (⊢` ∋w)              =  ⊢` (⊢ρ ∋w)
 rename-pres {ρ = ρ} ⊢ρ (⊢ƛ wf ⊢N)   =
@@ -560,20 +562,34 @@ rename-pres-wf {ρ} ΔσΔ′ (⊢all ⊢A) =
 ```
 
 ```
+compose-ctx-rename : ∀{Γ}{ρ₁}{ρ₂}
+  → ctx-rename ρ₂ (ctx-rename ρ₁ Γ) ≡ ctx-rename (ρ₁ ⨟ᵣ ρ₂) Γ
+compose-ctx-rename {∅} {ρ₁} {ρ₂} = refl
+compose-ctx-rename {Γ , A} {ρ₁} {ρ₂}
+    rewrite compose-rename {A} {ρ₁} {ρ₂}
+    | compose-ctx-rename {Γ} {ρ₁} {ρ₂} = refl
+```
+
+```
 ty-rename : ∀{ρ : Rename}{Δ Δ′}{Γ}{N}{A}
   → WFRename Δ ρ Δ′
-  → Γ ⨟ Δ ⊢ N ⦂ A
+  → Δ ⨟ Γ ⊢ N ⦂ A
     -------------------------------------
-  → ctx-rename ρ Γ ⨟ Δ′ ⊢ N ⦂ tyrename ρ A
+  → Δ′ ⨟ ctx-rename ρ Γ ⊢ N ⦂ tyrename ρ A
 ty-rename {ρ} {Δ} {Δ'} {Γ} {_} {A} ΔρΔ′ (⊢$ {p = p} refl) = ⊢$ (rename-prim ρ p)
 ty-rename {ρ} {Δ} {Δ'} {Γ} {_} {A} ΔρΔ′ (⊢` ∋x) = ⊢` (ctx-rename-pres ∋x)
 ty-rename {ρ} {Δ} {Δ'} {Γ} {_} {.(_ ⇒ _)} ΔρΔ′ (⊢ƛ wf ⊢N) =
     ⊢ƛ (rename-pres-wf {ρ} ΔρΔ′ wf) (ty-rename ΔρΔ′ ⊢N)
 ty-rename {ρ} {Δ} {Δ'} {Γ} {_} {A} ΔρΔ′ (⊢· ⊢L ⊢M) =
     ⊢· (ty-rename ΔρΔ′ ⊢L ) (ty-rename ΔρΔ′ ⊢M)
-ty-rename {ρ} {Δ} {Δ'} {Γ} {_} {.(all _)} ΔρΔ′ (⊢Λ ⊢N) =
-    let IH = ty-rename {ext ρ} (ext-pres-wf ΔρΔ′) ⊢N in
-    ⊢Λ {!!}
+ty-rename {ρ} {Δ} {Δ'} {Γ} {_} {.(all _)} ΔρΔ′ (⊢Λ ⊢N)
+    with ty-rename {ext ρ} (ext-pres-wf ΔρΔ′) ⊢N
+... | IH
+    rewrite compose-ctx-rename {Γ}{↑ 1}{ext ρ}
+    | ext-cons-shift ρ
+    | ren-tail {ρ ⨟ᵣ ↑ 1}{0}
+    | sym (compose-ctx-rename {Γ}{ρ}{↑ 1}) =
+    ⊢Λ IH
 ty-rename {ρ} {Δ} {Δ'} {Γ} {_} {_} ΔρΔ′ (⊢[·] {A = A}{B = B} wf ⊢N)
     rewrite sym (rename-subst-commute {A}{B}{ρ}) =
     ⊢[·] (rename-pres-wf {ρ} ΔρΔ′ wf) (ty-rename {ρ} ΔρΔ′ ⊢N)
@@ -583,7 +599,7 @@ ty-rename {ρ} {Δ} {Δ'} {Γ} {_} {_} ΔρΔ′ (⊢[·] {A = A}{B = B} wf ⊢N
 
 ```
 WTSubst : Context → ℕ → Subst → Context → Set
-WTSubst Γ Δ σ Γ′ = ∀ {A x} → Γ ∋ x ⦂ A → Γ′ ⨟ Δ ⊢ ⟪ σ ⟫ (` x) ⦂ A
+WTSubst Γ Δ σ Γ′ = ∀ {A x} → Γ ∋ x ⦂ A → Δ ⨟ Γ′ ⊢ ⟪ σ ⟫ (` x) ⦂ A
 ```
 
 ```
@@ -595,33 +611,38 @@ exts-pres {σ = σ} Γ⊢σ Z = ⊢` Z
 exts-pres {σ = σ} Γ⊢σ (S {x = x} ∋x) = rename-pres {ρ = ↑ 1} S (Γ⊢σ ∋x)
 ```
 
-
+```
+WF↑1 : ∀{Δ} → WFRename Δ (↑ 1) (suc Δ)
+WF↑1 {Δ}{α} α<Δ = ⊢var (s≤s α<Δ)
+```
 
 ```
 subst : ∀ {Γ Γ′ σ N A Δ}
   → WTSubst Γ Δ σ Γ′
-  → Γ ⨟ Δ ⊢ N ⦂ A
+  → Δ ⨟ Γ ⊢ N ⦂ A
     ---------------
-  → Γ′ ⨟ Δ ⊢ ⟪ σ ⟫ N ⦂ A
+  → Δ ⨟ Γ′ ⊢ ⟪ σ ⟫ N ⦂ A
 subst Γ⊢σ (⊢$ e) = ⊢$ e 
 subst Γ⊢σ (⊢` eq)           = Γ⊢σ eq
 subst {σ = σ} Γ⊢σ (⊢ƛ wf ⊢N) = ⊢ƛ wf (subst {σ = exts σ} (exts-pres {σ = σ} Γ⊢σ) ⊢N) 
 subst {σ = σ} Γ⊢σ (⊢· ⊢L ⊢M) = ⊢· (subst {σ = σ} Γ⊢σ ⊢L) (subst {σ = σ} Γ⊢σ ⊢M) 
-subst {Γ}{Γ′}{σ}{Δ = Δ} Γ⊢σ (⊢Λ ⊢N)   = ⊢Λ (subst {σ = σ} {!!} ⊢N)
+subst {Γ}{Γ′}{σ}{Δ = Δ} Γ⊢σ (⊢Λ ⊢N)   = ⊢Λ (subst {σ = σ} G ⊢N)
   where
-  G : WTSubst Γ (suc Δ) σ Γ′
-  G {A}{x} ∋x =
-    let yy = Γ⊢σ {A}{x} ∋x in
-    weaken-tyenv (≤-step ≤-refl) yy
+  G : WTSubst (ctx-rename (↑ 1) Γ) (suc Δ) σ (ctx-rename (↑ 1) Γ′)
+  G {A}{x} ∋x
+      with ctx-rename-reflect {↑ 1}{Γ}{x}{A} ∋x
+  ... | ⟨ B , ⟨ refl , ∋x' ⟩ ⟩ =
+         let ⊢⟦σ⟧x = Γ⊢σ {B}{x} ∋x' in
+         ty-rename{↑ 1}{Δ}{suc Δ} WF↑1 ⊢⟦σ⟧x
 subst {σ = σ} Γ⊢σ (⊢[·] wf ⊢N) = ⊢[·] wf (subst {σ = σ} Γ⊢σ ⊢N)
 ```
 
 ```
 substitution : ∀{Γ Δ A B M N}
-   → Γ ⨟ Δ ⊢ M ⦂ A
-   → (Γ , A) ⨟ Δ ⊢ N ⦂ B
+   → Δ ⨟ Γ ⊢ M ⦂ A
+   → Δ ⨟ (Γ , A) ⊢ N ⦂ B
      ---------------
-   → Γ ⨟ Δ ⊢ N [ M ] ⦂ B
+   → Δ ⨟ Γ ⊢ N [ M ] ⦂ B
 substitution {Γ}{Δ}{A}{B}{M}{N} ⊢M ⊢N = subst {σ = M • ↑ 0 } G ⊢N
     where
     G : WTSubst (Γ , A) Δ (M • ↑ 0) Γ
@@ -669,6 +690,16 @@ WFSubst Δ σ Δ′ = ∀{α} → α < Δ → Δ′ ⊢ ⧼ σ ⧽ α
 ```
 
 ```
+exts-pres-wf : ∀ {Δ Δ′ σ}
+  → WFSubst Δ σ Δ′
+    -----------------------------------
+  → WFSubst (suc Δ) (tyexts σ) (suc Δ′)
+exts-pres-wf ΔσΔ′ {zero} α<Δ = ⊢var (s≤s z≤n)
+exts-pres-wf ΔσΔ′ {suc α} α<Δ =
+    rename-pres-wf {ρ = ↑ 1} WF↑1 (ΔσΔ′ {α} (≤-pred α<Δ))
+```
+
+```
 subst-pres-wf : ∀{σ}{Δ Δ′}{A}
   → WFSubst Δ σ Δ′
   → Δ ⊢ A
@@ -678,44 +709,65 @@ subst-pres-wf ΔσΔ′ ⊢nat = ⊢nat
 subst-pres-wf ΔσΔ′ ⊢bool = ⊢bool
 subst-pres-wf {σ} ΔσΔ′ (⊢fun ⊢A ⊢B) =
     ⊢fun (subst-pres-wf {σ} ΔσΔ′ ⊢A) (subst-pres-wf {σ} ΔσΔ′ ⊢B)
-subst-pres-wf ΔσΔ′ (⊢all ⊢A) =
-  let IH = subst-pres-wf {!!} ⊢A in
+subst-pres-wf {σ} ΔσΔ′ (⊢all ⊢A) =
+  let IH = subst-pres-wf {σ = tyexts σ} (exts-pres-wf ΔσΔ′) ⊢A in
   ⊢all IH
 ```
 
+```
+ctx-rename-subst : ∀ ρ Γ → ctx-rename ρ Γ ≡ ctx-subst (rename→subst ρ) Γ
+ctx-rename-subst ρ ∅ = refl
+ctx-rename-subst ρ (Γ , A)
+    rewrite rename-subst ρ A
+    | ctx-rename-subst ρ Γ = refl
+```
+
+```
+compose-ctx-subst : ∀{Γ}{σ₁}{σ₂}
+  → ctx-subst σ₂ (ctx-subst σ₁ Γ) ≡ ctx-subst (σ₁ ⨟ σ₂) Γ
+compose-ctx-subst {∅} {σ₁} {σ₂} = refl
+compose-ctx-subst {Γ , A} {σ₁} {σ₂}
+  rewrite sub-sub {A}{σ₁}{σ₂}
+  | compose-ctx-subst {Γ} {σ₁} {σ₂} = refl
+```
 
 ```
 ty-subst : ∀{σ : TySubst}{Δ Δ′}{Γ}{N}{A}
   → WFSubst Δ σ Δ′
-  → Γ ⨟ Δ ⊢ N ⦂ A
+  → Δ ⨟ Γ ⊢ N ⦂ A
     -------------------------------
-  → ctx-subst σ Γ ⨟ Δ′ ⊢ N ⦂ ⸂ σ ⸃ A
+  → Δ′ ⨟ ctx-subst σ Γ ⊢ N ⦂ ⸂ σ ⸃ A
 ty-subst {σ} ΔσΔ′ (⊢$ {p = p} refl) = ⊢$ (subst-prim σ p)
 ty-subst {σ} ΔσΔ′ (⊢` ∋x) = ⊢` (ctx-subst-pres ∋x)
 ty-subst {σ} ΔσΔ′ (⊢ƛ wf ⊢N) =
   ⊢ƛ (subst-pres-wf {σ} ΔσΔ′ wf) (ty-subst {σ} ΔσΔ′ ⊢N)
 ty-subst {σ} ΔσΔ′ (⊢· ⊢L ⊢M) = ⊢· (ty-subst {σ} ΔσΔ′ ⊢L) (ty-subst {σ} ΔσΔ′ ⊢M)
-ty-subst {σ}{Δ}{Δ′} ΔσΔ′ (⊢Λ ⊢N) =
-  let IH = ty-subst {σ = tyexts σ} G ⊢N in
-  ⊢Λ {!!}
-  where
-  G : WFSubst (suc Δ) (tyexts σ) (suc Δ′)
-  G {zero} α<sucΔ = ⊢var (s≤s z≤n)
-  G {suc α} α<sucΔ = {!!}
-
-
-ty-subst {σ} ΔσΔ′ (⊢[·] wf ⊢N) = {!!}
+ty-subst {σ}{Δ}{Δ′}{Γ} ΔσΔ′ (⊢Λ ⊢N)
+    with ty-subst {σ = tyexts σ} (exts-pres-wf ΔσΔ′) ⊢N
+... | IH
+    rewrite ctx-rename-subst (↑ 1) Γ
+    | ctx-rename-subst (↑ 1) (ctx-subst σ Γ)
+    | compose-ctx-subst {Γ}{↑ 1}{tyexts σ}
+    | exts-cons-shift σ
+    | sym (compose-ctx-subst {Γ}{σ}{↑ 1})
+    | sym (ctx-rename-subst (↑ 1) (ctx-subst σ Γ)) =
+    ⊢Λ IH
+ty-subst {σ} ΔσΔ′ (⊢[·] {A = A}{B} wf ⊢N) 
+    with ⊢[·] (subst-pres-wf {σ} ΔσΔ′ wf) (ty-subst {σ} ΔσΔ′ ⊢N)
+... | ⊢N[·]
+    rewrite commute-subst {A}{B}{σ} = 
+    ⊢N[·]
 ```
 
 ## Plug Inversion
 
 ```
 plug-inversion : ∀{M F A}
-   → ∅ ⨟ 0 ⊢ plug M F ⦂ A
-     --------------------------------------------------------------------------
+   → 0 ⨟ ∅ ⊢ plug M F ⦂ A
+     --------------------------------------------------
    → Σ[ B ∈ Type ]
-       ∅ ⨟ 0 ⊢ M ⦂ B
-     × (∀ M' → ∅ ⨟ 0 ⊢ M' ⦂ B → ∅ ⨟ 0 ⊢ plug M' F ⦂ A)
+       0 ⨟ ∅ ⊢ M ⦂ B
+     × (∀ M' → 0 ⨟ ∅ ⊢ M' ⦂ B  →  0 ⨟ ∅ ⊢ plug M' F ⦂ A)
 plug-inversion {M} {□· N} {A} (⊢· {A = A'} ⊢M ⊢N) =
     ⟨ A' ⇒ A , ⟨ ⊢M , (λ M' z → ⊢· z ⊢N) ⟩ ⟩
 plug-inversion {M} {(L ·□) v} {A} (⊢· {A = A'} ⊢L ⊢M) =
@@ -728,14 +780,18 @@ plug-inversion {M} {□[·]} {A} (⊢[·] {A = A'} wf ⊢N) =
 
 ```
 preserve : ∀ {M N A}
-  → ∅ ⨟ 0 ⊢ M ⦂ A
+  → 0 ⨟ ∅ ⊢ M ⦂ A
   → M —→ N
     ----------
-  → ∅ ⨟ 0 ⊢ N ⦂ A
+  → 0 ⨟ ∅ ⊢ N ⦂ A
 preserve ⊢M (ξ {M}{M′} F M—→M′)
     with plug-inversion ⊢M
 ... | ⟨ B , ⟨ ⊢M' , plug-wt ⟩ ⟩ = plug-wt M′ (preserve ⊢M' M—→M′)
 preserve (⊢· (⊢ƛ wf ⊢N) ⊢M) (β-ƛ vV) = substitution ⊢M ⊢N
 preserve (⊢· (⊢$ refl) (⊢$ refl)) δ = ⊢$ refl
-preserve (⊢[·] wf (⊢Λ ⊢N)) β-Λ = {!!}
+preserve (⊢[·] {B = B} wf (⊢Λ ⊢N)) β-Λ = ty-subst {σ = B • id} G ⊢N
+    where
+    G : WFSubst 1 (B • id) 0
+    G {zero} α<1 = wf
+    G {suc α} (s≤s ())
 ```

@@ -18,8 +18,11 @@ open import Data.Nat using (ℕ; zero; suc; _<_; _≤_; z≤n; s≤s)
 open import Data.Nat.Properties using (≤-trans; ≤-step; ≤-refl; ≤-pred)
 open import Data.Product using (_×_; Σ; Σ-syntax; ∃; ∃-syntax; proj₁; proj₂)
    renaming (_,_ to ⟨_,_⟩)
-open import Relation.Binary.PropositionalEquality
-  using (_≡_; _≢_; refl; sym; cong; cong₂)
+
+import Relation.Binary.PropositionalEquality as Eq
+open Eq using (_≡_; _≢_; refl; sym; cong; cong₂; subst)
+open Eq.≡-Reasoning using (begin_; _≡⟨⟩_; _≡⟨_⟩_; _∎)
+
 import Syntax
 ```
 
@@ -316,12 +319,11 @@ data _—→_ : Term → Term → Set where
 
 ```
 infix  2 _—↠_
-infix  1 begin_
 infixr 2 _—→⟨_⟩_
-infix  3 _∎
+infix  3 _■
 
 data _—↠_ : Term → Term → Set where
-  _∎ : ∀ M
+  _■ : ∀ M
       ---------
     → M —↠ M
 
@@ -330,12 +332,6 @@ data _—↠_ : Term → Term → Set where
     → M —↠ N
       ---------
     → L —↠ N
-
-begin_ : ∀ {M N}
-  → M —↠ N
-    ------
-  → M —↠ N
-begin M—↠N = M—↠N
 ```
 
 ## Canonical Forms
@@ -592,16 +588,29 @@ ty-rename {ρ} {Δ} {Δ'} {Γ} {_} {.(_ ⇒ _)} ΔρΔ′ (⊢ƛ wf ⊢N) =
     ⊢ƛ (rename-pres-wf {ρ} ΔρΔ′ wf) (ty-rename ΔρΔ′ ⊢N)
 ty-rename {ρ} {Δ} {Δ'} {Γ} {_} {A} ΔρΔ′ (⊢· ⊢L ⊢M) =
     ⊢· (ty-rename ΔρΔ′ ⊢L ) (ty-rename ΔρΔ′ ⊢M)
-ty-rename {ρ} {Δ} {Δ'} {Γ} {_} {.(all _)} ΔρΔ′ (⊢Λ ⊢N)
+ty-rename {ρ} {Δ} {Δ'} {Γ} {Λ N} {.(all _)} ΔρΔ′ (⊢Λ {A = A} ⊢N)
     with ty-rename {ext ρ} (ext-pres-wf ΔρΔ′) ⊢N
-... | IH
-    rewrite compose-ctx-rename {Γ}{↑ 1}{ext ρ}
-    | ext-cons-shift ρ
-    | sym (compose-ctx-rename {Γ}{ρ}{↑ 1}) =
-    ⊢Λ IH
-ty-rename {ρ} {Δ} {Δ'} {Γ} {_} {_} ΔρΔ′ (⊢[·] {A = A}{B = B} wf ⊢N)
-    rewrite sym (rename-subst-commute {A}{B}{ρ}) =
-    ⊢[·] (rename-pres-wf {ρ} ΔρΔ′ wf) (ty-rename {ρ} ΔρΔ′ ⊢N)
+... | IH =
+    ⊢Λ (subst (λ □ → suc Δ' ⨟ □ ⊢ N ⦂ tyrename (ext ρ) A) EQ IH) 
+    where
+    EQ = begin
+            ctx-rename (ext ρ) (ctx-rename (↑ 1) Γ)
+         ≡⟨ compose-ctx-rename ⟩
+            ctx-rename (↑ 1 ⨟ᵣ ext ρ) Γ
+         ≡⟨ cong (λ □ → ctx-rename (↑ 1 ⨟ᵣ □) Γ) (ext-cons-shift ρ) ⟩
+            ctx-rename (↑ 1 ⨟ᵣ 0 • (ρ ⨟ᵣ ↑ 1)) Γ
+         ≡⟨⟩
+            ctx-rename (ρ ⨟ᵣ ↑ 1) Γ
+         ≡⟨ sym compose-ctx-rename ⟩
+            ctx-rename (↑ 1) (ctx-rename ρ Γ)
+         ∎
+ty-rename {ρ} {Δ} {Δ'} {Γ} {N [·]} {_} ΔρΔ′ (⊢[·] {A = A}{B = B} wf ⊢N) =
+    let IH = ty-rename {ρ} ΔρΔ′ ⊢N in
+    let ⊢N[·] = ⊢[·] (rename-pres-wf {ρ} ΔρΔ′ wf) IH in
+    subst (λ □ → Δ' ⨟ ctx-rename ρ Γ ⊢ N [·] ⦂ □) EQ ⊢N[·]
+    where
+    EQ : tyrename (ext ρ) A ⦗ tyrename ρ B ⦘ ≡ tyrename ρ (A ⦗ B ⦘)
+    EQ = rename-subst-commute {A}{B}{ρ}
 ```
 
 ## Term Substitution Preserves Well-Typed Terms
@@ -626,16 +635,18 @@ WF↑1 {Δ}{α} α<Δ = ⊢var (s≤s α<Δ)
 ```
 
 ```
-subst : ∀ {Γ Γ′ σ N A Δ}
+subst-pres : ∀ {Γ Γ′ σ N A Δ}
   → WTSubst Γ Δ σ Γ′
   → Δ ⨟ Γ ⊢ N ⦂ A
     ---------------
   → Δ ⨟ Γ′ ⊢ ⟪ σ ⟫ N ⦂ A
-subst Γ⊢σ (⊢$ e) = ⊢$ e 
-subst Γ⊢σ (⊢` eq)           = Γ⊢σ eq
-subst {σ = σ} Γ⊢σ (⊢ƛ wf ⊢N) = ⊢ƛ wf (subst {σ = exts σ} (exts-pres {σ = σ} Γ⊢σ) ⊢N) 
-subst {σ = σ} Γ⊢σ (⊢· ⊢L ⊢M) = ⊢· (subst {σ = σ} Γ⊢σ ⊢L) (subst {σ = σ} Γ⊢σ ⊢M) 
-subst {Γ}{Γ′}{σ}{Δ = Δ} Γ⊢σ (⊢Λ ⊢N)   = ⊢Λ (subst {σ = σ} G ⊢N)
+subst-pres Γ⊢σ (⊢$ e) = ⊢$ e 
+subst-pres Γ⊢σ (⊢` eq)           = Γ⊢σ eq
+subst-pres {σ = σ} Γ⊢σ (⊢ƛ wf ⊢N) =
+    ⊢ƛ wf (subst-pres {σ = exts σ} (exts-pres {σ = σ} Γ⊢σ) ⊢N) 
+subst-pres {σ = σ} Γ⊢σ (⊢· ⊢L ⊢M) =
+    ⊢· (subst-pres {σ = σ} Γ⊢σ ⊢L) (subst-pres {σ = σ} Γ⊢σ ⊢M) 
+subst-pres {Γ}{Γ′}{σ}{Δ = Δ} Γ⊢σ (⊢Λ ⊢N)   = ⊢Λ (subst-pres {σ = σ} G ⊢N)
   where
   G : WTSubst (ctx-rename (↑ 1) Γ) (suc Δ) σ (ctx-rename (↑ 1) Γ′)
   G {A}{x} ∋x
@@ -643,7 +654,7 @@ subst {Γ}{Γ′}{σ}{Δ = Δ} Γ⊢σ (⊢Λ ⊢N)   = ⊢Λ (subst {σ = σ} G
   ... | ⟨ B , ⟨ refl , ∋x' ⟩ ⟩ =
          let ⊢⟦σ⟧x = Γ⊢σ {B}{x} ∋x' in
          ty-rename{↑ 1}{Δ}{suc Δ} WF↑1 ⊢⟦σ⟧x
-subst {σ = σ} Γ⊢σ (⊢[·] wf ⊢N) = ⊢[·] wf (subst {σ = σ} Γ⊢σ ⊢N)
+subst-pres {σ = σ} Γ⊢σ (⊢[·] wf ⊢N) = ⊢[·] wf (subst-pres {σ = σ} Γ⊢σ ⊢N)
 ```
 
 ```
@@ -652,7 +663,7 @@ substitution : ∀{Γ Δ A B M N}
    → Δ ⨟ (Γ , A) ⊢ N ⦂ B
      ---------------
    → Δ ⨟ Γ ⊢ N [ M ] ⦂ B
-substitution {Γ}{Δ}{A}{B}{M}{N} ⊢M ⊢N = subst {σ = M • ↑ 0 } G ⊢N
+substitution {Γ}{Δ}{A}{B}{M}{N} ⊢M ⊢N = subst-pres {σ = M • ↑ 0 } G ⊢N
     where
     G : WTSubst (Γ , A) Δ (M • ↑ 0) Γ
     G {A₁} {zero} Z = ⊢M
@@ -721,9 +732,9 @@ ty-subst {σ} ΔσΔ′ (⊢` ∋x) = ⊢` (ctx-subst-pres ∋x)
 ty-subst {σ} ΔσΔ′ (⊢ƛ wf ⊢N) =
   ⊢ƛ (subst-pres-wf {σ} ΔσΔ′ wf) (ty-subst {σ} ΔσΔ′ ⊢N)
 ty-subst {σ} ΔσΔ′ (⊢· ⊢L ⊢M) = ⊢· (ty-subst {σ} ΔσΔ′ ⊢L) (ty-subst {σ} ΔσΔ′ ⊢M)
-ty-subst {σ}{Δ}{Δ′}{Γ} ΔσΔ′ (⊢Λ ⊢N)
+ty-subst {σ}{Δ}{Δ′}{Γ}{Λ N}{A} ΔσΔ′ (⊢Λ ⊢N)
     with ty-subst {σ = tyexts σ} (exts-pres-wf ΔσΔ′) ⊢N
-... | IH
+... | IH 
     rewrite ctx-rename-subst (↑ 1) Γ
     | ctx-rename-subst (↑ 1) (ctx-subst σ Γ)
     | compose-ctx-subst {Γ}{↑ 1}{tyexts σ}

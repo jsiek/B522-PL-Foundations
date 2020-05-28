@@ -829,20 +829,20 @@ rename-pres : ∀ {Γ Δ ρ M A}
     ------------------
   → Δ ⊢ rename ρ M ⦂ A
 rename-pres ⊢ρ (⊢` ∋w)           =  ⊢` (⊢ρ ∋w)
-rename-pres {ρ = ρ} ⊢ρ (⊢λ ⊢N)   =  ⊢λ (rename-pres (ext-pres {ρ = ρ} ⊢ρ) ⊢N)
-rename-pres ⊢ρ (⊢· ⊢L ⊢M)        =  ⊢· (rename-pres ⊢ρ ⊢L) (rename-pres ⊢ρ ⊢M)
-rename-pres {ρ = ρ} ⊢ρ (⊢μ ⊢M)   =  ⊢μ (rename-pres (ext-pres {ρ = ρ} ⊢ρ) ⊢M)
+rename-pres {ρ = ρ} ⊢ρ (⊢λ ⊢N)   =  ⊢λ (rename-pres {ρ = ext ρ} (ext-pres {ρ = ρ} ⊢ρ) ⊢N)
+rename-pres {ρ = ρ} ⊢ρ (⊢· ⊢L ⊢M)        =  ⊢· (rename-pres {ρ = ρ} ⊢ρ ⊢L) (rename-pres {ρ = ρ} ⊢ρ ⊢M)
+rename-pres {ρ = ρ} ⊢ρ (⊢μ ⊢M)   =  ⊢μ (rename-pres {ρ = ext ρ} (ext-pres {ρ = ρ} ⊢ρ) ⊢M)
 rename-pres ⊢ρ (⊢$ eq)           = ⊢$ eq
 rename-pres {ρ = ρ} ⊢ρ (⊢let ⊢M ⊢N) =
-    ⊢let (rename-pres ⊢ρ ⊢M) (rename-pres (ext-pres {ρ = ρ} ⊢ρ) ⊢N)
+    ⊢let (rename-pres {ρ = ρ} ⊢ρ ⊢M) (rename-pres {ρ = ext ρ} (ext-pres {ρ = ρ} ⊢ρ) ⊢N)
 rename-pres ⊢ρ (⊢rcd ⊢Ms dfs) = ⊢rcd (ren-args-pres ⊢ρ ⊢Ms ) dfs
-rename-pres ⊢ρ (⊢# {d = d} ⊢R lif liA) = ⊢# {d = d}(rename-pres ⊢ρ ⊢R) lif liA
-rename-pres ⊢ρ (⊢<: ⊢M lt) = ⊢<: (rename-pres ⊢ρ ⊢M) lt
+rename-pres {ρ = ρ} ⊢ρ (⊢# {d = d} ⊢R lif liA) = ⊢# {d = d}(rename-pres {ρ = ρ} ⊢ρ ⊢R) lif liA
+rename-pres {ρ = ρ} ⊢ρ (⊢<: ⊢M lt) = ⊢<: (rename-pres {ρ = ρ} ⊢ρ ⊢M) lt
 
 ren-args-pres ⊢ρ ⊢*nil = ⊢*nil
 ren-args-pres {ρ = ρ} ⊢ρ (⊢*cons ⊢M ⊢Ms) =
   let IH = ren-args-pres {ρ = ρ} ⊢ρ ⊢Ms in
-  ⊢*cons (rename-pres ⊢ρ ⊢M) IH
+  ⊢*cons (rename-pres {ρ = ρ} ⊢ρ ⊢M) IH
 ```
 
 ```
@@ -857,7 +857,7 @@ exts-pres : ∀ {Γ Δ σ B}
   → WTSubst (Γ , B) (exts σ) (Δ , B)
 exts-pres {σ = σ} Γ⊢σ Z = ⊢` Z
 exts-pres {σ = σ} Γ⊢σ (S {x = x} ∋x)
-    rewrite exts-suc-rename σ x = rename-pres S (Γ⊢σ ∋x)
+    rewrite exts-suc-rename σ x = rename-pres {ρ = ↑ 1} S (Γ⊢σ ∋x)
 ```
 
 ```

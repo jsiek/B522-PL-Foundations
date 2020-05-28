@@ -401,9 +401,9 @@ rename-pres : ∀ {Γ Δ ρ M A}
     ------------------
   → Δ ⊢ rename ρ M ⦂ A
 rename-pres ⊢ρ (⊢` ∋w)           =  ⊢` (⊢ρ ∋w)
-rename-pres {ρ = ρ} ⊢ρ (⊢ƛ ⊢N)   =  ⊢ƛ (rename-pres (ext-pres {ρ = ρ} ⊢ρ) ⊢N)
-rename-pres ⊢ρ (⊢· ⊢L ⊢M)        =  ⊢· (rename-pres ⊢ρ ⊢L) (rename-pres ⊢ρ ⊢M)
-rename-pres {ρ = ρ} ⊢ρ (⊢μ ⊢M)   =  ⊢μ (rename-pres (ext-pres {ρ = ρ} ⊢ρ) ⊢M)
+rename-pres {ρ = ρ} ⊢ρ (⊢ƛ ⊢N)   =  ⊢ƛ (rename-pres {ρ = ext ρ} (ext-pres {ρ = ρ} ⊢ρ) ⊢N)
+rename-pres {ρ = ρ} ⊢ρ (⊢· ⊢L ⊢M)        =  ⊢· (rename-pres {ρ = ρ} ⊢ρ ⊢L) (rename-pres {ρ = ρ} ⊢ρ ⊢M)
+rename-pres {ρ = ρ} ⊢ρ (⊢μ ⊢M)   =  ⊢μ (rename-pres {ρ = ext ρ} (ext-pres {ρ = ρ} ⊢ρ) ⊢M)
 rename-pres ⊢ρ (⊢$ eq)           = ⊢$ eq
 ```
 
@@ -420,7 +420,7 @@ exts-pres : ∀ {Γ Δ σ B}
 exts-pres {σ = σ} Γ⊢σ Z
     rewrite exts-0 σ = ⊢` Z
 exts-pres {σ = σ} Γ⊢σ (S {x = x} ∋x)
-    rewrite exts-suc-rename σ x = rename-pres S (Γ⊢σ ∋x)
+    rewrite exts-suc-rename σ x = rename-pres {ρ = ↑ 1} S (Γ⊢σ ∋x)
 ```
 
 ```

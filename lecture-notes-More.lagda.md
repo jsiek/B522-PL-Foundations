@@ -506,17 +506,17 @@ rename-pres : ∀ {Γ Δ ρ M A}
   → Γ ⊢ M ⦂ A
     ------------------
   → Δ ⊢ rename ρ M ⦂ A
-rename-pres ⊢ρ (⊢` ∋w)           =  ⊢` (⊢ρ ∋w)
-rename-pres {ρ = ρ} ⊢ρ (⊢ƛ ⊢N)   =  ⊢ƛ (rename-pres (ext-pres {ρ = ρ} ⊢ρ) ⊢N)
-rename-pres ⊢ρ (⊢· ⊢L ⊢M)        =  ⊢· (rename-pres ⊢ρ ⊢L) (rename-pres ⊢ρ ⊢M)
-rename-pres {ρ = ρ} ⊢ρ (⊢μ ⊢M)   =  ⊢μ (rename-pres (ext-pres {ρ = ρ} ⊢ρ) ⊢M)
-rename-pres ⊢ρ (⊢$ eq)           = ⊢$ eq
+rename-pres ⊢ρ (⊢` ∋w)            =  ⊢` (⊢ρ ∋w)
+rename-pres {ρ = ρ} ⊢ρ (⊢ƛ ⊢N)    =  ⊢ƛ (rename-pres {ρ = ext ρ} (ext-pres {ρ = ρ} ⊢ρ) ⊢N)
+rename-pres {ρ = ρ} ⊢ρ (⊢· ⊢L ⊢M) =  ⊢· (rename-pres {ρ = ρ} ⊢ρ ⊢L) (rename-pres {ρ = ρ} ⊢ρ ⊢M)
+rename-pres {ρ = ρ} ⊢ρ (⊢μ ⊢M)    =  ⊢μ (rename-pres {ρ = ext ρ} (ext-pres {ρ = ρ} ⊢ρ) ⊢M)
+rename-pres ⊢ρ (⊢$ eq)            = ⊢$ eq
 rename-pres {ρ = ρ} ⊢ρ (⊢let ⊢M ⊢N) =
-    ⊢let (rename-pres ⊢ρ ⊢M) (rename-pres (ext-pres {ρ = ρ} ⊢ρ) ⊢N)
+    ⊢let (rename-pres {ρ = ρ} ⊢ρ ⊢M) (rename-pres {ρ = ext ρ} (ext-pres {ρ = ρ} ⊢ρ) ⊢N)
 rename-pres ⊢ρ ⊢empty = ⊢empty
-rename-pres ⊢ρ (⊢insert ⊢M ⊢Ms) =
-    ⊢insert (rename-pres ⊢ρ ⊢M) (rename-pres ⊢ρ ⊢Ms)
-rename-pres ⊢ρ (⊢! ⊢Ms ⊢N)       = ⊢! (rename-pres ⊢ρ ⊢Ms) (rename-pres ⊢ρ ⊢N)
+rename-pres {ρ = ρ} ⊢ρ (⊢insert ⊢M ⊢Ms) =
+    ⊢insert (rename-pres {ρ = ρ} ⊢ρ ⊢M) (rename-pres {ρ = ρ} ⊢ρ ⊢Ms)
+rename-pres {ρ = ρ} ⊢ρ (⊢! ⊢Ms ⊢N)       = ⊢! (rename-pres {ρ = ρ} ⊢ρ ⊢Ms) (rename-pres {ρ = ρ} ⊢ρ ⊢N)
 rename-pres ⊢ρ ⊢error            = ⊢error
 ```
 
@@ -531,7 +531,7 @@ exts-pres : ∀ {Γ Δ σ B}
     --------------------------------
   → WTSubst (Γ , B) (exts σ) (Δ , B)
 exts-pres {σ = σ} Γ⊢σ Z = ⊢` Z
-exts-pres {σ = σ} Γ⊢σ (S {x = x} ∋x) = rename-pres S (Γ⊢σ ∋x)
+exts-pres {σ = σ} Γ⊢σ (S {x = x} ∋x) = rename-pres {ρ = ↑ 1} S (Γ⊢σ ∋x)
 ```
 
 ```
